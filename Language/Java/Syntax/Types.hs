@@ -1,8 +1,9 @@
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric      #-}
 module Language.Java.Syntax.Types where
 
-import Data.Data
-import GHC.Generics (Generic)
+import           Data.Data
+import           GHC.Generics (Generic)
 
 -- | There are two kinds of types in the Java programming language: primitive types and reference types.
 data Type
@@ -22,8 +23,7 @@ data RefType
 
 -- | A class or interface type consists of a type declaration specifier,
 --   optionally followed by type arguments (in which case it is a parameterized type).
-data ClassType
-    = ClassType [(Ident, [TypeArgument])]
+newtype ClassType = ClassType [(Ident, [TypeArgument])]
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Type arguments may be either reference types or wildcards.
@@ -69,9 +69,9 @@ data TypeParam = TypeParam Ident [RefType]
 -- Names and identifiers
 
 -- | A single identifier.
-data Ident = Ident String
+newtype Ident = Ident String
     deriving (Eq,Ord,Show,Read,Typeable,Generic,Data)
 
 -- | A name, i.e. a period-separated list of identifiers.
-data Name = Name [Ident]
+newtype Name = Name [Ident]
     deriving (Eq,Ord,Show,Read,Typeable,Generic,Data)
