@@ -2,8 +2,8 @@ Name:                   language-java
 Version:                0.2.8
 License:                BSD3
 License-File:           LICENSE
-Author:                 Niklas Broberg
-Maintainer:             Leander Kurscheidt
+Author:                 Niklas Broberg, Julian Brendl, Leander Kurscheidt
+Maintainer:             Julian Brendl, Leander Kurscheidt
 Category:               Language
 Synopsis:               Java source manipulation
 Description:            Manipulating Java source: abstract syntax, lexer, parser, and pretty-printer. Based on language-java.
