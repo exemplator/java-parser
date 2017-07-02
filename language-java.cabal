@@ -3,11 +3,11 @@ Version:                0.2.8
 License:                BSD3
 License-File:           LICENSE
 Author:                 Niklas Broberg
-Maintainer:             Vincent Hanquez <vincent@snarc.org>
+Maintainer:             Leander Kurscheidt
 Category:               Language
 Synopsis:               Java source manipulation
-Description:            Manipulating Java source: abstract syntax, lexer, parser, and pretty-printer.
-Homepage:               http://github.com/vincenthz/language-java
+Description:            Manipulating Java source: abstract syntax, lexer, parser, and pretty-printer. Based on language-java.
+Homepage:               http://github.com/exemplator/java-parser
 Stability:              Experimental
 Build-Type:             Simple
 Cabal-Version:          >= 1.8
@@ -19,7 +19,7 @@ Extra-Source-Files:
 
 source-repository head
   type:                 git
-  location:             git://github.com/vincenthz/language-java
+  location:             git://github.com/exemplator/java-parser
 
 Library
   Build-Tools:          alex >= 3.1.3
