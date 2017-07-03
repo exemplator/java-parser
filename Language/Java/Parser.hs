@@ -34,27 +34,20 @@ module Language.Java.Parser (
 
     ) where
 
-import Language.Java.Lexer ( L(..), Token(..), lexer)
-import Language.Java.Syntax
-import Language.Java.Pretty (pretty)
+import           Language.Java.Lexer  (L (..), Token (..), lexer)
+import           Language.Java.Pretty (pretty)
+import           Language.Java.Syntax
 
-import Text.Parsec hiding ( Empty )
-import Text.Parsec.Pos
+import           Text.Parsec          hiding (Empty)
+import           Text.Parsec.Pos
 
-import Prelude hiding ( exp, catch, (>>), (>>=) )
-import qualified Prelude as P ( (>>), (>>=) )
-import Data.Maybe ( isJust, catMaybes )
-import Control.Monad ( ap )
+import           Control.Monad        (ap)
+import           Data.Char            (toLower)
+import           Data.Maybe           (catMaybes, isJust, listToMaybe, maybe)
+import           Prelude              hiding (catch, exp, (>>), (>>=))
+import qualified Prelude              as P ((>>), (>>=))
 
-#if __GLASGOW_HASKELL__ < 707
-import Control.Applicative ( (<$>), (<$), (<*) )
--- Since I cba to find the instance Monad m => Applicative m declaration.
-(<*>) :: Monad m => m (a -> b) -> m a -> m b
-(<*>) = ap
-infixl 4 <*>
-#else
-import Control.Applicative ( (<$>), (<$), (<*), (<*>) )
-#endif
+import           Control.Applicative  ((<$), (<$>), (<*), (<*>))
 
 type P = Parsec [L Token] ()
 
@@ -135,7 +128,7 @@ normalClassDecl = do
     mex <- opt extends
     imp <- lopt implements
     bod <- classBody
-    return $ \ms -> ClassDecl ms i tps ((fmap head) mex) imp bod
+    return $ \ms -> ClassDecl ms i tps (fmap head mex) imp bod
 
 extends :: P [RefType]
 extends = tok KW_Extends >> refTypeList
@@ -202,10 +195,10 @@ interfaceBody = InterfaceBody . catMaybes <$>
 
 classBodyStatement :: P (Maybe Decl)
 classBodyStatement =
-    (try $ do
+    try (do
        list1 semiColon
        return Nothing) <|>
-    (try $ do
+    try ( do
        mst <- bopt (tok KW_Static)
        blk <- block
        return $ Just $ InitDecl mst blk) <|>
@@ -215,12 +208,13 @@ classBodyStatement =
 
 memberDecl :: P (Mod MemberDecl)
 memberDecl =
-    (try $ do
-        cd  <- classDecl
-        return $ \ms -> MemberClassDecl (cd ms)) <|>
-    (try $ do
-        id  <- try annInterfaceDecl <|> try interfaceDecl
-        return $ \ms -> MemberInterfaceDecl (id ms)) <|>
+    try (do
+        cd <- classDecl
+        return $ \ ms -> MemberClassDecl (cd ms))
+    <|>
+    try
+        (do id <- try annInterfaceDecl <|> try interfaceDecl
+            return $ \ ms -> MemberInterfaceDecl (id ms)) <|>
 
     try fieldDecl <|>
     try methodDecl <|>
@@ -264,12 +258,12 @@ constrBody = braces $ do
 
 explConstrInv :: P ExplConstrInv
 explConstrInv = endSemi $
-    (try $ do
+    try ( do
         tas <- lopt refTypeArgs
         tok KW_This
         as  <- args
         return $ ThisInvoke tas as) <|>
-    (try $ do
+    try ( do
         tas <- lopt refTypeArgs
         tok KW_Super
         as  <- args
@@ -423,12 +417,12 @@ block = braces $ Block <$> list blockStmt
 
 blockStmt :: P BlockStmt
 blockStmt =
-    (try $ do
+    try ( do
         ms  <- list modifier
         cd  <- classDecl
         return $ LocalClass (cd ms)) <|>
-    (try $ do
-        (m,t,vds) <- endSemi $ localVarDecl
+    try ( do
+        (m,t,vds) <- endSemi localVarDecl
         return $ LocalVars m t vds) <|>
     BlockStmt <$> stmt
 
@@ -438,8 +432,8 @@ stmt = ifStmt <|> whileStmt <|> forStmt <|> labeledStmt <|> stmtNoTrail
     ifStmt = do
         tok KW_If
         e   <- parens exp
-        (try $
-            do th <- stmtNSI
+        try (do
+               th <- stmtNSI
                tok KW_Else
                el <- stmt
                return $ IfThenElse e th el) <|>
@@ -453,7 +447,7 @@ stmt = ifStmt <|> whileStmt <|> forStmt <|> labeledStmt <|> stmtNoTrail
     forStmt = do
         tok KW_For
         f <- parens $
-            (try $ do
+            try ( do
                 fi <- opt forInit
                 semiColon
                 e  <- opt exp
@@ -491,7 +485,7 @@ stmtNSI = ifStmt <|> whileStmt <|> forStmt <|> labeledStmt <|> stmtNoTrail
         return $ While e s
     forStmt = do
         tok KW_For
-        f <- parens $ (try $ do
+        f <- parens $ try ( do
             fi <- opt forInit
             semiColon
             e  <- opt exp
@@ -520,7 +514,7 @@ stmtNoTrail =
     -- inner block
     StmtBlock <$> block <|>
     -- assertions
-    (endSemi $ do
+    endSemi ( do
         tok KW_Assert
         e   <- exp
         me2 <- opt $ colon >> exp
@@ -531,24 +525,24 @@ stmtNoTrail =
         sb <- switchBlock
         return $ Switch e sb) <|>
     -- do-while loops
-    (endSemi $ do
+    endSemi (do
         tok KW_Do
         s <- stmt
         tok KW_While
         e <- parens exp
         return $ Do s e) <|>
     -- break
-    (endSemi $ do
+    endSemi (do
         tok KW_Break
         mi <- opt ident
         return $ Break mi) <|>
     -- continue
-    (endSemi $ do
+    endSemi (do
         tok KW_Continue
         mi <- opt ident
         return $ Continue mi) <|>
     -- return
-    (endSemi $ do
+    endSemi (do
         tok KW_Return
         me <- opt exp
         return $ Return me) <|>
@@ -558,7 +552,7 @@ stmtNoTrail =
         b <- block
         return $ Synchronized e b) <|>
     -- throw
-    (endSemi $ do
+    endSemi (do
         tok KW_Throw
         e <- exp
         return $ Throw e) <|>
@@ -576,9 +570,8 @@ stmtNoTrail =
 -- For loops
 
 forInit :: P ForInit
-forInit = (do
-    try (do (m,t,vds) <- localVarDecl
-            return $ ForLocalVars m t vds)) <|>
+forInit = try (do (m,t,vds) <- localVarDecl
+                  return $ ForLocalVars m t vds) <|>
     (seplist1 stmtExp comma >>= return . ForInitExps)
 
 forUp :: P [Exp]
@@ -728,11 +721,11 @@ primaryNoNewArrayNPS =
     const This <$> tok KW_This <|>
     parens exp <|>
     -- TODO: These two following should probably be merged more
-    (try $ do
+    try ( do
         rt <- resultType
         period >> tok KW_Class
         return $ ClassLit rt) <|>
-    (try $ do
+    try ( do
         n <- name
         period >> tok KW_This
         return $ ThisClass n) <|>
@@ -760,17 +753,19 @@ instanceCreationNPS =
 
 typeDeclSpecifier :: P TypeDeclSpecifier
 typeDeclSpecifier =
-    (try $ do ct <- classType
-              period
-              i <- ident
-              tok Op_LThan
-              tok Op_GThan
-              return $ TypeDeclSpecifierWithDiamond ct i Diamond
+    try (do
+        ct <- classType
+        period
+        i <- ident
+        tok Op_LThan
+        tok Op_GThan
+        return $ TypeDeclSpecifierWithDiamond ct i Diamond
     ) <|>
-    (try $ do i <- ident
-              tok Op_LThan
-              tok Op_GThan
-              return $ TypeDeclSpecifierUnqualifiedWithDiamond i Diamond
+    try (do
+        i <- ident
+        tok Op_LThan
+        tok Op_GThan
+        return $ TypeDeclSpecifierUnqualifiedWithDiamond i Diamond
     ) <|>
     (do ct <- classType
         return $ TypeDeclSpecifier ct
@@ -797,18 +792,18 @@ instanceCreation = try instanceCreationNPS <|> do
 
 lambdaParams :: P LambdaParams
 lambdaParams = try (LambdaSingleParam <$> ident)
-               <|> try (parens $ LambdaFormalParams <$> (seplist formalParam comma))
-               <|> (parens $ LambdaInferredParams <$> (seplist ident comma))
+               <|> try (parens $ LambdaFormalParams <$> seplist formalParam comma)
+               <|> parens (LambdaInferredParams <$> seplist ident comma)
 
 lambdaExp :: P Exp
-lambdaExp = Lambda 
-            <$> (lambdaParams <* (tok LambdaArrow))
-            <*> ((LambdaBlock <$> (try block))
+lambdaExp = Lambda
+            <$> (lambdaParams <* tok LambdaArrow)
+            <*> ((LambdaBlock <$> try block)
                  <|> (LambdaExpression <$> exp))
 
 methodRef :: P Exp
-methodRef = MethodRef 
-            <$> (name <*  (tok MethodRefSep))
+methodRef = MethodRef
+            <$> (name <*  tok MethodRefSep)
             <*> ident
 
 {-
@@ -981,7 +976,7 @@ arrayCreation :: P Exp
 arrayCreation = do
     tok KW_New
     t <- nonArrayType
-    f <- (try $ do
+    f <- try (do
              ds <- list1 $ brackets empty
              ai <- arrayInit
              return $ \t -> ArrayCreateInit t (length ds) ai) <|>
@@ -1037,35 +1032,35 @@ assignOp =
 -- See Note [Parsing operators]
 infixOperators :: [P Op]
 infixOperators =
-  [ (tok Op_OOr     >> return COr       )
+  [ tok Op_OOr     >> return COr
 
-  , (tok Op_AAnd    >> return CAnd      )
+  , tok Op_AAnd    >> return CAnd
 
-  , (tok Op_Or      >> return Or        )
+  , tok Op_Or      >> return Or
 
-  , (tok Op_Caret   >> return Xor       )
+  , tok Op_Caret   >> return Xor
 
-  , (tok Op_And     >> return And       )
-  
+  , tok Op_And     >> return And
+
   , (tok Op_Equals  >> return Equal     ) <|>
     (tok Op_BangE   >> return NotEq     )
 
   , (tok Op_LThan   >> return LThan     ) <|>
-    (tok Op_GThan   >> return GThan     ) <|>                                          
+    (tok Op_GThan   >> return GThan     ) <|>
     (tok Op_LThanE  >> return LThanE    ) <|>
     (tok Op_GThanE  >> return GThanE    )
 
   , (tok Op_LShift  >> return LShift    ) <|>
-    (try $ do
-       tok Op_GThan   
-       tok Op_GThan   
+    try (do
        tok Op_GThan
-       return RRShift   ) <|>
-           
-    (try $ do
-       tok Op_GThan 
        tok Op_GThan
-       return RShift    )
+       tok Op_GThan
+       return RRShift ) <|>
+
+    try (do
+       tok Op_GThan
+       tok Op_GThan
+       return RShift )
 
   , (tok Op_Plus    >> return Add       ) <|>
     (tok Op_Minus   >> return Sub       )
@@ -1126,10 +1121,16 @@ refType =
 
 nonArrayType :: P Type
 nonArrayType = PrimType <$> primType <|>
-    RefType <$> ClassRefType <$> classType
+    (RefType . ClassRefType <$> classType)
 
 classType :: P ClassType
-classType = ClassType <$> seplist1 classTypeSpec period
+classType = toClassType <$> seplist1 classTypeSpec period
+    where
+        toClassType :: [(Ident, [TypeArgument])] -> ClassType
+        toClassType = constructClassType . stripEmpty . split
+        split = span (\(ident, _) -> maybe False (\a -> a == toLower a) ((listToMaybe . fromIdent) ident))
+        stripEmpty (a, b) = (map fst a, b)
+        constructClassType (a, b) = if null a then WithoutPackage b else WithPackage (FullQualiPackage a) b
 
 classTypeSpec :: P (Ident, [TypeArgument])
 classTypeSpec = do

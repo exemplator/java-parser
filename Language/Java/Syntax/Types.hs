@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds          #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric      #-}
 module Language.Java.Syntax.Types where
@@ -23,7 +24,14 @@ data RefType
 
 -- | A class or interface type consists of a type declaration specifier,
 --   optionally followed by type arguments (in which case it is a parameterized type).
-newtype ClassType = ClassType [(Ident, [TypeArgument])]
+-- TODO document
+data ClassType
+  = WithPackage Package [(Ident, [TypeArgument])]
+  | WithoutPackage [(Ident, [TypeArgument])]
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
+
+-- TODO document
+data Package = FullQualiPackage [Ident] | WildcardPackage [Ident]
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Type arguments may be either reference types or wildcards.
@@ -72,6 +80,16 @@ data TypeParam = TypeParam Ident [RefType]
 newtype Ident = Ident String
     deriving (Eq,Ord,Show,Read,Typeable,Generic,Data)
 
+fromIdent :: Ident -> String
+fromIdent (Ident s) = s
+
 -- | A name, i.e. a period-separated list of identifiers.
 newtype Name = Name [Ident]
     deriving (Eq,Ord,Show,Read,Typeable,Generic,Data)
+
+-----------------------------------------------------------------------
+-- extensions and functionality
+
+-- | A type with relaxed equality checking e.g. boxed primitives equal primitives
+-- and of one of the
+newtype RelaxedType = MakeRelaxed Type
