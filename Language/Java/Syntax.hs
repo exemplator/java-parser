@@ -1,4 +1,5 @@
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric      #-}
 module Language.Java.Syntax
     ( CompilationUnit(..)
     , PackageDecl(..)
@@ -46,11 +47,11 @@ module Language.Java.Syntax
     , module Language.Java.Syntax.Types
     ) where
 
-import Data.Data
-import GHC.Generics (Generic)
+import           Data.Data
+import           GHC.Generics               (Generic)
 
-import Language.Java.Syntax.Types
-import Language.Java.Syntax.Exp
+import           Language.Java.Syntax.Exp
+import           Language.Java.Syntax.Types
 
 -----------------------------------------------------------------------
 -- Packages
@@ -210,7 +211,7 @@ data Modifier
   deriving (Eq,Read,Typeable,Generic,Data)
 
 instance Show Modifier where
-   show Public = "public" 
+   show Public = "public"
    show Private = "private"
    show Protected = "protected"
    show Abstract = "abstract"
@@ -226,7 +227,7 @@ instance Show Modifier where
 -- | Annotations have three different forms: no-parameter, single-parameter or key-value pairs
 data Annotation = NormalAnnotation        { annName :: Name -- Not type because not type generics not allowed
                                           , annKV   :: [(Ident, ElementValue)] }
-                | SingleElementAnnotation { annName :: Name
+                | SingleElementAnnotation { annName  :: Name
                                           , annValue:: ElementValue }
                 | MarkerAnnotation        { annName :: Name }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
@@ -235,6 +236,7 @@ desugarAnnotation :: Annotate -> (Name, [(Ident, ElementValue)])
 desugarAnnotation (MarkerAnnotation n)          = (n, [])
 desugarAnnotation (SingleElementAnnotation n e) = (n, [(Ident "value", e)])
 desugarAnnotation (NormalAnnotation n kv)       = (n, kv)
+desugarAnnotation' :: Annotation -> Annotation
 desugarAnnotation' = uncurry NormalAnnotation . desugarAnnotation
 
 -- | Annotations may contain  annotations or (loosely) expressions

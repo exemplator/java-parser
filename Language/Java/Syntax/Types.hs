@@ -115,12 +115,12 @@ checkRelaxed (ArrayType at1) (ArrayType at2) = RelaxedType at1 == RelaxedType at
 checkRelaxed (ArrayType _) (ClassRefType _) = False
 checkRelaxed (ClassRefType _) (ArrayType _) = False
 checkRelaxed (ClassRefType cr1) (ClassRefType cr2) = checkClassType cr1 cr2
-  where 
+  where
     checkClassType :: ClassType -> ClassType -> Bool
     checkClassType (WithPackage pack1 class1) (WithPackage pack2 class2) = pack1 == pack2 && class1 == class2
     checkClassType (WithPackage _ class1) (WithoutPackage class2) = class1 == class2
-    checkClassType (WithoutPackage class1) (WithPackage _ class2) = class1 == class2 
-    checkClassType (WithoutPackage class1) (WithoutPackage class2) = class1 == class2 
+    checkClassType (WithoutPackage class1) (WithPackage _ class2) = class1 == class2
+    checkClassType (WithoutPackage class1) (WithoutPackage class2) = class1 == class2
 
 -- | This function returns a primitve as a ref type (i.e. boxed primitve)
 toRefType :: PrimType -> RefType
@@ -138,4 +138,8 @@ toRefType = toRefHelper
     stringToRef :: String -> RefType
     stringToRef x = ClassRefType (WithPackage refPackage [(Ident x, [])])
     refPackage :: Package
+<<<<<<< HEAD
     refPackage = FullQualiPackage (map Ident ["java", "lang"])
+=======
+    refPackage = FullQualiPackage (map Ident ["java", "lang"])
+>>>>>>> style changes
