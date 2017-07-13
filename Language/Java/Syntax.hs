@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric,TypeSynonymInstances #-}
 module Language.Java.Syntax
     ( CompilationUnit(..)
     , PackageDecl(..)
@@ -47,6 +47,7 @@ module Language.Java.Syntax
     ) where
 
 import Data.Data
+import Data.Maybe
 import GHC.Generics (Generic)
 
 import Language.Java.Syntax.Types
@@ -84,8 +85,8 @@ data TypeDecl
 
 -- | Get type of TypeDecl
 instance HasType TypeDecl where
-  getType ClassTypeDecl ctd = getType ctd
-  getType InterfaceTypeDecl itd = getType ctd
+  getType (ClassTypeDecl ctd) = getType ctd
+  getType (InterfaceTypeDecl itd) = getType itd
 
 -- | A class declaration specifies a new named reference type.
 data ClassDecl
@@ -95,8 +96,8 @@ data ClassDecl
 
 -- | Get type of ClassDecl
 instance HasType ClassDecl where
-  getType ClassDecl _ i _ _ _ _ =  withoutPackageIdentToType i
-  getType EnumDecl _ i _ _ =  withoutPackageIdentToType i
+  getType (ClassDecl _ i _ _ _ _) =  withoutPackageIdentToType i
+  getType (EnumDecl _ i _ _) =  withoutPackageIdentToType i
 
 -- | A class body may contain declarations of members of the class, that is,
 --   fields, classes, interfaces and methods.
@@ -115,7 +116,7 @@ data EnumConstant = EnumConstant Ident [Argument] (Maybe ClassBody)
 
 -- | Get type of EnumConstant
 instance HasType EnumConstant where
-  getType EnumConstant i _ _ _ =  withoutPackageIdentToType i
+  getType (EnumConstant i _ _) =  withoutPackageIdentToType i
 
 -- | An interface declaration introduces a new reference type whose members
 --   are classes, interfaces, constants and abstract methods. This type has
@@ -127,7 +128,7 @@ data InterfaceDecl
 
 -- | Get type of InterfaceDecl
 instance HasType InterfaceDecl where
-  getType InterfaceDecl _ _ i _ _ _ =  withoutPackageIdentToType i
+  getType (InterfaceDecl _ _ i _ _ _) =  withoutPackageIdentToType i
 
 -- | Interface can declare either a normal interface or an annotation
 data InterfaceKind = InterfaceNormal | InterfaceAnnotation
@@ -164,13 +165,13 @@ data MemberDecl
 
 -- | Get type of MemberDecl
 instance HasType MemberDecl where
-  getType FieldDecl _ t _ _ =  t
-  getType MemberClassDecl cd =  getType cd
-  getType MemberInterfaceDecl id =  getType id
+  getType (FieldDecl _ t _) =  t
+  getType (MemberClassDecl cd) =  getType cd
+  getType (MemberInterfaceDecl id) =  getType id
 
 -- | Get type of MemberDecl if it is a MethodDecl (our solution to handeling the Maybe)
 instance CollectTypes MemberDecl where
-  collectTypes MemberDecl _ _ t _ =  maybeToList t
+  collectTypes (MethodDecl _ _ t _ _ _ _ _) =  maybeToList t
 
 -- | A declaration of a variable, which may be explicitly initialized.
 data VarDecl
@@ -198,7 +199,7 @@ data FormalParam = FormalParam [Modifier] Type Bool VarDeclId
 
 -- | Gets type of FormalParam
 instance HasType FormalParam where
-  getType FormalParam _ t _ _ =  t
+  getType (FormalParam _ t _ _) =  t
 
 -- | A method body is either a block of code that implements the method or simply a
 --   semicolon, indicating the lack of an implementation (modelled by 'Nothing').
@@ -261,7 +262,7 @@ data Annotation = NormalAnnotation        { annName :: Name -- Not type because 
                 | MarkerAnnotation        { annName :: Name }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
-desugarAnnotation :: Annotate -> (Name, [(Ident, ElementValue)])
+--desugarAnnotation :: Annotate -> (Name, [(Ident, ElementValue)])
 desugarAnnotation (MarkerAnnotation n)          = (n, [])
 desugarAnnotation (SingleElementAnnotation n e) = (n, [(Ident "value", e)])
 desugarAnnotation (NormalAnnotation n kv)       = (n, kv)

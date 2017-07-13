@@ -93,7 +93,7 @@ fromIdent :: Ident -> String
 fromIdent (Ident s) = s
 
 -- | A name, i.e. a period-separated list of identifiers.
-newtype NameType = Name [Ident]
+newtype Name = Name [Ident]
     deriving (Eq,Ord,Show,Read,Typeable,Generic,Data)
 
 -----------------------------------------------------------------------
@@ -107,7 +107,7 @@ newtype RelaxedType = RelaxedType Type
 
 -- | Defines Equals for RelaxedType
 instance Eq RelaxedType where
-  RelaxedType (PrimType t1) == RelaxedType (PrimType t2) = t1 == t2
+  RelaxedType (PrimType t1) == RelaxedType (PrimType t2) = t1 == tƒ2
   RelaxedType (RefType r1) == RelaxedType (PrimType r2) = checkRelaxed r1 (primToRefType r2)
   RelaxedType (PrimType r1) == RelaxedType (RefType r2) = checkRelaxed (primToRefType r1) r2
   RelaxedType (RefType r1) == RelaxedType (RefType r2) = checkRelaxed r1 r2
