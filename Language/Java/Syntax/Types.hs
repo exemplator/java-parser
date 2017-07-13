@@ -12,6 +12,7 @@ data Type
     | RefType RefType
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
+
 -- | There are three kinds of reference types: class types, interface types, and array types.
 --   Reference types may be parameterized with type arguments.
 --   Type variables cannot be syntactically distinguished from class type identifiers,
@@ -89,6 +90,45 @@ newtype Name = Name [Ident]
 -----------------------------------------------------------------------
 -- extensions and functionality
 
--- | A type with relaxed equality checking e.g. boxed primitives equal primitives
--- and of one of the
-newtype RelaxedType = MakeRelaxed Type
+-- | A type with relaxed equality checking:
+-- 1. If packages equal
+-- 2. Or if classes equal
+-- 3. Or if boxed primitives equal primitives
+newtype RelaxedType = RelaxedType Type
+
+instance Eq RelaxedType where
+  RelaxedType (PrimType t1) == RelaxedType (PrimType t2) = t1 == t2
+  RelaxedType (RefType r1) == RelaxedType (PrimType r2) = checkRelaxed r1 (toRefType r2)
+  RelaxedType (PrimType r1) == RelaxedType (RefType r2) = checkRelaxed (toRefType r1) r2
+  RelaxedType (RefType r1) == RelaxedType (RefType r2) = checkRelaxed r1 r2
+
+checkRelaxed :: RefType -> RefType -> Bool
+checkRelaxed (ArrayType at1) (ArrayType at2) = RelaxedType at1 == RelaxedType at2
+checkRelaxed (ArrayType _) (ClassRefType _) = False
+checkRelaxed (ClassRefType _) (ArrayType _) = False
+checkRelaxed (ClassRefType cr1) (ClassRefType cr2) = checkClassType cr1 cr2
+  where 
+    checkClassType :: ClassType -> ClassType -> Bool
+    checkClassType (WithPackage pack1 class1) (WithPackage pack2 class2) = pack1 == pack2 && class1 == class2
+    checkClassType (WithPackage _ class1) (WithoutPackage class2) = class1 == class2
+    checkClassType (WithoutPackage class1) (WithPackage _ class2) = class1 == class2 
+    checkClassType (WithoutPackage class1) (WithoutPackage class2) = class1 == class2 
+
+toRefType :: PrimType -> RefType
+toRefType = toRefHelper
+  where
+    toRefHelper BooleanT = stringToRef "Boolean"
+    toRefHelper ByteT = stringToRef "Byte"
+    toRefHelper ShortT = stringToRef "Short"
+    toRefHelper IntT = stringToRef "Integer"
+    toRefHelper LongT = stringToRef "Long"
+    toRefHelper CharT = stringToRef "Char"
+    toRefHelper FloatT = stringToRef "Float"
+    toRefHelper DoubleT = stringToRef "Double"
+
+    stringToRef :: String -> RefType
+    stringToRef x = ClassRefType (WithPackage refPackage [(Ident x, [])])
+    refPackage :: Package
+    refPackage = FullQualiPackage (map Ident ["java", "lang"])
+
+
