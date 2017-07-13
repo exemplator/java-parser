@@ -102,6 +102,11 @@ instance Eq RelaxedType where
   RelaxedType (PrimType r1) == RelaxedType (RefType r2) = checkRelaxed (toRefType r1) r2
   RelaxedType (RefType r1) == RelaxedType (RefType r2) = checkRelaxed r1 r2
 
+-- | Checks a RelaxedType for equality.
+-- A RelaxedType equals another RelaxedType if:
+-- 1. If packages equal
+-- 2. If classes equal
+-- 3. If boxed primitives equal primitives
 checkRelaxed :: RefType -> RefType -> Bool
 checkRelaxed (ArrayType at1) (ArrayType at2) = RelaxedType at1 == RelaxedType at2
 checkRelaxed (ArrayType _) (ClassRefType _) = False
@@ -114,6 +119,7 @@ checkRelaxed (ClassRefType cr1) (ClassRefType cr2) = checkClassType cr1 cr2
     checkClassType (WithoutPackage class1) (WithPackage _ class2) = class1 == class2 
     checkClassType (WithoutPackage class1) (WithoutPackage class2) = class1 == class2 
 
+-- | This function returns a primitve as a ref type (i.e. boxed primitve)
 toRefType :: PrimType -> RefType
 toRefType = toRefHelper
   where
