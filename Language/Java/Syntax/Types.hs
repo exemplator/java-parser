@@ -96,6 +96,7 @@ newtype Name = Name [Ident]
 -- 3. Or if boxed primitives equal primitives
 newtype RelaxedType = RelaxedType Type
 
+-- | Defines Equals for RelaxedType
 instance Eq RelaxedType where
   RelaxedType (PrimType t1) == RelaxedType (PrimType t2) = t1 == t2
   RelaxedType (RefType r1) == RelaxedType (PrimType r2) = checkRelaxed r1 (toRefType r2)
