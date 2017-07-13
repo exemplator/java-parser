@@ -22,15 +22,14 @@ data RefType
     | ArrayType Type
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
--- | A class or interface type consists of a type declaration specifier,
---   optionally followed by type arguments (in which case it is a parameterized type).
--- TODO document
+-- | A ClassType can either be with an package or without.
 data ClassType
   = WithPackage Package [(Ident, [TypeArgument])]
   | WithoutPackage [(Ident, [TypeArgument])]
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
--- TODO document
+-- | represents a package, e.g. java.util
+-- a package can either be fully qualified ("java.util"), or end with an wildcard ("java.util.*")
 data Package = FullQualiPackage [Ident] | WildcardPackage [Ident]
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
