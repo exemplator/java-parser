@@ -12,7 +12,9 @@ data Type
     | RefType RefType
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
-
+class HasType a where
+  getType :: a -> Type
+  
 -- | There are three kinds of reference types: class types, interface types, and array types.
 --   Reference types may be parameterized with type arguments.
 --   Type variables cannot be syntactically distinguished from class type identifiers,
@@ -137,5 +139,3 @@ toRefType = toRefHelper
     stringToRef x = ClassRefType (WithPackage refPackage [(Ident x, [])])
     refPackage :: Package
     refPackage = FullQualiPackage (map Ident ["java", "lang"])
-
-
