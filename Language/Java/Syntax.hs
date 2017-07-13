@@ -231,6 +231,7 @@ data Annotation = NormalAnnotation        { annName :: Name -- Not type because 
                 | MarkerAnnotation        { annName :: Name }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
+desugarAnnotation :: Annotate -> (Name, [(Ident, ElementValue)])
 desugarAnnotation (MarkerAnnotation n)          = (n, [])
 desugarAnnotation (SingleElementAnnotation n e) = (n, [(Ident "value", e)])
 desugarAnnotation (NormalAnnotation n kv)       = (n, kv)
@@ -246,10 +247,8 @@ data ElementValue = EVVal VarInit
 
 -- | A block is a sequence of statements, local class declarations
 --   and local variable declaration statements within braces.
-data Block = Block [BlockStmt]
+newtype Block = Block [BlockStmt]
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-
-
 
 -- | A block statement is either a normal statement, a local
 --   class declaration or a local variable declaration.
@@ -461,6 +460,6 @@ data MethodInvocation
 
 -- | An array initializer may be specified in a declaration, or as part of an array creation expression, creating an
 --   array and providing some initial values
-data ArrayInit
+newtype ArrayInit
     = ArrayInit [VarInit]
   deriving (Eq,Show,Read,Typeable,Generic,Data)
