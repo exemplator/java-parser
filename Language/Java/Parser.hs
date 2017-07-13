@@ -728,7 +728,7 @@ primaryNoNewArrayNPS =
     try ( do
         n <- name
         period >> tok KW_This
-        return $ ThisClass n) <|>
+        return $ QualifiedThis n) <|>
     try instanceCreationNPS <|>
     try (MethodInv <$> methodInvocationNPS) <|>
     try (FieldAccess <$> fieldAccessNPS) <|>
