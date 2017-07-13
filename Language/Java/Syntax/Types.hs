@@ -1,6 +1,9 @@
 {-# LANGUAGE DataKinds          #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE FlexibleInstances  #-}
+{-# LANGUAGE UndecidableInstances  #-}
+
 module Language.Java.Syntax.Types where
 
 import           Data.Data
@@ -35,12 +38,7 @@ data RefType
 data ClassType
   = WithPackage Package [(Ident, [TypeArgument])]
   | WithoutPackage [(Ident, [TypeArgument])]
-  | ThisType
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-
-data ThisType
-  = This
-  | QualifiedThis Type
 
 -- | represents a package, e.g. java.util
 -- a package can either be fully qualified ("java.util"), or end with an wildcard ("java.util.*")
