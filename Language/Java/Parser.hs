@@ -1182,8 +1182,8 @@ seg constr = do
     start <- getPosition
     result <- pure constr
     end <- getPosition
-    let seg = sourcePosToSegment start end
-    return (result seg)
+    let segmt = sourcePosToSegment start end
+    return (result segmt)
 ----------------------------------------------------------------------------
 -- Names
 
