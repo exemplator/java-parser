@@ -49,14 +49,10 @@ data Package = FullQualiPackage [Ident] | WildcardPackage [Ident]
 data TypeArgument
     = Wildcard (Maybe WildcardBound)
     | ActualType RefType
+    | Diamond
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
-data TypeDeclSpecifier
-    = TypeDeclSpecifier ClassType
-    | TypeDeclSpecifierWithDiamond ClassType Diamond
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
-
-data Diamond = Diamond
+newtype TypeDeclSpecifier = TypeDeclSpecifier ClassType
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Wildcards may be given explicit bounds, either upper (@extends@) or lower (@super@) bounds.

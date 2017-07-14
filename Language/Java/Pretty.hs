@@ -489,13 +489,10 @@ instance Pretty Package where
 instance Pretty TypeArgument where
   prettyPrec p (ActualType rt) = prettyPrec p rt
   prettyPrec p (Wildcard mBound) = char '?' <+> maybePP p mBound
+  prettyPrec _ Diamond = text ""
 
 instance Pretty TypeDeclSpecifier where
   prettyPrec p (TypeDeclSpecifier ct) = prettyPrec p ct
-  prettyPrec p (TypeDeclSpecifierWithDiamond ct d) =  prettyPrec p ct <> char '.' <> prettyPrec p d
-
-instance Pretty Diamond where
-  prettyPrec _ Diamond = text "<>"
 
 instance Pretty WildcardBound where
   prettyPrec p (ExtendsBound rt) = text "extends" <+> prettyPrec p rt

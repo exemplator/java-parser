@@ -38,6 +38,8 @@ instance Arbitrary Ident where
       where unkeyword k
                 | k `elem` ["if","do","then","else"] = "x" ++ k
                 | otherwise                          = k
+instance Arbitrary Package where
+    arbitrary = FullQualiPackage <$> ((:[]) <$> arbitrary)
 
 ----------------------------------------------------------
 testJavaDirectory :: FilePath
