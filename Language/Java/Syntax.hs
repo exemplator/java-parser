@@ -1,4 +1,6 @@
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric,TypeSynonymInstances #-}
+{-# LANGUAGE DeriveDataTypeable   #-}
+{-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 module Language.Java.Syntax
     ( CompilationUnit(..)
     , PackageDecl(..)
@@ -46,12 +48,12 @@ module Language.Java.Syntax
     , module Language.Java.Syntax.Types
     ) where
 
-import Data.Data
-import Data.Maybe
-import GHC.Generics (Generic)
+import           Data.Data
+import           Data.Maybe
+import           GHC.Generics               (Generic)
 
-import Language.Java.Syntax.Types
-import Language.Java.Syntax.Exp
+import           Language.Java.Syntax.Exp
+import           Language.Java.Syntax.Types
 
 -----------------------------------------------------------------------
 -- Packages
@@ -59,7 +61,7 @@ import Language.Java.Syntax.Exp
 
 -- | A compilation unit is the top level syntactic goal symbol of a Java program.
 data CompilationUnit = CompilationUnit (Maybe PackageDecl) [ImportDecl] [TypeDecl]
-  deriving (Eq,Show,Read,Typeable,Generic,Data) 
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A package declaration appears within a compilation unit to indicate the package to which the compilation unit belongs.
 newtype PackageDecl = PackageDecl Package
@@ -239,7 +241,7 @@ data Modifier
   deriving (Eq,Read,Typeable,Generic,Data)
 
 instance Show Modifier where
-   show Public = "public" 
+   show Public = "public"
    show Private = "private"
    show Protected = "protected"
    show Abstract = "abstract"
@@ -255,7 +257,7 @@ instance Show Modifier where
 -- | Annotations have three different forms: no-parameter, single-parameter or key-value pairs
 data Annotation = NormalAnnotation        { annName :: Name -- Not type because not type generics not allowed
                                           , annKV   :: [(Ident, ElementValue)] }
-                | SingleElementAnnotation { annName :: Name
+                | SingleElementAnnotation { annName  :: Name
                                           , annValue:: ElementValue }
                 | MarkerAnnotation        { annName :: Name }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
@@ -364,7 +366,7 @@ data ForInit
 newtype ExceptionType = ExceptionType RefType -- restricted to ClassType or TypeVariable
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
-  -- | Gets type of ExceptionType
+-- | Gets type of ExceptionType
 instance HasType ExceptionType where
   getType (ExceptionType x) = RefType x
 
