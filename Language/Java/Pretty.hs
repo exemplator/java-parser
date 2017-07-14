@@ -1,7 +1,6 @@
 module Language.Java.Pretty where
 
 import           Data.Char            (toLower)
-import           Data.List            (intersperse)
 import           Text.PrettyPrint
 import           Text.Printf          (printf)
 
@@ -45,7 +44,7 @@ instance Pretty ImportDecl where
 
 instance Pretty TypeDecl where
   prettyPrec p (ClassTypeDecl     cd) = prettyPrec p cd
-  prettyPrec p (InterfaceTypeDecl id) = prettyPrec p id
+  prettyPrec p (InterfaceTypeDecl idecl) = prettyPrec p idecl
 
 instance Pretty ClassDecl where
   prettyPrec p (EnumDecl mods ident impls body) =
@@ -122,7 +121,7 @@ instance Pretty MemberDecl where
          ] $$ prettyPrec p body
 
   prettyPrec p (MemberClassDecl cd) = prettyPrec p cd
-  prettyPrec p (MemberInterfaceDecl id) = prettyPrec p id
+  prettyPrec p (MemberInterfaceDecl idecl) = prettyPrec p idecl
 
 instance Pretty VarDecl where
   prettyPrec p (VarDecl vdId Nothing) = prettyPrec p vdId
@@ -163,7 +162,7 @@ instance Pretty ExplConstrInv where
 
 instance Pretty Modifier where
   prettyPrec p (Annotation ann) = prettyPrec p ann $+$ nest (-1) ( text "")
-  prettyPrec p mod = text . map toLower $ show mod
+  prettyPrec _ modifier = text . map toLower $ show modifier
 
 instance Pretty Annotation where
   prettyPrec p x = text "@" <> prettyPrec p (annName x) <> case x of
@@ -193,7 +192,7 @@ instance Pretty BlockStmt where
 
 instance Pretty Stmt where
   prettyPrec p (StmtBlock block) = prettyPrec p block
-  prettyPrec p (IfThen c th) =
+  prettyPrec _ (IfThen c th) =
     text "if" <+> parens (prettyPrec 0 c) $+$ prettyNestedStmt 0 th
 
   prettyPrec p (IfThenElse c th el) =
@@ -220,7 +219,7 @@ instance Pretty Stmt where
           , prettyPrec p stmt
          ]
 
-  prettyPrec p Empty = semi
+  prettyPrec _ Empty = semi
 
   prettyPrec p (ExpStmt e) = prettyPrec p e <> semi
 
@@ -270,7 +269,7 @@ instance Pretty SwitchBlock where
 instance Pretty SwitchLabel where
   prettyPrec p (SwitchCase e) =
     text "case" <+> prettyPrec p e <> colon
-  prettyPrec p Default = text "default:"
+  prettyPrec _ Default = text "default:"
 
 instance Pretty ForInit where
   prettyPrec p (ForLocalVars mods t vds) =
@@ -291,7 +290,7 @@ instance Pretty Exp where
 
   prettyPrec _ This = text "this"
 
-  prettyPrec p (ThisClass name) =
+  prettyPrec p (QualifiedThis name) =
     prettyPrec p name <> text ".this"
 
   prettyPrec p (InstanceCreation tArgs tds args mBody) =
@@ -311,10 +310,10 @@ instance Pretty Exp where
       hcat (prettyPrec p t : map (brackets . prettyPrec p) es
                 ++ replicate k (text "[]"))
 
-  prettyPrec p (ArrayCreateInit t k init) =
+  prettyPrec p (ArrayCreateInit t k ini) =
     text "new"
       <+> hcat (prettyPrec p t : replicate k (text "[]"))
-      <+> prettyPrec p init
+      <+> prettyPrec p ini
 
   prettyPrec p (FieldAccess fa) = parenPrec p 1 $ prettyPrec 1 fa
 
@@ -366,25 +365,25 @@ instance Pretty Exp where
 
 instance Pretty LambdaParams where
   prettyPrec p (LambdaSingleParam ident) = prettyPrec p ident
-  prettyPrec p (LambdaFormalParams params) = ppArgs params
-  prettyPrec p (LambdaInferredParams idents) = ppArgs idents
+  prettyPrec _ (LambdaFormalParams params) = ppArgs params
+  prettyPrec _ (LambdaInferredParams idents) = ppArgs idents
 
 instance Pretty LambdaExpression where
-  prettyPrec p (LambdaExpression exp) = prettyPrec p exp
+  prettyPrec p (LambdaExpression expression) = prettyPrec p expression
   prettyPrec p (LambdaBlock block) = prettyPrec p block
 
 instance Pretty Literal where
-  prettyPrec p (Int i) = text (show i)
-  prettyPrec p (Word i) = text (show i) <> char 'L'
-  prettyPrec p (Float f) = text (show f) <> char 'F'
-  prettyPrec p (Double d) = text (show d)
-  prettyPrec p (Boolean b) = text . map toLower $ show b
-  prettyPrec p (Char c) = quotes $ text (escapeChar c)
-  prettyPrec p (String s) = doubleQuotes $ text (concatMap escapeString s)
-  prettyPrec p (Null) = text "null"
+  prettyPrec _ (Int i) = text (show i)
+  prettyPrec _ (Word i) = text (show i) <> char 'L'
+  prettyPrec _ (Float f) = text (show f) <> char 'F'
+  prettyPrec _ (Double d) = text (show d)
+  prettyPrec _ (Boolean b) = text . map toLower $ show b
+  prettyPrec _ (Char c) = quotes $ text (escapeChar c)
+  prettyPrec _ (String s) = doubleQuotes $ text (concatMap escapeString s)
+  prettyPrec _ (Null) = text "null"
 
 instance Pretty Op where
-  prettyPrec p op = text $ case op of
+  prettyPrec _ op = text $ case op of
     Mult    -> "*"
     Div     -> "/"
     Rem     -> "%"
@@ -406,7 +405,7 @@ instance Pretty Op where
     COr     -> "||"
 
 instance Pretty AssignOp where
-  prettyPrec p aop = text $ case aop of
+  prettyPrec _ aop = text $ case aop of
     EqualA  -> "="
     MultA   -> "*="
     DivA    -> "/="
@@ -493,25 +492,27 @@ instance Pretty TypeArgument where
 
 instance Pretty TypeDeclSpecifier where
   prettyPrec p (TypeDeclSpecifier ct) = prettyPrec p ct
-  prettyPrec p (TypeDeclSpecifierWithDiamond ct i d) =  prettyPrec p ct <> char '.' <> prettyPrec p i <> prettyPrec p d
-  prettyPrec p (TypeDeclSpecifierUnqualifiedWithDiamond i d) = prettyPrec p i <> prettyPrec p d
+  prettyPrec p (TypeDeclSpecifierWithDiamond ct d) =  prettyPrec p ct <> char '.' <> prettyPrec p d
 
 instance Pretty Diamond where
-  prettyPrec p Diamond = text "<>"
+  prettyPrec _ Diamond = text "<>"
 
 instance Pretty WildcardBound where
   prettyPrec p (ExtendsBound rt) = text "extends" <+> prettyPrec p rt
   prettyPrec p (SuperBound   rt) = text "super"   <+> prettyPrec p rt
 
+instance Pretty ExceptionType where
+  prettyPrec p (ExceptionType rt) = prettyPrec p rt
+
 instance Pretty PrimType where
-  prettyPrec p BooleanT = text "boolean"
-  prettyPrec p ByteT    = text "byte"
-  prettyPrec p ShortT   = text "short"
-  prettyPrec p IntT     = text "int"
-  prettyPrec p LongT    = text "long"
-  prettyPrec p CharT    = text "char"
-  prettyPrec p FloatT   = text "float"
-  prettyPrec p DoubleT  = text "double"
+  prettyPrec _ BooleanT = text "boolean"
+  prettyPrec _ ByteT    = text "byte"
+  prettyPrec _ ShortT   = text "short"
+  prettyPrec _ IntT     = text "int"
+  prettyPrec _ LongT    = text "long"
+  prettyPrec _ CharT    = text "char"
+  prettyPrec _ FloatT   = text "float"
+  prettyPrec _ DoubleT  = text "double"
 
 instance Pretty TypeParam where
   prettyPrec p (TypeParam ident rts) =
@@ -543,7 +544,7 @@ ppThrows p ets = text "throws"
 
 ppDefault :: Int -> Maybe Exp -> Doc
 ppDefault _ Nothing = empty
-ppDefault p (Just exp) = text "default" <+> prettyPrec p exp
+ppDefault p (Just expression) = text "default" <+> prettyPrec p expression
 
 ppResultType :: Int -> Maybe Type -> Doc
 ppResultType _ Nothing = text "void"
@@ -557,13 +558,13 @@ instance Pretty Name where
     hcat (punctuate (char '.') $ map (prettyPrec p) is)
 
 instance Pretty Ident where
-  prettyPrec p (Ident s) = text s
+  prettyPrec _ (Ident s) = text s
 
 
 -----------------------------------------------------------------------
 -- Help functionality
 prettyNestedStmt :: Int -> Stmt -> Doc
-prettyNestedStmt prio p@(StmtBlock b) = prettyPrec prio p
+prettyNestedStmt prio p@(StmtBlock _) = prettyPrec prio p
 prettyNestedStmt prio p = nest 2 (prettyPrec prio p)
 
 maybePP :: Pretty a => Int -> Maybe a -> Doc

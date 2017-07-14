@@ -32,7 +32,7 @@ module Language.Java.Syntax
     , SwitchBlock(..)
     , SwitchLabel(..)
     , ForInit(..)
-    , ExceptionType
+    , ExceptionType(..)
     , Argument
     , Exp(..)
     , Lhs(..)
@@ -163,15 +163,13 @@ data MemberDecl
     | MemberInterfaceDecl InterfaceDecl
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
--- | Get type of MemberDecl
-instance HasType MemberDecl where
-  getType (FieldDecl _ t _) =  t
-  getType (MemberClassDecl cd) =  getType cd
-  getType (MemberInterfaceDecl id) =  getType id
-
 -- | Get type of MemberDecl if it is a MethodDecl (our solution to handeling the Maybe)
 instance CollectTypes MemberDecl where
+  collectTypes (FieldDecl _ t _) =  [t]
   collectTypes (MethodDecl _ _ t _ _ _ _ _) =  maybeToList t
+  collectTypes ConstructorDecl{} = []
+  collectTypes (MemberClassDecl cd) =  [getType cd]
+  collectTypes (MemberInterfaceDecl idecl) =  [getType idecl]
 
 -- | A declaration of a variable, which may be explicitly initialized.
 data VarDecl
@@ -363,11 +361,12 @@ data ForInit
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | An exception type has to be a class type or a type variable.
-type ExceptionType = RefType -- restricted to ClassType or TypeVariable
+newtype ExceptionType = ExceptionType RefType -- restricted to ClassType or TypeVariable
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
--- | Gets type of ExceptionType
+  -- | Gets type of ExceptionType
 instance HasType ExceptionType where
-  getType = RefType
+  getType (ExceptionType x) = RefType x
 
 -- | Arguments to methods and constructors are expressions.
 type Argument = Exp
