@@ -1,8 +1,8 @@
-{-# LANGUAGE DataKinds          #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE DeriveGeneric      #-}
-{-# LANGUAGE FlexibleInstances  #-}
-{-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE DeriveDataTypeable   #-}
+{-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Language.Java.Syntax.Types where
 
@@ -23,7 +23,7 @@ instance HasType a => CollectTypes a where
 
 class CollectTypes a where
   collectTypes :: a -> [Type]
-  
+
 -- | There are three kinds of reference types: class types, interface types, and array types.
 --   Reference types may be parameterized with type arguments.
 --   Type variables cannot be syntactically distinguished from class type identifiers,
@@ -118,12 +118,12 @@ checkRelaxed (ArrayType at1) (ArrayType at2) = RelaxedType at1 == RelaxedType at
 checkRelaxed (ArrayType _) (ClassRefType _) = False
 checkRelaxed (ClassRefType _) (ArrayType _) = False
 checkRelaxed (ClassRefType cr1) (ClassRefType cr2) = checkClassType cr1 cr2
-  where 
+  where
     checkClassType :: ClassType -> ClassType -> Bool
     checkClassType (WithPackage pack1 class1) (WithPackage pack2 class2) = pack1 == pack2 && class1 == class2
     checkClassType (WithPackage _ class1) (WithoutPackage class2) = class1 == class2
-    checkClassType (WithoutPackage class1) (WithPackage _ class2) = class1 == class2 
-    checkClassType (WithoutPackage class1) (WithoutPackage class2) = class1 == class2 
+    checkClassType (WithoutPackage class1) (WithPackage _ class2) = class1 == class2
+    checkClassType (WithoutPackage class1) (WithoutPackage class2) = class1 == class2
 
 -- | This function returns a primitve as a ref type (i.e. boxed primitve)
 primToRefType :: PrimType -> RefType
