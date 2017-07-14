@@ -232,7 +232,7 @@ data Annotation = NormalAnnotation        { annName :: Name -- Not type because 
                 | MarkerAnnotation        { annName :: Name }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
-desugarAnnotation :: Annotate -> (Name, [(Ident, ElementValue)])
+desugarAnnotation :: Annotation -> (Name, [(Ident, ElementValue)])
 desugarAnnotation (MarkerAnnotation n)          = (n, [])
 desugarAnnotation (SingleElementAnnotation n e) = (n, [(Ident "value", e)])
 desugarAnnotation (NormalAnnotation n kv)       = (n, kv)

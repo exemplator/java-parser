@@ -34,20 +34,21 @@ module Language.Java.Parser (
 
     ) where
 
-import           Language.Java.Lexer  (L (..), Token (..), lexer)
-import           Language.Java.Pretty (pretty)
+import           Language.Java.Lexer    (L (..), Token (..), lexer)
+import           Language.Java.Position
+import           Language.Java.Pretty   (pretty)
 import           Language.Java.Syntax
 
-import           Text.Parsec          hiding (Empty)
+import           Text.Parsec            hiding (Empty)
 import           Text.Parsec.Pos
 
-import           Control.Monad        (ap)
-import           Data.Char            (toLower)
-import           Data.Maybe           (catMaybes, isJust, listToMaybe, maybe)
-import           Prelude              hiding (catch, exp, (>>), (>>=))
-import qualified Prelude              as P ((>>), (>>=))
+import           Control.Monad          (ap)
+import           Data.Char              (toLower)
+import           Data.Maybe             (catMaybes, isJust, listToMaybe, maybe)
+import           Prelude                hiding (catch, exp, (>>), (>>=))
+import qualified Prelude                as P ((>>), (>>=))
 
-import           Control.Applicative  ((<$), (<$>), (<*), (<*>))
+import           Control.Applicative    ((<$), (<$>), (<*), (<*>))
 
 type P = Parsec [L Token] ()
 
@@ -1173,6 +1174,16 @@ wildcardBound = tok KW_Extends >> ExtendsBound <$> refType
 refTypeArgs :: P [RefType]
 refTypeArgs = angles refTypeList
 
+----------------------------------------------------------------------------
+-- Segments
+
+seg :: (Segment -> a) -> P a
+seg constr = do
+    start <- getPosition
+    result <- pure constr
+    end <- getPosition
+    let seg = sourcePosToSegment start end
+    return (result seg)
 ----------------------------------------------------------------------------
 -- Names
 

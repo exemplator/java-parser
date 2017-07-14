@@ -1,4 +1,4 @@
-module Position where
+module Language.Java.Position where
 
 import           Text.Parsec.Pos hiding (Column, Line)
 
