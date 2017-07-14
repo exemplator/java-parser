@@ -42,11 +42,12 @@ import           Text.Parsec          hiding (Empty)
 import           Text.Parsec.Pos
 
 import           Data.Char            (toLower)
-import           Data.Maybe           (catMaybes, isJust, listToMaybe, maybe, maybeToList)
+import           Data.Maybe           (catMaybes, fromMaybe, isJust,
+                                       listToMaybe, maybe, maybeToList)
 import           Prelude              hiding (exp, (>>), (>>=))
 import qualified Prelude              as P ((>>), (>>=))
 
-import           Control.Applicative  ((<$), (<$>), (<*), (<*>), liftA2)
+import           Control.Applicative  (liftA2, (<$), (<$>), (<*), (<*>))
 
 type P = Parsec [L Token] ()
 
@@ -754,7 +755,7 @@ typeDeclSpecifier :: P TypeDeclSpecifier
 typeDeclSpecifier =
     do ct <- classType
        return $ TypeDeclSpecifier ct
-    
+
 
 instanceCreationSuffix :: P (Exp -> Exp)
 instanceCreationSuffix =
@@ -1117,11 +1118,7 @@ classType = toClassType <$> parseClass
         stripEmpty (a, b) = (map fst a, b)
         constructClassType (a, b) = if null a then WithoutPackage b else WithPackage (FullQualiPackage a) b
 
-        parseClass = liftA2 (\cls cl -> cls ++ maybeToList cl) (sepBy1 (try (classTypeSpec typeArgs)) period) maybeDiamond
-
-        maybeDiamond = optionMaybe (do
-            period
-            classTypeSpec typeArgsWithDiamond)
+        parseClass = sepListEndOptBy (classTypeSpec typeArgs) (classTypeSpec typeArgsWithDiamond) period
 
         typeArgsWithDiamond = try typeArgs <|> (:[]) <$> typeDiamond
 
@@ -1157,7 +1154,7 @@ typeArgs = angles $ seplist1 typeArg comma
 
 typeArg :: P TypeArgument
 typeArg = tok Op_Query >> Wildcard <$> opt wildcardBound
-    <|> ActualType <$> refType 
+    <|> ActualType <$> refType
 
 typeDiamond :: P TypeArgument
 typeDiamond = angles $ pure Diamond
@@ -1224,6 +1221,16 @@ seplist1 p sep =
                 return (a:as))
         <|> return [a]
 
+sepListEndOptBy :: P a -> P a -> P sep -> P [a]
+sepListEndOptBy p end sep =
+        try (p >>= \a ->
+            try (do _ <- sep
+                    as <- sepListEndOptBy p end sep
+                    return (a:as))
+            <|> return [a])
+        <|> ((:[]) <$> end)
+
+
 startSuff, (|>>) :: P a -> P (a -> a) -> P a
 startSuff start suffix = do
     x <- start
@@ -1268,6 +1275,6 @@ period    = tok Period
 
 test = "public class Foo { }"
 testFile file = do
-  i <- readFile file 
+  i <- readFile file
   let r = parseCompilationUnit i
   putStrLn$ either (("Parsing error:\n"++) . show) (show . pretty) r
