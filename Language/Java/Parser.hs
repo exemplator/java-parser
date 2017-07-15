@@ -19,7 +19,7 @@ module Language.Java.Parser (
 
     stmtExp, exp, primary, literal,
 
-    ttype, primType, refType, classType, resultType,
+    ttype, primType, refType, classType, resultType, typeDeclSpecifier,
 
     lambdaExp, methodRef,
 
@@ -42,13 +42,13 @@ import           Language.Java.Syntax
 import           Text.Parsec            hiding (Empty)
 import           Text.Parsec.Pos
 
-import           Control.Monad          (ap)
-import           Data.Char              (toLower)
-import           Data.Maybe             (catMaybes, isJust, listToMaybe, maybe)
-import           Prelude                hiding (catch, exp, (>>), (>>=))
-import qualified Prelude                as P ((>>), (>>=))
+import           Data.Char            (toLower)
+import           Data.Maybe           (catMaybes, fromMaybe, isJust,
+                                       listToMaybe, maybe, maybeToList)
+import           Prelude              hiding (exp, (>>), (>>=))
+import qualified Prelude              as P ((>>), (>>=))
 
-import           Control.Applicative    ((<$), (<$>), (<*), (<*>))
+import           Control.Applicative  (liftA2, (<$), (<$>), (<*), (<*>))
 
 type P = Parsec [L Token] ()
 
@@ -87,9 +87,9 @@ compilationUnit = do
 packageDecl :: P PackageDecl
 packageDecl = do
     tok KW_Package
-    n <- name
+    pkg <- fullQualiPkg
     semiColon
-    return $ PackageDecl n
+    return $ PackageDecl pkg
 
 importDecl :: P ImportDecl
 importDecl = do
@@ -113,9 +113,9 @@ classOrInterfaceDecl :: P TypeDecl
 classOrInterfaceDecl = do
     ms <- list modifier
     de <- (do cd <- classDecl
-              return $ \ms -> ClassTypeDecl (cd ms)) <|>
-          (do id <- annInterfaceDecl <|> interfaceDecl
-              return $ \ms -> InterfaceTypeDecl (id ms))
+              return $ \mst -> ClassTypeDecl (cd mst)) <|>
+          (do idecl <- annInterfaceDecl <|> interfaceDecl
+              return $ \mst -> InterfaceTypeDecl (idecl mst))
     return $ de ms
 
 classDecl :: P (Mod ClassDecl)
@@ -157,10 +157,10 @@ enumBody = braces $ do
 
 enumConst :: P EnumConstant
 enumConst = do
-    id  <- ident
+    idt  <- ident
     as  <- lopt args
     mcb <- opt classBody
-    return $ EnumConstant id as mcb
+    return $ EnumConstant idt as mcb
 
 enumBodyDecls :: P [Decl]
 enumBodyDecls = semiColon >> classBodyStatements
@@ -173,20 +173,20 @@ classBodyStatements = catMaybes <$> list classBodyStatement
 annInterfaceDecl :: P (Mod InterfaceDecl)
 annInterfaceDecl = do
     tok KW_AnnInterface
-    id  <- ident
+    idt  <- ident
     tps <- lopt typeParams
     exs <- lopt extends
     bod <- interfaceBody
-    return $ \ms -> InterfaceDecl InterfaceAnnotation ms id tps exs bod
+    return $ \ms -> InterfaceDecl InterfaceAnnotation ms idt tps exs bod
 
 interfaceDecl :: P (Mod InterfaceDecl)
 interfaceDecl = do
     tok KW_Interface
-    id  <- ident
+    idt  <- ident
     tps <- lopt typeParams
     exs <- lopt extends
     bod <- interfaceBody
-    return $ \ms -> InterfaceDecl InterfaceNormal ms id tps exs bod
+    return $ \ms -> InterfaceDecl InterfaceNormal ms idt tps exs bod
 
 interfaceBody :: P InterfaceBody
 interfaceBody = InterfaceBody . catMaybes <$>
@@ -197,7 +197,7 @@ interfaceBody = InterfaceBody . catMaybes <$>
 classBodyStatement :: P (Maybe Decl)
 classBodyStatement =
     try (do
-       list1 semiColon
+       _ <- list1 semiColon
        return Nothing) <|>
     try ( do
        mst <- bopt (tok KW_Static)
@@ -214,8 +214,8 @@ memberDecl =
         return $ \ ms -> MemberClassDecl (cd ms))
     <|>
     try
-        (do id <- try annInterfaceDecl <|> try interfaceDecl
-            return $ \ ms -> MemberInterfaceDecl (id ms)) <|>
+        (do idecl <- try annInterfaceDecl <|> try interfaceDecl
+            return $ MemberInterfaceDecl . idecl) <|>
 
     try fieldDecl <|>
     try methodDecl <|>
@@ -231,11 +231,11 @@ methodDecl :: P (Mod MemberDecl)
 methodDecl = do
     tps <- lopt typeParams
     rt  <- resultType
-    id  <- ident
+    idt  <- ident
     fps <- formalParams
     thr <- lopt throws
     bod <- methodBody
-    return $ \ms -> MethodDecl ms tps rt id fps thr Nothing bod
+    return $ \ms -> MethodDecl ms tps rt idt fps thr Nothing bod
 
 methodBody :: P MethodBody
 methodBody = MethodBody <$>
@@ -245,11 +245,11 @@ methodBody = MethodBody <$>
 constrDecl :: P (Mod MemberDecl)
 constrDecl = do
     tps <- lopt typeParams
-    id  <- ident
+    idt  <- ident
     fps <- formalParams
     thr <- lopt throws
     bod <- constrBody
-    return $ \ms -> ConstructorDecl ms tps id fps thr bod
+    return $ \ms -> ConstructorDecl ms tps idt fps thr bod
 
 constrBody :: P ConstructorBody
 constrBody = braces $ do
@@ -288,8 +288,8 @@ interfaceMemberDecl :: P (Mod MemberDecl)
 interfaceMemberDecl =
     (do cd  <- classDecl
         return $ \ms -> MemberClassDecl (cd ms)) <|>
-    (do id  <- try annInterfaceDecl <|> try interfaceDecl
-        return $ \ms -> MemberInterfaceDecl (id ms)) <|>
+    (do idt  <- try annInterfaceDecl <|> try interfaceDecl
+        return $ \ms -> MemberInterfaceDecl (idt ms)) <|>
     try fieldDecl <|>
     absMethodDecl
 
@@ -297,18 +297,18 @@ absMethodDecl :: P (Mod MemberDecl)
 absMethodDecl = do
     tps <- lopt typeParams
     rt  <- resultType
-    id  <- ident
+    idt  <- ident
     fps <- formalParams
     thr <- lopt throws
     def <- opt defaultValue
     semiColon
-    return $ \ms -> MethodDecl ms tps rt id fps thr def (MethodBody Nothing)
+    return $ \ms -> MethodDecl ms tps rt idt fps thr def (MethodBody Nothing)
 
 defaultValue :: P Exp
 defaultValue = tok KW_Default >> exp
 
-throws :: P [RefType]
-throws = tok KW_Throws >> refTypeList
+throws :: P [ExceptionType]
+throws = map ExceptionType <$> (tok KW_Throws >> refTypeList)
 
 -- Formal parameters
 
@@ -321,7 +321,7 @@ formalParams = parens $ do
   where validateFPs :: [FormalParam] -> Bool
         validateFPs [] = True
         validateFPs [_] = True
-        validateFPs (FormalParam _ _ b _ :xs) = not b
+        validateFPs (FormalParam _ _ b _ :_) = not b
 
 formalParam :: P FormalParam
 formalParam = do
@@ -385,9 +385,9 @@ varDecl = do
 
 varDeclId :: P VarDeclId
 varDeclId = do
-    id  <- ident
-    abs <- list arrBrackets
-    return $ foldl (\f _ -> VarDeclArray . f) VarId abs id
+    idt  <- ident
+    abrkts <- list arrBrackets
+    return $ foldl (\f _ -> VarDeclArray . f) VarId abrkts idt
 
 arrBrackets :: P ()
 arrBrackets = brackets $ return ()
@@ -407,7 +407,7 @@ varInit =
 arrayInit :: P ArrayInit
 arrayInit = braces $ do
     vis <- seplist varInit comma
-    opt comma
+    _ <- opt comma
     return $ ArrayInit vis
 
 ----------------------------------------------------------------------------
@@ -714,7 +714,7 @@ primary = primaryNPS |>> primarySuffix
 primaryNPS :: P Exp
 primaryNPS = try arrayCreation <|> primaryNoNewArrayNPS
 
-primaryNoNewArray = startSuff primaryNoNewArrayNPS primarySuffix
+-- primaryNoNewArray = startSuff primaryNoNewArrayNPS primarySuffix
 
 primaryNoNewArrayNPS :: P Exp
 primaryNoNewArrayNPS =
@@ -727,9 +727,9 @@ primaryNoNewArrayNPS =
         period >> tok KW_Class
         return $ ClassLit rt) <|>
     try ( do
-        n <- name
+        t <- ttype
         period >> tok KW_This
-        return $ ThisClass n) <|>
+        return $ QualifiedThis t) <|>
     try instanceCreationNPS <|>
     try (MethodInv <$> methodInvocationNPS) <|>
     try (FieldAccess <$> fieldAccessNPS) <|>
@@ -754,23 +754,9 @@ instanceCreationNPS =
 
 typeDeclSpecifier :: P TypeDeclSpecifier
 typeDeclSpecifier =
-    try (do
-        ct <- classType
-        period
-        i <- ident
-        tok Op_LThan
-        tok Op_GThan
-        return $ TypeDeclSpecifierWithDiamond ct i Diamond
-    ) <|>
-    try (do
-        i <- ident
-        tok Op_LThan
-        tok Op_GThan
-        return $ TypeDeclSpecifierUnqualifiedWithDiamond i Diamond
-    ) <|>
-    (do ct <- classType
-        return $ TypeDeclSpecifier ct
-    )
+    do ct <- classType
+       return $ TypeDeclSpecifier ct
+
 
 instanceCreationSuffix :: P (Exp -> Exp)
 instanceCreationSuffix =
@@ -883,20 +869,20 @@ methodInvocationNPS =
         return $ SuperMethodCall rts i as) <|>
     (do n <- name
         f <- (do as <- args
-                 return $ \n -> MethodCall n as) <|>
+                 return $ \na -> MethodCall na as) <|>
              (period >> do
                 msp <- opt (tok KW_Super >> period)
                 rts <- lopt refTypeArgs
                 i   <- ident
                 as  <- args
                 let mc = maybe TypeMethodCall (const ClassMethodCall) msp
-                return $ \n -> mc n rts i as)
+                return $ \na -> mc na rts i as)
         return $ f n)
 
 methodInvocationSuffix :: P (Exp -> MethodInvocation)
 methodInvocationSuffix = do
         period
-        rts <- lopt refTypeArgs
+        _ <- lopt refTypeArgs
         i   <- ident
         as  <- args
         return $ \p -> PrimaryMethodCall p [] i as
@@ -980,10 +966,10 @@ arrayCreation = do
     f <- try (do
              ds <- list1 $ brackets empty
              ai <- arrayInit
-             return $ \t -> ArrayCreateInit t (length ds) ai) <|>
+             return $ \tt -> ArrayCreateInit tt (length ds) ai) <|>
          (do des <- list1 $ try $ brackets exp
              ds  <- list  $ brackets empty
-             return $ \t -> ArrayCreate t des (length ds))
+             return $ \tt -> ArrayCreate tt des (length ds))
     return $ f t
 
 literal :: P Literal
@@ -1125,18 +1111,22 @@ nonArrayType = PrimType <$> primType <|>
     (RefType . ClassRefType <$> classType)
 
 classType :: P ClassType
-classType = toClassType <$> seplist1 classTypeSpec period
+classType = toClassType <$> parseClass
     where
         toClassType :: [(Ident, [TypeArgument])] -> ClassType
         toClassType = constructClassType . stripEmpty . split
-        split = span (\(ident, _) -> maybe False (\a -> a == toLower a) ((listToMaybe . fromIdent) ident))
+        split = span (\(idt, _) -> maybe False (\a -> a == toLower a) ((listToMaybe . fromIdent) idt))
         stripEmpty (a, b) = (map fst a, b)
         constructClassType (a, b) = if null a then WithoutPackage b else WithPackage (FullQualiPackage a) b
 
-classTypeSpec :: P (Ident, [TypeArgument])
-classTypeSpec = do
+        parseClass = sepListEndOptBy (classTypeSpec typeArgs) (classTypeSpec typeArgsWithDiamond) period
+
+        typeArgsWithDiamond = try typeArgs <|> (:[]) <$> typeDiamond
+
+classTypeSpec :: P [TypeArgument] -> P (Ident, [TypeArgument])
+classTypeSpec args = do
     i   <- ident
-    tas <- lopt typeArgs
+    tas <- lopt args
     return (i, tas)
 
 resultType :: P (Maybe Type)
@@ -1167,6 +1157,9 @@ typeArg :: P TypeArgument
 typeArg = tok Op_Query >> Wildcard <$> opt wildcardBound
     <|> ActualType <$> refType
 
+typeDiamond :: P TypeArgument
+typeDiamond = angles $ pure Diamond
+
 wildcardBound :: P WildcardBound
 wildcardBound = tok KW_Extends >> ExtendsBound <$> refType
     <|> tok KW_Super >> SuperBound <$> refType
@@ -1195,6 +1188,14 @@ ident = javaToken $ \t -> case t of
     IdentTok s -> Just $ Ident s
     _ -> Nothing
 
+----------------------------------------------------------------------------
+-- Package
+
+fullQualiPkg :: P Package
+fullQualiPkg = FullQualiPackage <$> seplist1 ident period
+
+wildcardPkg :: P Package
+wildcardPkg = WildcardPackage <$> seplist1 ident period
 ------------------------------------------------------------
 
 empty :: P ()
@@ -1226,10 +1227,20 @@ seplist1 :: P a -> P sep -> P [a]
 --seplist1 = sepBy1
 seplist1 p sep =
     p >>= \a ->
-        try (do sep
+        try (do _ <- sep
                 as <- seplist1 p sep
                 return (a:as))
         <|> return [a]
+
+sepListEndOptBy :: P a -> P a -> P sep -> P [a]
+sepListEndOptBy p end sep =
+        try (p >>= \a ->
+            try (do _ <- sep
+                    as <- sepListEndOptBy p end sep
+                    return (a:as))
+            <|> return [a])
+        <|> ((:[]) <$> end)
+
 
 startSuff, (|>>) :: P a -> P (a -> a) -> P a
 startSuff start suffix = do
@@ -1242,10 +1253,10 @@ startSuff start suffix = do
 ------------------------------------------------------------
 
 javaToken :: (Token -> Maybe a) -> P a
-javaToken test = token showT posT testT
+javaToken testTok = token showT posT testT
   where showT (L _ t) = show t
         posT  (L p _) = pos2sourcePos p
-        testT (L _ t) = test t
+        testT (L _ t) = testTok t
 
 tok, matchToken :: Token -> P ()
 tok = matchToken

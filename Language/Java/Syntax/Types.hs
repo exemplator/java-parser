@@ -1,6 +1,9 @@
-{-# LANGUAGE DataKinds          #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE DeriveDataTypeable   #-}
+{-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 module Language.Java.Syntax.Types where
 
 import           Data.Data
@@ -14,6 +17,12 @@ data Type
 
 class HasType a where
   getType :: a -> Type
+
+instance HasType a => CollectTypes a where
+  collectTypes x = [getType x]
+
+class CollectTypes a where
+  collectTypes :: a -> [Type]
 
 -- | There are three kinds of reference types: class types, interface types, and array types.
 --   Reference types may be parameterized with type arguments.
@@ -40,15 +49,10 @@ data Package = FullQualiPackage [Ident] | WildcardPackage [Ident]
 data TypeArgument
     = Wildcard (Maybe WildcardBound)
     | ActualType RefType
+    | Diamond
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
-data TypeDeclSpecifier
-    = TypeDeclSpecifier ClassType
-    | TypeDeclSpecifierWithDiamond ClassType Ident Diamond
-    | TypeDeclSpecifierUnqualifiedWithDiamond Ident Diamond
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
-
-data Diamond = Diamond
+newtype TypeDeclSpecifier = TypeDeclSpecifier ClassType
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Wildcards may be given explicit bounds, either upper (@extends@) or lower (@super@) bounds.
@@ -68,7 +72,6 @@ data PrimType
     | FloatT
     | DoubleT
   deriving (Eq,Show,Read,Typeable,Generic,Data,Enum,Bounded)
-
 
 -- | A class is generic if it declares one or more type variables. These type variables are known
 --   as the type parameters of the class.
@@ -101,8 +104,8 @@ newtype RelaxedType = RelaxedType Type
 -- | Defines Equals for RelaxedType
 instance Eq RelaxedType where
   RelaxedType (PrimType t1) == RelaxedType (PrimType t2) = t1 == t2
-  RelaxedType (RefType r1) == RelaxedType (PrimType r2) = checkRelaxed r1 (toRefType r2)
-  RelaxedType (PrimType r1) == RelaxedType (RefType r2) = checkRelaxed (toRefType r1) r2
+  RelaxedType (RefType r1) == RelaxedType (PrimType r2) = checkRelaxed r1 (primToRefType r2)
+  RelaxedType (PrimType r1) == RelaxedType (RefType r2) = checkRelaxed (primToRefType r1) r2
   RelaxedType (RefType r1) == RelaxedType (RefType r2) = checkRelaxed r1 r2
 
 -- | Checks a RelaxedType for equality.
@@ -123,8 +126,8 @@ checkRelaxed (ClassRefType cr1) (ClassRefType cr2) = checkClassType cr1 cr2
     checkClassType (WithoutPackage class1) (WithoutPackage class2) = class1 == class2
 
 -- | This function returns a primitve as a ref type (i.e. boxed primitve)
-toRefType :: PrimType -> RefType
-toRefType = toRefHelper
+primToRefType :: PrimType -> RefType
+primToRefType = toRefHelper
   where
     toRefHelper BooleanT = stringToRef "Boolean"
     toRefHelper ByteT = stringToRef "Byte"
@@ -139,3 +142,11 @@ toRefType = toRefHelper
     stringToRef x = ClassRefType (WithPackage refPackage [(Ident x, [])])
     refPackage :: Package
     refPackage = FullQualiPackage (map Ident ["java", "lang"])
+
+-- | This function returns an Ident as a Type
+withPackageIdentToType :: [Ident] -> Ident -> Type
+withPackageIdentToType packages ident = RefType (ClassRefType (WithPackage (FullQualiPackage packages) [(ident, [])]))
+
+-- | This function returns an Ident as a Type
+withoutPackageIdentToType :: Ident -> Type
+withoutPackageIdentToType ident = RefType (ClassRefType (WithoutPackage [(ident, [])]))

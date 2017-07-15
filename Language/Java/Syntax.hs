@@ -1,5 +1,7 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE DeriveDataTypeable   #-}
+{-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+
 module Language.Java.Syntax
     ( CompilationUnit(..)
     , PackageDecl(..)
@@ -33,7 +35,7 @@ module Language.Java.Syntax
     , SwitchBlock(..)
     , SwitchLabel(..)
     , ForInit(..)
-    , ExceptionType
+    , ExceptionType(..)
     , Argument
     , Exp(..)
     , Lhs(..)
@@ -48,6 +50,7 @@ module Language.Java.Syntax
     ) where
 
 import           Data.Data
+import           Data.Maybe
 import           GHC.Generics               (Generic)
 
 import           Language.Java.Syntax.Exp
@@ -61,9 +64,8 @@ import           Language.Java.Syntax.Types
 data CompilationUnit = CompilationUnit (Maybe PackageDecl) [ImportDecl] [TypeDecl]
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
-
 -- | A package declaration appears within a compilation unit to indicate the package to which the compilation unit belongs.
-newtype PackageDecl = PackageDecl Name
+newtype PackageDecl = PackageDecl Package
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | An import declaration allows a static member or a named type to be referred to by a single unqualified identifier.
@@ -74,9 +76,9 @@ data ImportDecl
     = ImportDecl Bool {- static? -} Name Bool {- .*? -}
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
-
 -----------------------------------------------------------------------
 -- Declarations
+
 
 -- | A type declaration declares a class type or an interface type.
 data TypeDecl
@@ -84,11 +86,21 @@ data TypeDecl
     | InterfaceTypeDecl InterfaceDecl
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
+-- | Get type of TypeDecl
+instance HasType TypeDecl where
+  getType (ClassTypeDecl ctd) = getType ctd
+  getType (InterfaceTypeDecl itd) = getType itd
+
 -- | A class declaration specifies a new named reference type.
 data ClassDecl
     = ClassDecl [Modifier] Ident [TypeParam] (Maybe RefType) [RefType] ClassBody
-    | EnumDecl  [Modifier] Ident                             [RefType] EnumBody
+    | EnumDecl [Modifier] Ident [RefType] EnumBody
   deriving (Eq,Show,Read,Typeable,Generic,Data)
+
+-- | Get type of ClassDecl
+instance HasType ClassDecl where
+  getType (ClassDecl _ i _ _ _ _) =  withoutPackageIdentToType i
+  getType (EnumDecl _ i _ _) =  withoutPackageIdentToType i
 
 -- | A class body may contain declarations of members of the class, that is,
 --   fields, classes, interfaces and methods.
@@ -105,6 +117,10 @@ data EnumBody = EnumBody [EnumConstant] [Decl]
 data EnumConstant = EnumConstant Ident [Argument] (Maybe ClassBody)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
+-- | Get type of EnumConstant
+instance HasType EnumConstant where
+  getType (EnumConstant i _ _) =  withoutPackageIdentToType i
+
 -- | An interface declaration introduces a new reference type whose members
 --   are classes, interfaces, constants and abstract methods. This type has
 --   no implementation, but otherwise unrelated classes can implement it by
@@ -112,6 +128,10 @@ data EnumConstant = EnumConstant Ident [Argument] (Maybe ClassBody)
 data InterfaceDecl
     = InterfaceDecl InterfaceKind [Modifier] Ident [TypeParam] [RefType] InterfaceBody
   deriving (Eq,Show,Read,Typeable,Generic,Data)
+
+-- | Get type of InterfaceDecl
+instance HasType InterfaceDecl where
+  getType (InterfaceDecl _ _ i _ _ _) =  withoutPackageIdentToType i
 
 -- | Interface can declare either a normal interface or an annotation
 data InterfaceKind = InterfaceNormal | InterfaceAnnotation
@@ -137,15 +157,22 @@ data MemberDecl
     -- | The variables of a class type are introduced by field declarations.
     = FieldDecl [Modifier] Type [VarDecl]
     -- | A method declares executable code that can be invoked, passing a fixed number of values as arguments.
-    | MethodDecl      [Modifier] [TypeParam] (Maybe Type) Ident [FormalParam] [ExceptionType] (Maybe Exp) MethodBody
+    | MethodDecl [Modifier] [TypeParam] (Maybe Type) Ident [FormalParam] [ExceptionType] (Maybe Exp) MethodBody
     -- | A constructor is used in the creation of an object that is an instance of a class.
-    | ConstructorDecl [Modifier] [TypeParam]              Ident [FormalParam] [ExceptionType] ConstructorBody
+    | ConstructorDecl [Modifier] [TypeParam] Ident [FormalParam] [ExceptionType] ConstructorBody
     -- | A member class is a class whose declaration is directly enclosed in another class or interface declaration.
     | MemberClassDecl ClassDecl
     -- | A member interface is an interface whose declaration is directly enclosed in another class or interface declaration.
     | MemberInterfaceDecl InterfaceDecl
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
+-- | Get type of MemberDecl if it is a MethodDecl (our solution to handeling the Maybe)
+instance CollectTypes MemberDecl where
+  collectTypes (FieldDecl _ t _) =  [t]
+  collectTypes (MethodDecl _ _ t _ _ _ _ _) =  maybeToList t
+  collectTypes ConstructorDecl{} = []
+  collectTypes (MemberClassDecl cd) =  [getType cd]
+  collectTypes (MemberInterfaceDecl idecl) =  [getType idecl]
 
 -- | A declaration of a variable, which may be explicitly initialized.
 data VarDecl
@@ -170,6 +197,10 @@ data VarInit
 --   indicated by the boolean argument.
 data FormalParam = FormalParam [Modifier] Type Bool VarDeclId
   deriving (Eq,Show,Read,Typeable,Generic,Data)
+
+-- | Gets type of FormalParam
+instance HasType FormalParam where
+  getType (FormalParam _ t _ _) =  t
 
 -- | A method body is either a block of code that implements the method or simply a
 --   semicolon, indicating the lack of an implementation (modelled by 'Nothing').
@@ -232,7 +263,8 @@ data Annotation = NormalAnnotation        { annName :: Name -- Not type because 
                 | MarkerAnnotation        { annName :: Name }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
-desugarAnnotation :: Annotation -> (Name, [(Ident, ElementValue)])
+
+-- desugarAnnotation :: Annotation -> (Name, [(Ident, ElementValue)])
 desugarAnnotation (MarkerAnnotation n)          = (n, [])
 desugarAnnotation (SingleElementAnnotation n e) = (n, [(Ident "value", e)])
 desugarAnnotation (NormalAnnotation n kv)       = (n, kv)
@@ -334,7 +366,12 @@ data ForInit
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | An exception type has to be a class type or a type variable.
-type ExceptionType = RefType -- restricted to ClassType or TypeVariable
+newtype ExceptionType = ExceptionType RefType -- restricted to ClassType or TypeVariable
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
+
+-- | Gets type of ExceptionType
+instance HasType ExceptionType where
+  getType (ExceptionType x) = RefType x
 
 -- | Arguments to methods and constructors are expressions.
 type Argument = Exp
@@ -350,7 +387,8 @@ data Exp
     --   was invoked, or to the object being constructed.
     | This
     -- | Any lexically enclosing instance can be referred to by explicitly qualifying the keyword this.
-    | ThisClass Name
+    -- TODO: Fix Parser here
+    | QualifiedThis Type
     -- | A class instance creation expression is used to create new objects that are instances of classes.
     -- | The first argument is a list of non-wildcard type arguments to a generic constructor.
     --   What follows is the type to be instantiated, the list of arguments passed to the constructor, and
@@ -379,9 +417,9 @@ data Exp
     -- | Post-decrementation expression, i.e. an expression followed by @--@.
     | PostDecrement Exp
     -- | Pre-incrementation expression, i.e. an expression preceded by @++@.
-    | PreIncrement  Exp
+    | PreIncrement Exp
     -- | Pre-decrementation expression, i.e. an expression preceded by @--@.
-    | PreDecrement  Exp
+    | PreDecrement Exp
     -- | Unary plus, the promotion of the value of the expression to a primitive numeric type.
     | PrePlus  Exp
     -- | Unary minus, the promotion of the negation of the value of the expression to a primitive numeric type.
@@ -389,12 +427,12 @@ data Exp
     -- | Unary bitwise complementation: note that, in all cases, @~x@ equals @(-x)-1@.
     | PreBitCompl Exp
     -- | Logical complementation of boolean values.
-    | PreNot  Exp
+    | PreNot Exp
     -- | A cast expression converts, at run time, a value of one numeric type to a similar value of another
     --   numeric type; or confirms, at compile time, that the type of an expression is boolean; or checks,
     --   at run time, that a reference value refers to an object whose class is compatible with a specified
     --   reference type.
-    | Cast  Type Exp
+    | Cast Type Exp
     -- | The application of a binary operator to two operand expressions.
     | BinOp Exp Op Exp
     -- | Testing whether the result of an expression is an instance of some reference type.
@@ -431,7 +469,6 @@ data FieldAccess
     | ClassFieldAccess Name Ident       -- ^ Accessing a (static) field of a named class.
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
-
 -- ¦ A lambda parameter can be a single parameter, or mulitple formal or mulitple inferred parameters
 data LambdaParams
   = LambdaSingleParam Ident
@@ -444,7 +481,6 @@ data LambdaExpression
     = LambdaExpression Exp
     | LambdaBlock Block
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-
 
 -- | A method invocation expression is used to invoke a class or instance method.
 data MethodInvocation
