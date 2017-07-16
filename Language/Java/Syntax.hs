@@ -223,7 +223,7 @@ data ConstructorBody l = ConstructorBody l (Maybe (ExplConstrInv l)) [BlockStmt 
 data ExplConstrInv l
     = ThisInvoke l               [RefType] [Argument l]
     | SuperInvoke l              [RefType] [Argument l]
-    | PrimarySuperInvoke (Exp l) [RefType] [Argument l]
+    | PrimarySuperInvoke l (Exp l) [RefType] [Argument l]
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 

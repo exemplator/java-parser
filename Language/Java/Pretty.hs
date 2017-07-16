@@ -156,7 +156,7 @@ instance (Show l) => Pretty (ExplConstrInv l) where
     ppTypeParams p rts <+> text "this" <> ppArgs args <> semi
   prettyPrec p (SuperInvoke _ rts args) =
     ppTypeParams p rts <+> text "super" <> ppArgs args <> semi
-  prettyPrec p (PrimarySuperInvoke e rts args) =
+  prettyPrec p (PrimarySuperInvoke _ e rts args) =
     prettyPrec p e <> char '.' <>
       ppTypeParams p rts <+> text "super" <> ppArgs args <> semi
 

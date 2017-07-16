@@ -14,6 +14,7 @@ type End = Position
 
 -- | A segment has a Start and an End
 data Segment = Segment Start End
+    deriving (Show, Read)
 
 sourcePosToSegment :: SourcePos -> SourcePos -> Segment
 sourcePosToSegment start end = Segment (toPostion start) (toPostion end)
