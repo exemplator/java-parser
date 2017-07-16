@@ -15,9 +15,6 @@ type End = Position
 -- | A segment has a Start and an End
 data Segment = Segment Start End
 
-class HasSegment a where
-    getSegment :: a -> Segment
-
 sourcePosToSegment :: SourcePos -> SourcePos -> Segment
 sourcePosToSegment start end = Segment (toPostion start) (toPostion end)
     where

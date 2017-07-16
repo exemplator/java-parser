@@ -3,6 +3,7 @@
 {-# LANGUAGE DeriveFunctor        #-}
 {-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE DeriveTraversable    #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module Language.Java.Syntax
@@ -244,7 +245,7 @@ data Modifier l
     | Synchronized_ l
   deriving (Eq,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
-instance Show (Modifier l) where
+instance (Show l) => Show (Modifier l) where
    show (Public _) = "public"
    show (Private _) = "private"
    show (Protected _) = "protected"
@@ -266,11 +267,11 @@ data Annotation l = NormalAnnotation      { annName :: Name -- Not type because 
                 | MarkerAnnotation        { annName :: Name }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
-
--- desugarAnnotation :: Annotation -> (Name, [(Ident, ElementValue)])
+desugarAnnotation :: Annotation l -> (Name, [(Ident, ElementValue l)])
 desugarAnnotation (MarkerAnnotation n)          = (n, [])
 desugarAnnotation (SingleElementAnnotation n e) = (n, [(Ident "value", e)])
 desugarAnnotation (NormalAnnotation n kv)       = (n, kv)
+desugarAnnotation' :: Annotation l -> Annotation l
 desugarAnnotation' = uncurry NormalAnnotation . desugarAnnotation
 
 -- | Annotations may contain  annotations or (loosely) expressions
