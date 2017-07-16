@@ -3,7 +3,7 @@
 module Language.Java.Parser (
     Parsable(..),
 
-    parser,
+    parseCompilationUnit, parser,
 
     compilationUnit, packageDecl, importDecl, typeDecl,
 

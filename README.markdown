@@ -14,8 +14,8 @@ How to use
 
 Simple compilation unit parser:
 
-    parser compilationUnit "import java.util.*; public class MyClass {}"
+    parseCompilationUnit "import java.util.*; public class MyClass {}"
 
 or from a file:
 
-    ast <- parser compilationUnit `fmap` readFile "myClass.java"
+    ast <- parseCompilationUnit `fmap` readFile "myClass.java"
