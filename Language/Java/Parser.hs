@@ -1,6 +1,8 @@
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Language.Java.Parser (
+    Parsable(..),
+
     parser,
 
     compilationUnit, packageDecl, importDecl, typeDecl,
@@ -44,12 +46,11 @@ import           Text.Parsec            hiding (Empty)
 import           Text.Parsec.Pos
 
 import           Data.Char              (toLower)
-import           Data.Maybe             (catMaybes, fromMaybe, isJust,
-                                         listToMaybe, maybe, maybeToList)
+import           Data.Maybe             (catMaybes, isJust, listToMaybe, maybe)
 import           Prelude                hiding (exp, (>>), (>>=))
 import qualified Prelude                as P ((>>), (>>=))
 
-import           Control.Applicative    (liftA2, (<$), (<$>), (<*), (<*>))
+import           Control.Applicative    ((<$), (<$>), (<*), (<*>))
 
 type P = Parsec [L Token] ()
 
@@ -78,15 +79,9 @@ instance Parsable Segment where
 tP :: (Parsable l) => (l -> a) -> P a
 tP = toParser
 
-buildNode :: (Parsable l) => (l -> a -> b) -> a -> P b
-buildNode node params = tP node <*> pure params
-
 (<$$>) :: (Parsable l) => (l -> a -> b) -> P a -> P b
 (<$$>) constr pa = tP constr <*> pa
 infixl 4 <$$>
-
-doParse :: (Parsable l) => (l -> a -> b) -> P ((a -> b) -> b) -> P b
-doParse const pars = pars <*> tP const
 
 ----------------------------------------------------------------------------
 -- Top-level parsing
@@ -95,6 +90,7 @@ parseCompilationUnit :: String -> Either ParseError (CompilationUnit Segment)
 parseCompilationUnit inp =
     runParser compilationUnit () "" (lexer inp)
 
+parser :: P a -> String -> Either ParseError a
 parser p = runParser p () "" . lexer
 
 --class Parse a where
@@ -439,9 +435,11 @@ varDecl = do
 
 varDeclId :: (Parsable l) => P (VarDeclId l)
 varDeclId = do
+    varDec <- tP VarDeclArray
+    varId <- tP VarId
     idt  <- ident
     abrkts <- list arrBrackets
-    return $ foldl (\f _ -> VarDeclArray . f) VarId abrkts idt
+    return $ foldl (\f _ -> varDec . f) varId abrkts idt
 
 arrBrackets :: P ()
 arrBrackets = brackets $ return ()
@@ -460,9 +458,10 @@ varInit =
 
 arrayInit :: (Parsable l) => P (ArrayInit l)
 arrayInit = braces $ do
+    arrayInt <- tP ArrayInit
     vis <- seplist varInit comma
     _ <- opt comma
-    return $ ArrayInit vis
+    return $ arrayInt vis
 
 ----------------------------------------------------------------------------
 -- Statements
@@ -473,12 +472,14 @@ block = braces $ Block <$$> list blockStmt
 blockStmt :: (Parsable l) => P (BlockStmt l)
 blockStmt =
     try ( do
+        localClass <- tP LocalClass
         ms  <- list modifier
         cd  <- classDecl
-        return $ LocalClass (cd ms)) <|>
+        return $ localClass (cd ms)) <|>
     try ( do
+        localVar <- tP LocalVars
         (m,t,vds) <- endSemi localVarDecl
-        return $ LocalVars m t vds) <|>
+        return $ localVar m t vds) <|>
     BlockStmt <$$> stmt
 
 stmt :: (Parsable l) => P (Stmt l)
@@ -488,56 +489,64 @@ stmt = ifStmt <|> whileStmt <|> forStmt <|> labeledStmt <|> stmtNoTrail
         tok KW_If
         e   <- parens exp
         try (do
+               ifThenElse <- tP IfThenElse
                th <- stmtNSI
                tok KW_Else
                el <- stmt
-               return $ IfThenElse e th el) <|>
-           (do th <- stmt
-               return $ IfThen e th)
+               return $ ifThenElse e th el) <|>
+           (do ifThen <- tP IfThen
+               th <- stmt
+               return $ ifThen e th)
     whileStmt = do
+        while <- tP While
         tok KW_While
         e   <- parens exp
         s   <- stmt
-        return $ While e s
+        return $ while e s
     forStmt = do
         tok KW_For
         f <- parens $
             try ( do
+                basicFor <- tP BasicFor
                 fi <- opt forInit
                 semiColon
                 e  <- opt exp
                 semiColon
                 fu <- opt forUp
-                return $ BasicFor fi e fu) <|>
-            (do ms <- list modifier
+                return $ basicFor fi e fu) <|>
+            (do enhancedFor <- tP EnhancedFor
+                ms <- list modifier
                 t  <- ttype
                 i  <- ident
                 colon
                 e  <- exp
-                return $ EnhancedFor ms t i e)
+                return $ enhancedFor ms t i e)
         s <- stmt
         return $ f s
     labeledStmt = try $ do
+        labeled <- tP Labeled
         lbl <- ident
         colon
         s   <- stmt
-        return $ Labeled lbl s
+        return $ labeled lbl s
 
 stmtNSI :: (Parsable l) => P (Stmt l)
 stmtNSI = ifStmt <|> whileStmt <|> forStmt <|> labeledStmt <|> stmtNoTrail
   where
     ifStmt = do
+        ifThenElse <- tP IfThenElse
         tok KW_If
         e  <- parens exp
         th <- stmtNSI
         tok KW_Else
         el <- stmtNSI
-        return $ IfThenElse e th el
+        return $ ifThenElse e th el
     whileStmt = do
+        while <- tP While
         tok KW_While
         e <- parens exp
         s <- stmtNSI
-        return $ While e s
+        return $ while e s
     forStmt = do
         tok KW_For
         f <- parens $ try ( do
