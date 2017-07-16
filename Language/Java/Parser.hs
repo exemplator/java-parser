@@ -42,13 +42,13 @@ import           Language.Java.Syntax
 import           Text.Parsec            hiding (Empty)
 import           Text.Parsec.Pos
 
-import           Data.Char            (toLower)
-import           Data.Maybe           (catMaybes, fromMaybe, isJust,
-                                       listToMaybe, maybe, maybeToList)
-import           Prelude              hiding (exp, (>>), (>>=))
-import qualified Prelude              as P ((>>), (>>=))
+import           Data.Char              (toLower)
+import           Data.Maybe             (catMaybes, fromMaybe, isJust,
+                                         listToMaybe, maybe, maybeToList)
+import           Prelude                hiding (exp, (>>), (>>=))
+import qualified Prelude                as P ((>>), (>>=))
 
-import           Control.Applicative  (liftA2, (<$), (<$>), (<*), (<*>))
+import           Control.Applicative    (liftA2, (<$), (<$>), (<*), (<*>))
 
 type P = Parsec [L Token] ()
 
@@ -64,7 +64,7 @@ infixr 2 >>, >>=
 ----------------------------------------------------------------------------
 -- Top-level parsing
 
-parseCompilationUnit :: String -> Either ParseError CompilationUnit
+parseCompilationUnit :: String -> Either ParseError (CompilationUnit Segment)
 parseCompilationUnit inp =
     runParser compilationUnit () "" (lexer inp)
 
@@ -1265,7 +1265,7 @@ matchToken t = javaToken (\r -> if r == t then Just () else Nothing)
 pos2sourcePos :: (Int, Int) -> SourcePos
 pos2sourcePos (l,c) = newPos "" l c
 
-type Mod a = [Modifier] -> a
+type Mod l a = [Modifier l] -> a
 
 parens, braces, brackets, angles :: P a -> P a
 parens   = between (tok OpenParen)  (tok CloseParen)

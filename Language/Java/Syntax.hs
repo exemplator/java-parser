@@ -65,7 +65,7 @@ import           Language.Java.Syntax.Types
 
 
 -- | A compilation unit is the top level syntactic goal symbol of a Java program.
-data CompilationUnit l = CompilationUnit (Maybe (PackageDecl l)) [ImportDecl l] [TypeDecl l]
+data CompilationUnit l = CompilationUnit l (Maybe (PackageDecl l)) [ImportDecl l] [TypeDecl l]
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | A package declaration appears within a compilation unit to indicate the package to which the compilation unit belongs.
