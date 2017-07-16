@@ -36,7 +36,8 @@ Library
   Exposed-modules:      Language.Java.Lexer,
                         Language.Java.Syntax,
                         Language.Java.Parser,
-                        Language.Java.Pretty
+                        Language.Java.Pretty,
+                        Language.Java.Position
   
   Other-modules:	    Language.Java.Syntax.Types
                         Language.Java.Syntax.Exp
