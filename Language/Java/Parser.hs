@@ -30,7 +30,6 @@ module Language.Java.Parser (
 
     name, ident,
 
-
     empty, list, list1, seplist, seplist1, opt, bopt, lopt,
 
     comma, semiColon, period, colon
