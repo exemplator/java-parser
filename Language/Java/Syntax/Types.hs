@@ -32,7 +32,6 @@ data RefType
     = ClassRefType ClassType
     {- | TypeVariable Ident -}
     | ArrayType Type
-    | PackageRefType Package
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A ClassType can either be with an package or without.
@@ -45,6 +44,10 @@ data ClassType
 -- a package can either be fully qualified ("java.util"), or end with an wildcard ("java.util.*")
 data Package = FullQualiPackage [Ident] | WildcardPackage [Ident]
   deriving (Eq,Show,Read,Typeable,Generic,Data)
+
+  -- | Get type of Package
+instance HasType Package where
+  getType = undefined
 
 -- | Type arguments may be either reference types or wildcards.
 data TypeArgument
@@ -117,10 +120,7 @@ instance Eq RelaxedType where
 checkRelaxed :: RefType -> RefType -> Bool
 checkRelaxed (ArrayType at1) (ArrayType at2) = RelaxedType at1 == RelaxedType at2
 checkRelaxed (ArrayType _) (ClassRefType _) = False
-checkRelaxed (ArrayType _) (PackageRefType _) = False
-
 checkRelaxed (ClassRefType _) (ArrayType _) = False
-checkRelaxed (ClassRefType _) (PackageRefType _) = False
 checkRelaxed (ClassRefType cr1) (ClassRefType cr2) = checkClassType cr1 cr2
   where
     checkClassType :: ClassType -> ClassType -> Bool
@@ -128,16 +128,6 @@ checkRelaxed (ClassRefType cr1) (ClassRefType cr2) = checkClassType cr1 cr2
     checkClassType (WithPackage _ class1) (WithoutPackage class2) = class1 == class2
     checkClassType (WithoutPackage class1) (WithPackage _ class2) = class1 == class2
     checkClassType (WithoutPackage class1) (WithoutPackage class2) = class1 == class2
-
-checkRelaxed (PackageRefType _) (ClassRefType _) = False
-checkRelaxed (PackageRefType _) (ArrayType _) = False
-checkRelaxed (PackageRefType prt1) (PackageRefType prt2) = checkPackage prt1 prt2
-  where
-    checkPackage :: Package -> Package -> Bool
-    checkPackage (FullQualiPackage indents1) (FullQualiPackage indents2) = indents1 == indents2
-    checkPackage (FullQualiPackage indents1) (WildcardPackage indents2) = indents1 == indents2
-    checkPackage (WildcardPackage indents1) (FullQualiPackage indents2) = indents1 == indents2
-    checkPackage (WildcardPackage indents1) (WildcardPackage indents2) = indents1 == indents2
 
 -- | This function returns a primitve as a ref type (i.e. boxed primitve)
 primToRefType :: PrimType -> RefType
