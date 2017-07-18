@@ -474,6 +474,7 @@ instance Pretty Type where
 instance Pretty RefType where
   prettyPrec p (ClassRefType ct) = prettyPrec p ct
   prettyPrec p (ArrayType t) = prettyPrec p t <> text "[]"
+  prettyPrec p (PackageRefType pkg) = prettyPrec p pkg
 
 instance Pretty ClassType where
   prettyPrec p (WithPackage pkg itas) =
