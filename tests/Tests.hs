@@ -27,7 +27,7 @@ instance Arbitrary (CompilationUnit Singleton) where
 instance Arbitrary (PackageDecl Singleton) where
     arbitrary = PackageDecl <$> arbitrary <*> arbitrary
 instance Arbitrary (ImportDecl Singleton) where
-    arbitrary = ImportDecl <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+    arbitrary = ImportDecl <$> arbitrary <*> arbitrary <*> arbitrary
 instance Arbitrary (TypeDecl Singleton) where
     arbitrary = ClassTypeDecl <$> arbitrary <*> arbitrary
 instance Arbitrary (ClassDecl Singleton) where

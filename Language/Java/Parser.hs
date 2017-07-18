@@ -120,10 +120,11 @@ importDecl = do
     imp <- tP ImportDecl
     tok KW_Import
     st <- bopt $ tok KW_Static
-    n  <- name
+    pkg  <- seplist1 ident period
     ds <- bopt $ period >> tok Op_Star
+    let package = if ds then WildcardPackage pkg else FullQualiPackage pkg
     semiColon
-    return $ imp st n ds
+    return $ imp st package
 
 typeDecl :: (Parsable l) => P (Maybe (TypeDecl l))
 typeDecl = Just <$> classOrInterfaceDecl <|>

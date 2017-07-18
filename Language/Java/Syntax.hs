@@ -77,7 +77,7 @@ data PackageDecl l = PackageDecl l Package
 --   The last argument signals whether the declaration brings all names in the named type or package, or only brings
 --   a single name into scope.
 data ImportDecl l
-    = ImportDecl l Bool {- static? -} Name Bool {- .*? -}
+    = ImportDecl l Bool {- static? -} Package {- .*? -}
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -----------------------------------------------------------------------
