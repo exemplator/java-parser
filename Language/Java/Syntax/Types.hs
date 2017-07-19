@@ -36,8 +36,13 @@ data RefType
 
 -- | A ClassType can either be with an package or without.
 data ClassType
-  = WithPackage Package [(Ident, [TypeArgument])]
-  | WithoutPackage [(Ident, [TypeArgument])]
+  = WithPackage Package ClassName
+  | WithoutPackage ClassName
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
+
+-- | a Classname is either a Classname or wildcard (matches any name). An AST constructed by the parser
+--   will only produce Classnames.
+data ClassName = ClassName [(Ident, [TypeArgument])] | WildcardName
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | represents a package, e.g. java.util
@@ -124,10 +129,14 @@ checkRelaxed (ClassRefType _) (ArrayType _) = False
 checkRelaxed (ClassRefType cr1) (ClassRefType cr2) = checkClassType cr1 cr2
   where
     checkClassType :: ClassType -> ClassType -> Bool
-    checkClassType (WithPackage pack1 class1) (WithPackage pack2 class2) = pack1 == pack2 && class1 == class2
+    checkClassType (WithPackage pack1 class1) (WithPackage pack2 class2) = pack1 == pack2 && class1 `checkName` class2
     checkClassType (WithPackage _ class1) (WithoutPackage class2) = class1 == class2
     checkClassType (WithoutPackage class1) (WithPackage _ class2) = class1 == class2
     checkClassType (WithoutPackage class1) (WithoutPackage class2) = class1 == class2
+
+    checkName :: ClassName -> ClassName -> Bool
+    checkName (ClassName name1) (ClassName name2) = name1 == name2
+    checkName _ _ = True
 
 -- | This function returns a primitve as a ref type (i.e. boxed primitve)
 primToRefType :: PrimType -> RefType
@@ -143,14 +152,14 @@ primToRefType = toRefHelper
     toRefHelper DoubleT = stringToRef "Double"
 
     stringToRef :: String -> RefType
-    stringToRef x = ClassRefType (WithPackage refPackage [(Ident x, [])])
+    stringToRef x = ClassRefType $ WithPackage refPackage (ClassName [(Ident x, [])])
     refPackage :: Package
     refPackage = FullQualiPackage (map Ident ["java", "lang"])
 
 -- | This function returns an Ident as a Type
 withPackageIdentToType :: [Ident] -> Ident -> Type
-withPackageIdentToType packages ident = RefType (ClassRefType (WithPackage (FullQualiPackage packages) [(ident, [])]))
+withPackageIdentToType packages ident = RefType $ ClassRefType $ WithPackage (FullQualiPackage packages) (ClassName [(ident, [])])
 
 -- | This function returns an Ident as a Type
 withoutPackageIdentToType :: Ident -> Type
-withoutPackageIdentToType ident = RefType (ClassRefType (WithoutPackage [(ident, [])]))
+withoutPackageIdentToType ident = RefType $ ClassRefType $ WithoutPackage $ ClassName [(ident, [])]
