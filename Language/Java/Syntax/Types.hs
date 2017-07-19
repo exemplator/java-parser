@@ -18,6 +18,10 @@ data Type
 class HasType a where
   getType :: a -> Type
 
+instance HasType Type where
+  getType = id
+
+
 --instance HasType a => CollectTypes a where
 --  collectTypes x = [getType x]
 
