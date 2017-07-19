@@ -104,6 +104,10 @@ instance HasType (TypeDecl l) where
   getType (ClassTypeDecl _ ctd) = getType ctd
   getType (InterfaceTypeDecl _ itd) = getType itd
 
+instance CollectTypes (TypeDecl l) where
+  collectTypes (ClassTypeDecl _ ctd) = collectTypes ctd
+  collectTypes (InterfaceTypeDecl _ itd) = collectTypes itd
+
 -- | A class declaration specifies a new named reference type.
 data ClassDecl l
     = ClassDecl l [Modifier l] Ident [TypeParam] (Maybe RefType) [RefType] (ClassBody l)
@@ -112,8 +116,12 @@ data ClassDecl l
 
 -- | Get type of ClassDecl
 instance HasType (ClassDecl l) where
-  getType (ClassDecl _ _ i _ _ _ _) =  withoutPackageIdentToType i
-  getType (EnumDecl _ _ i _ _) =  withoutPackageIdentToType i
+  getType (ClassDecl _ _ i _ _ _ _) = withoutPackageIdentToType i
+  getType (EnumDecl _ _ i _ _) = withoutPackageIdentToType i
+
+instance CollectTypes (ClassDecl l) where
+  collectTypes (ClassDecl _ _ i _ _ types _) = withoutPackageIdentToType i : collectTypes types
+  collectTypes (EnumDecl _ _ i types _) = withoutPackageIdentToType i : collectTypes types
 
 -- | A class body may contain declarations of members of the class, that is,
 --   fields, classes, interfaces and methods.
@@ -145,6 +153,9 @@ data InterfaceDecl l
 -- | Get type of InterfaceDecl
 instance HasType (InterfaceDecl l) where
   getType (InterfaceDecl _ _ _ i _ _ _) =  withoutPackageIdentToType i
+
+instance CollectTypes (InterfaceDecl l) where
+  collectTypes (InterfaceDecl _ _ _ i _ types _) = withoutPackageIdentToType i : collectTypes types
 
 -- | Interface can declare either a normal interface or an annotation
 data InterfaceKind = InterfaceNormal | InterfaceAnnotation
