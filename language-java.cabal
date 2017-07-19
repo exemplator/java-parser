@@ -37,10 +37,12 @@ Library
                         Language.Java.Syntax,
                         Language.Java.Parser,
                         Language.Java.Pretty,
-                        Language.Java.Position
+                        Language.Java.Position,
+                        Language.Java.Syntax.Lib
   
-  Other-modules:	    Language.Java.Syntax.Types
-                        Language.Java.Syntax.Exp
+  Other-modules:	    Language.Java.Syntax.Types,
+                      Language.Java.Syntax.Exp,
+
 
 Test-Suite test-java-parse
   type:              exitcode-stdio-1.0
