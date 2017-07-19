@@ -40,7 +40,7 @@ Library
                         Language.Java.Position,
                         Language.Java.Syntax.Lib
   
-  Other-modules:	      Language.Java.Syntax.Types,
+  Other-modules:        Language.Java.Syntax.Types,
                         Language.Java.Syntax.Exp
 
 
