@@ -1217,7 +1217,9 @@ classType = toClassType <$> parseClass
         toClassType = constructClassType . stripEmpty . split
         split = span (\(idt, _) -> maybe False (\a -> a == toLower a) ((listToMaybe . fromIdent) idt))
         stripEmpty (a, b) = (map fst a, b)
-        constructClassType (a, b) = if null a then WithoutPackage b else WithPackage (FullQualiPackage a) b
+        constructClassType (a, b) = if null a
+                then WithoutPackage (ClassName b)
+                else WithPackage (FullQualiPackage a) (ClassName b)
 
         parseClass = sepListEndOptBy (classTypeSpec typeArgs) (classTypeSpec typeArgsWithDiamond) period
 

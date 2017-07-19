@@ -44,6 +44,18 @@ instance Arbitrary Ident where
 instance Arbitrary Package where
     arbitrary = FullQualiPackage <$> ((:[]) <$> arbitrary)
 
+instance Arbitrary RefType where
+    arbitrary = ClassRefType <$> arbitrary
+
+instance Arbitrary ClassType where
+    arbitrary = WithPackage <$> arbitrary <*> arbitrary
+
+instance Arbitrary ClassName where
+    arbitrary = ClassName <$> ((:[]) <$> arbitrary)
+
+instance Arbitrary TypeArgument where
+    arbitrary = ActualType <$> arbitrary
+
 instance Arbitrary Singleton where
     arbitrary = return Singleton
 

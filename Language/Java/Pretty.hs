@@ -476,11 +476,13 @@ instance Pretty RefType where
   prettyPrec p (ArrayType t) = prettyPrec p t <> text "[]"
 
 instance Pretty ClassType where
-  prettyPrec p (WithPackage pkg itas) =
-    prettyPrec p pkg <> hcat (punctuate (char '.') (map (\(i,tas) -> prettyPrec p i <> ppTypeParams p tas) itas))
-  prettyPrec p (WithoutPackage itas) =
-    hcat . punctuate (char '.') $
-      map (\(i,tas) -> prettyPrec p i <> ppTypeParams p tas) itas
+  prettyPrec p (WithPackage pkg name) =
+    prettyPrec p pkg <> prettyPrec p name
+  prettyPrec p (WithoutPackage name) =prettyPrec p name
+
+instance Pretty ClassName where
+  prettyPrec p (ClassName name) = hcat (punctuate (char '.') (map (\(i,tas) -> prettyPrec p i <> ppTypeParams p tas) name))
+  prettyPrec p WildcardName = text "*"
 
 instance Pretty Package where
   prettyPrec p (FullQualiPackage pkgs) = hcat ((punctuate (char '.') . map (prettyPrec p)) pkgs)
