@@ -72,6 +72,9 @@ data CompilationUnit l = CompilationUnit l (Maybe (PackageDecl l)) [ImportDecl l
 data PackageDecl l = PackageDecl l Package
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
+instance HasType (PackageDecl l) where
+  getType (PackageDecl _ pkg) = getTypeFromPackage pkg
+
 -- | An import declaration allows a static member or a named type to be referred to by a single unqualified identifier.
 --   The first argument signals whether the declaration only imports static members.
 --   The last argument signals whether the declaration brings all names in the named type or package, or only brings
@@ -79,6 +82,12 @@ data PackageDecl l = PackageDecl l Package
 data ImportDecl l
     = ImportDecl l Bool {- static? -} Package {- .*? -}
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+
+instance HasType (ImportDecl l) where
+  getType (ImportDecl _ _ pkg) = getTypeFromPackage pkg
+
+getTypeFromPackage :: Package -> Type
+getTypeFromPackage pkg = RefType $ ClassRefType $ WithPackage pkg WildcardName
 
 -----------------------------------------------------------------------
 -- Declarations

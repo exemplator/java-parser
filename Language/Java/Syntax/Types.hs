@@ -50,10 +50,6 @@ data ClassName = ClassName [(Ident, [TypeArgument])] | WildcardName
 data Package = FullQualiPackage [Ident] | WildcardPackage [Ident]
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
-  -- | Get type of Package
-instance HasType Package where
-  getType = undefined
-
 -- | Type arguments may be either reference types or wildcards.
 data TypeArgument
     = Wildcard (Maybe WildcardBound)
@@ -136,6 +132,7 @@ checkRelaxed (ClassRefType cr1) (ClassRefType cr2) = checkClassType cr1 cr2
 
     checkName :: ClassName -> ClassName -> Bool
     checkName (ClassName name1) (ClassName name2) = name1 == name2
+    -- only wildcard-combinations left
     checkName _ _ = True
 
 -- | This function returns a primitve as a ref type (i.e. boxed primitve)
