@@ -2,6 +2,8 @@
 {-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances  #-}
 
 module Language.Java.Syntax
     ( CompilationUnit(..)
@@ -51,7 +53,6 @@ module Language.Java.Syntax
     ) where
 
 import           Data.Data
-import           Data.Maybe
 import           GHC.Generics               (Generic)
 
 import           Language.Java.Syntax.Exp
@@ -60,6 +61,9 @@ import           Language.Java.Syntax.Types
 -----------------------------------------------------------------------
 -- Packages
 
+-- | Provides functionality to access the body as a list of declarations of a class, enum and an interface. 
+class HasBody a l where
+  getBody :: a -> [Decl l]  
 
 -- | A compilation unit is the top level syntactic goal symbol of a Java program.
 data CompilationUnit l
@@ -134,6 +138,11 @@ instance CollectTypes (TypeDecl l) where
   collectTypes (ClassTypeDecl _ ctd) = collectTypes ctd
   collectTypes (InterfaceTypeDecl _ itd) = collectTypes itd
 
+-- | Get the body of TypeDecl
+instance HasBody (TypeDecl l) l where
+  getBody (ClassTypeDecl _ classDeclB) = getBody classDeclB
+  getBody (InterfaceTypeDecl _ iterDecl) = getBody iterDecl
+
 -- | A class declaration specifies a new named reference type.
 data ClassDecl l
     = ClassDecl
@@ -159,6 +168,11 @@ instance HasType (ClassDecl l) where
   getType (ClassDecl _ _ i _ _ _ _) = withoutPackageIdentToType i
   getType (EnumDecl _ _ i _ _) = withoutPackageIdentToType i
 
+-- | Get the body of ClassDecl
+instance HasBody (ClassDecl l) l where
+  getBody (ClassDecl _ _ _ _ _ _ classBodyB) = getBody classBodyB
+  getBody (EnumDecl _ _ _ _ enumBodyB) = getBody enumBodyB
+
 instance CollectTypes (ClassDecl l) where
   collectTypes (ClassDecl _ _ i _ _ types _) = withoutPackageIdentToType i : collectTypes types
   collectTypes (EnumDecl _ _ i types _) = withoutPackageIdentToType i : collectTypes types
@@ -170,9 +184,17 @@ instance CollectTypes (ClassDecl l) where
 data ClassBody l = ClassBody { infoClassBody :: l, classDecls :: [Decl l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
+-- | Get the body of ClassBody
+instance HasBody (ClassBody l) l where
+  getBody (ClassBody _ decls) = decls
+
 -- | The body of an enum type may contain enum constants.
 data EnumBody l = EnumBody { infoEnumBody :: l, enumConstans :: [EnumConstant l], enumDecls :: [Decl l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
+
+-- | Get the body of EnumBody
+instance HasBody (EnumBody l) l where
+  getBody (EnumBody _ _ decls) = decls
 
 -- | An enum constant defines an instance of the enum type.
 data EnumConstant l = EnumConstant
@@ -209,6 +231,10 @@ instance HasType (InterfaceDecl l) where
 instance CollectTypes (InterfaceDecl l) where
   collectTypes (InterfaceDecl _ _ _ i _ types _) = withoutPackageIdentToType i : collectTypes types
 
+-- | Get the body of InterfaceDecl
+instance HasBody (InterfaceDecl l) l where
+  getBody (InterfaceDecl _ _ _ _ _ _ iterBody) = getBody iterBody
+
 -- | Interface can declare either a normal interface or an annotation
 data InterfaceKind = InterfaceNormal | InterfaceAnnotation
   deriving (Eq,Show,Read,Typeable,Generic,Data)
@@ -217,6 +243,10 @@ data InterfaceKind = InterfaceNormal | InterfaceAnnotation
 data InterfaceBody l
     = InterfaceBody { infoInterfaceBody ::l, members :: [MemberDecl l]}
   deriving (Eq,Show,Read,Typeable,Generic,Data)
+
+-- | Get the body of ClassDecl
+instance HasBody (InterfaceBody l) l where
+  getBody (InterfaceBody l memDecls) = map (MemberDecl l) memDecls
 
 -- | A declaration is either a member declaration, or a declaration of an
 --   initializer, which may be static.

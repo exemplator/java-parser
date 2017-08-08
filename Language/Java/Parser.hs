@@ -112,9 +112,9 @@ compilationUnit = try (do
             moduleDec <- tP ModuleDeclaration
             -- only tokens in module descriptions!
             (Ident "module") <- ident
-            modulePackage <- fullQualiPkg
-            moduleSpecs <- braces $ list moduleSpecParser
-            return $moduleDec modulePackage moduleSpecs
+            modulePackageP <- fullQualiPkg
+            moduleSpecsP <- braces $ list moduleSpecParser
+            return $moduleDec modulePackageP moduleSpecsP
 
 packageDeclParser :: (Parsable l) => P (PackageDecl l)
 packageDeclParser = do
