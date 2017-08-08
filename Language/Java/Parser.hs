@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Language.Java.Parser (
+    P,
     Parsable(..),
 
     parseCompilationUnit, parser,

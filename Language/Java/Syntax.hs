@@ -219,14 +219,15 @@ data MemberDecl l
       }
     -- | A method declares executable code that can be invoked, passing a fixed number of values as arguments.
     | MethodDecl
-      { infoMethodDecl      :: l
-      , methodDeclModifiers :: [Modifier l]
-      , methodTypeParams    :: [TypeParam]
-      , returnType          :: Maybe Type
-      , methodDeclName      :: Ident
-      , params              :: [FormalParam l]
-      , exceptions          :: [ExceptionType l]
-      , methodBody          :: MethodBody l
+      { infoMethodDecl             :: l
+      , methodDeclModifiers        :: [Modifier l]
+      , methodTypeParams           :: [TypeParam]
+      , returnType                 :: Maybe Type
+      , methodDeclName             :: Ident
+      , params                     :: [FormalParam l]
+      , exceptions                 :: [ExceptionType l]
+      , defaultInterfaceAnnotation :: Maybe (Exp l)
+      , methodBody                 :: MethodBody l
       }
     -- | A constructor is used in the creation of an object that is an instance of a class.
     | ConstructorDecl
