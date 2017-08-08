@@ -36,7 +36,7 @@ Library
                         Language.Java.Parser,
                         Language.Java.Pretty,
                         Language.Java.Position,
-                        Language.Java.Lib,
+                        Language.Java.Helper,
                         Language.Java.Prisms.Syntax,
                         Language.Java.Prisms.Syntax.Exp,
                         Language.Java.Prisms.Syntax.Types
