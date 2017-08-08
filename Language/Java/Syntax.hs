@@ -220,9 +220,8 @@ data MemberDecl l
       , methodTypeParams    :: [TypeParam]
       , returnType          :: Maybe Type
       , methodDeclName      :: Ident
-      , params              :: [FormalParam l]
+      , params              :: [FormalParamx l]
       , exceptions          :: [ExceptionType l]
-      -- what is this? this was not set anywhere (Maybe (Exp l))
       , methodBody          :: MethodBody l
       }
     -- | A constructor is used in the creation of an object that is an instance of a class.
