@@ -46,13 +46,12 @@ import           Text.Parsec            hiding (Empty)
 import           Text.Parsec.Pos
 
 import           Data.Char              (toLower)
-import           Data.Maybe             (catMaybes, isJust, listToMaybe, maybe)
+import           Data.Maybe             (catMaybes, fromMaybe, isJust,
+                                         listToMaybe, maybe)
 import           Prelude                hiding ((>>), (>>=))
 import qualified Prelude                as P ((>>), (>>=))
 
 import           Control.Applicative    ((<$), (<$>), (<*), (<*>))
-
-import           Debug.Trace            (trace)
 
 type P = Parsec [L Token] ()
 
@@ -102,13 +101,20 @@ parser p = runParser p () "" . lexer
 -- Packages and compilation units
 
 compilationUnit :: Parsable l => P (CompilationUnit l)
-compilationUnit = do
+compilationUnit = try (do
         comp <- tP CompilationUnit
         mpd <- opt packageDeclParser
         ids <- list importDecl
         tds <- list typeDeclParser
         eof
-        return $ comp mpd ids (catMaybes tds)
+        return $ comp mpd ids (catMaybes tds))
+        <|> do
+            moduleDec <- tP ModuleDeclaration
+            -- only tokens in module descriptions!
+            (Ident "module") <- ident
+            modulePackage <- fullQualiPkg
+            moduleSpecs <- braces $ list moduleSpecParser
+            return $moduleDec modulePackage moduleSpecs
 
 packageDeclParser :: (Parsable l) => P (PackageDecl l)
 packageDeclParser = do
@@ -117,6 +123,21 @@ packageDeclParser = do
     pkg <- fullQualiPkg
     semiColon
     return $ pgkDec pkg
+
+moduleSpecParser :: (Parsable l) => P (ModuleSpec l)
+moduleSpecParser = try (do
+        moduleRequires <- tP ModuleRequires
+        -- only tokens in module descriptions!
+        (Ident "requires") <- ident
+        reqMod <- fullQualiPkg
+        semiColon
+        return $ moduleRequires reqMod)
+    <|> do
+        moduleExports <- tP ModuleExports
+        (Ident "exports") <- ident
+        exportsPkg <- fullQualiPkg
+        semiColon
+        return $ moduleExports exportsPkg
 
 importDecl :: (Parsable l) => P (ImportDecl l)
 importDecl = do
@@ -345,22 +366,16 @@ interfaceMemberDecl =
 
 absMethodDecl :: (Parsable l) => P (Mod l (MemberDecl l))
 absMethodDecl = do
+    meBod <- tP MethodBody
     meDec <- tP MethodDecl
-    needsBody <- methodModifier
-    tps <- lopt $ trace ("needs body: " ++ show needsBody) typeParams
+    tps <- lopt typeParams
     rt  <- resultType
     idt  <- ident
     fps <- formalParams
     thr <- lopt throws
     def <- opt defaultValue
-    body <- bodyParser needsBody
+    body <- try methodBodyParser <|> semiColon >> return (meBod Nothing)
     return $ \ms -> meDec ms tps rt idt fps thr def body
-    where
-        methodModifier = try ((try (tok KW_Default) <|> try (tok KW_Private) <|> tok KW_Static) >> return True) <|>
-                         (try (tok KW_Public >> try (tok KW_Abstract)) >> return False)
-
-        bodyParser False = do meBod <- tP MethodBody; semiColon >> return (meBod Nothing)
-        bodyParser True = methodBodyParser
 
 throws :: (Parsable l) => P [ExceptionType l]
 throws = (tok KW_Throws >> refTypeList) >>= mapM (\x -> tP ExceptionType <*> pure x)
@@ -408,6 +423,7 @@ modifier =
     <|> tok KW_Transient   >> tP Transient
     <|> tok KW_Volatile    >> tP Volatile
     <|> tok KW_Synchronized >> tP Synchronized_
+    <|> tok KW_Default >> tP DefaultModifier
     <|> Annotation <$$> annotationParser
 
 annotationParser :: (Parsable l) => P (Annotation l)
@@ -638,12 +654,13 @@ stmtNoTrail =
     -- try-catch, both with and without a finally clause
     (do tryNode <- tP Try
         tok KW_Try
+        res <- fromMaybe [] <$> optionMaybe (parens tryResources)
         b <- blockParser
         c <- list catch
         mf <- opt $ tok KW_Finally >> blockParser
         -- TODO: here we should check that there exists at
         -- least one catch or finally clause
-        return $ tryNode b c mf) <|>
+        return $ tryNode res b c mf) <|>
     -- expressions as stmts
     ExpStmt <$$> endSemi stmtExp
 
@@ -679,6 +696,17 @@ switchLabelParser = (tok KW_Default >> colon >> tP Default) <|>
         return $ switch e)
 
 -- Try-catch clauses
+
+tryResources :: (Parsable l) => P [TryResource l]
+tryResources = seplist tryRes semiColon
+    where
+      tryRes = try (do
+            tryResourceVar <- tP TryResourceVar
+            mods <- list modifier
+            ty <- refType
+            vars <- varDecls
+            return $ tryResourceVar mods ty vars
+        ) <|> (tP TryResourceFinalVar <*> ident)
 
 catch :: (Parsable l) => P (Catch l)
 catch = do

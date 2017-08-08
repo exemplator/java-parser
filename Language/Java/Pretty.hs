@@ -249,14 +249,20 @@ instance (Show l) => Pretty (Stmt l) where
   prettyPrec p (Throw _ e) =
     text "throw" <+> prettyPrec p e <> semi
 
-  prettyPrec p (Try _ blockP catchesP mFinally) =
-    text "try" $$ prettyPrec p blockP $$
+  prettyPrec p (Try _ resources blockP catchesP mFinally) =
+    text "try" $$ ppArgs resources $$ prettyPrec p blockP $$
       vcat (map (prettyPrec p) catchesP ++ [ppFinally mFinally])
    where ppFinally Nothing = empty
          ppFinally (Just bl) = text "finally" <+> prettyPrec p bl
 
   prettyPrec p (Labeled _ ident stmt) =
     prettyPrec p ident <> colon <+> prettyPrec p stmt
+
+instance (Show l) => Pretty (TryResource l) where
+  prettyPrec p (TryResourceVar _ mods ty decls) =
+    hsep (map (prettyPrec p) mods) <+> prettyPrec p ty <+>
+      hsep (punctuate comma $ map (prettyPrec p) decls)
+  prettyPrec p (TryResourceFinalVar _ ident) = prettyPrec p ident
 
 instance (Show l) => Pretty (Catch l) where
   prettyPrec p (Catch _ fParam blockP) =
