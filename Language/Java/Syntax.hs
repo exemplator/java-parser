@@ -6,6 +6,7 @@
 module Language.Java.Syntax
     ( CompilationUnit(..)
     , PackageDecl(..)
+    , ModuleSpec (..)
     , ImportDecl(..)
     , TypeDecl(..)
     , ClassDecl(..)
@@ -30,6 +31,7 @@ module Language.Java.Syntax
     , Block(..)
     , BlockStmt(..)
     , Stmt(..)
+    , TryResource(..)
     , Catch(..)
     , SwitchBlock(..)
     , SwitchLabel(..)
@@ -60,17 +62,38 @@ import           Language.Java.Syntax.Types
 
 
 -- | A compilation unit is the top level syntactic goal symbol of a Java program.
-data CompilationUnit l = CompilationUnit
-  { infoCompUnit    :: l
-  , packageLocation :: Maybe (PackageDecl l)
-  , imports         :: [ImportDecl l]
-  , typeDecls       :: [TypeDecl l]
-  }
+data CompilationUnit l
+  = CompilationUnit
+    { infoCompUnit    :: l
+    , packageLocation :: Maybe (PackageDecl l)
+    , imports         :: [ImportDecl l]
+    , typeDecls       :: [TypeDecl l]
+    }
+  | ModuleDeclaration
+    { infoModuleDecl :: l
+    , modulePackage  :: Package
+    , moduleSpecs    :: [ModuleSpec l]
+    }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A package declaration appears within a compilation unit to indicate the package to which the compilation unit belongs.
 data PackageDecl l = PackageDecl { infoPackDec :: l, packageDecl :: Package}
   deriving (Eq,Show,Read,Typeable,Generic,Data)
+
+-- | specifies the module declarations
+data ModuleSpec l
+  -- | requires the module to work
+  = ModuleRequires
+  { infoModuleRequires :: l
+  , requireModule      :: Package
+  }
+  -- | exports the package
+  | ModuleExports
+  { infoModuleExports :: l
+  , exportsPackage    :: Package
+  }
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
+
 
 instance HasType (PackageDecl l) where
   getType PackageDecl{packageDecl=pkg} = getTypeFromPackage pkg
@@ -363,6 +386,7 @@ data Modifier l
     | Native l
     | Annotation l (Annotation l)
     | Synchronized_ l
+    | DefaultModifier l
   deriving (Eq,Read,Typeable,Generic,Data)
 
 instance (Show l) => Show (Modifier l) where
@@ -378,6 +402,7 @@ instance (Show l) => Show (Modifier l) where
    show (Native _) = "native"
    show (Annotation _ a) = show a
    show (Synchronized_ _) = "synchronized"
+   show (DefaultModifier _) = "default"
 
 -- | Annotations have three different forms: no-parameter, single-parameter or key-value pairs
 data Annotation l = NormalAnnotation      { annName :: Name -- Not type because not type generics not allowed
@@ -469,7 +494,13 @@ data Stmt l
     --   can catch it, then control will be transferred to the first such catch clause. If the try statement has a finally
     --   clause, then another block of code is executed, no matter whether the try block completes normally or abruptly,
     --   and no matter whether a catch clause is first given control.
-    | Try { infoTry :: l, tryBlock :: Block l, catches :: [Catch l], finally ::  Maybe (Block l) }
+    | Try
+      { infoTry     :: l
+      , tryResource :: [TryResource l]
+      , tryBlock    :: Block l
+      , catches     :: [Catch l]
+      , finally     ::  Maybe (Block l)
+      }
     -- | Statements may have label prefixes.
     | Labeled { infoLabeled :: l, label :: Ident, labeledStmt :: Stmt l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
@@ -478,6 +509,22 @@ data Stmt l
 --   transferred to the first such catch clause.
 data Catch l = Catch { infoCatch :: l, catchParam :: FormalParam l, catchBlock :: Block l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
+
+-- | Resource in a try-with-resources statement
+data TryResource l =
+    -- | Newly declared variables
+    TryResourceVar
+    { infoTryResourceVar :: l
+    , resourceModifiers  :: [Modifier l]
+    , resourceVarType    :: RefType -- restricted to ClassType or TypeVariable
+    , resourceVarDecl    :: [VarDecl l]
+    }
+    -- | Effectively final variable
+    | TryResourceFinalVar
+    { infoTryResourceFinalVar :: l
+    , resourceFinalVarName    :: Ident
+    }
+    deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A block of code labelled with a @case@ or @default@ within a @switch@ statement.
 data SwitchBlock l = SwitchBlock { infoSwitchBlock :: l, switchLabel :: SwitchLabel l, switchStmts :: [BlockStmt l] }
@@ -502,7 +549,7 @@ data ForInit l
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | An exception type has to be a class type or a type variable.
-data ExceptionType l = ExceptionType { infoExceptionType :: l, expectionType :: RefType }-- restricted to ClassType or TypeVariable
+data ExceptionType l = ExceptionType { infoExceptionType :: l, expectionType :: RefType } -- restricted to ClassType or TypeVariable
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Gets type of ExceptionType
