@@ -1,12 +1,11 @@
-{-# LANGUAGE DeriveDataTypeable    #-}
-{-# LANGUAGE DeriveFoldable        #-}
-{-# LANGUAGE DeriveFunctor         #-}
-{-# LANGUAGE DeriveGeneric         #-}
-{-# LANGUAGE DeriveTraversable     #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TemplateHaskell       #-}
-{-# LANGUAGE TypeSynonymInstances  #-}
+{-# LANGUAGE DeriveDataTypeable   #-}
+{-# LANGUAGE DeriveFoldable       #-}
+{-# LANGUAGE DeriveFunctor        #-}
+{-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE DeriveTraversable    #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 module Language.Java.Syntax
     ( CompilationUnit(..)
@@ -67,11 +66,16 @@ import           Language.Java.Syntax.Types
 
 
 -- | A compilation unit is the top level syntactic goal symbol of a Java program.
-data CompilationUnit l = CompilationUnit { info :: l, packageLocation :: Maybe (PackageDecl l), imports :: [ImportDecl l], typeDecls :: [TypeDecl l] }
+data CompilationUnit l = CompilationUnit
+  { infoCompUnit    :: l
+  , packageLocation :: Maybe (PackageDecl l)
+  , imports         :: [ImportDecl l]
+  , typeDecls       :: [TypeDecl l]
+  }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | A package declaration appears within a compilation unit to indicate the package to which the compilation unit belongs.
-data PackageDecl l = PackageDecl { info :: l, packageDecl :: Package}
+data PackageDecl l = PackageDecl { infoPackDec :: l, packageDecl :: Package}
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 instance HasType (PackageDecl l) where
@@ -82,7 +86,7 @@ instance HasType (PackageDecl l) where
 --   The last argument signals whether the declaration brings all names in the named type or package, or only brings
 --   a single name into scope.
 data ImportDecl l
-    = ImportDecl { info :: l, staticImport :: Bool, importPackage :: Package}
+    = ImportDecl { infoImportDecl :: l, staticImport :: Bool, importPackage :: Package}
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 instance HasType (ImportDecl l) where
@@ -97,8 +101,8 @@ getTypeFromPackage pkg = RefType $ ClassRefType $ WithPackage pkg WildcardName
 
 -- | A type declaration declares a class type or an interface type.
 data TypeDecl l
-    = ClassTypeDecl { info :: l, classDecl :: ClassDecl l }
-    | InterfaceTypeDecl { info :: l, interfaceDecl :: InterfaceDecl l}
+    = ClassTypeDecl { infoClassTypeDecl :: l, classDecl :: ClassDecl l }
+    | InterfaceTypeDecl { infoInterfaceTypeDecl :: l, interfaceDecl :: InterfaceDecl l}
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | Get type of TypeDecl
@@ -113,7 +117,7 @@ instance CollectTypes (TypeDecl l) where
 -- | A class declaration specifies a new named reference type.
 data ClassDecl l
     = ClassDecl
-      { info               :: l
+      { infoClassDecl      :: l
       , classDeclModifiers :: [Modifier l]
       , classDeclName      :: Ident
       , classTypeParams    :: [TypeParam]
@@ -122,7 +126,7 @@ data ClassDecl l
       , classBody          :: ClassBody l
       }
     | EnumDecl
-      { info              :: l
+      { infoEnumDecl      :: l
       , enumDeclModifiers :: [Modifier l]
       , enumeDeclName     :: Ident
       , implements        :: [RefType]
@@ -143,16 +147,16 @@ instance CollectTypes (ClassDecl l) where
 --   fields, classes, interfaces and methods.
 --   A class body may also contain instance initializers, static
 --   initializers, and declarations of constructors for the class.
-data ClassBody l = ClassBody { info :: l, classDecls :: [Decl l] }
+data ClassBody l = ClassBody { infoClassBody :: l, classDecls :: [Decl l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | The body of an enum type may contain enum constants.
-data EnumBody l = EnumBody { info :: l, enumConstans :: [EnumConstant l], enumDecls :: [Decl l] }
+data EnumBody l = EnumBody { infoEnumBody :: l, enumConstans :: [EnumConstant l], enumDecls :: [Decl l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | An enum constant defines an instance of the enum type.
 data EnumConstant l = EnumConstant
-  { info             :: l
+  { infoEnumConstant :: l
   , enumConstantName :: Ident
   , enumArguments    :: [Argument l]
   , enumConstantBody :: Maybe (ClassBody l)
@@ -168,7 +172,7 @@ instance HasType (EnumConstant l) where
 --   no implementation, but otherwise unrelated classes can implement it by
 --   providing implementations for its abstract methods.
 data InterfaceDecl l = InterfaceDecl
-  { info                   :: l
+  { infoInterfaceDecl      :: l
   , interfaceKind          :: InterfaceKind
   , interfaceDeclModifiers :: [Modifier l]
   , interfaceDeclName      :: Ident
@@ -191,14 +195,14 @@ data InterfaceKind = InterfaceNormal | InterfaceAnnotation
 
 -- | The body of an interface may declare members of the interface.
 data InterfaceBody l
-    = InterfaceBody { info ::l, members :: [MemberDecl l]}
+    = InterfaceBody { infoInterfaceBody ::l, members :: [MemberDecl l]}
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | A declaration is either a member declaration, or a declaration of an
 --   initializer, which may be static.
 data Decl l
-    = MemberDecl { info :: l, member :: MemberDecl l }
-    | InitDecl { info :: l, staticDecl :: Bool, statements :: Block l }
+    = MemberDecl { infoMemberDecl :: l, member :: MemberDecl l }
+    | InitDecl { infoInitDecl :: l, staticDecl :: Bool, statements :: Block l }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 
@@ -208,14 +212,14 @@ data Decl l
 data MemberDecl l
     -- | The variables of a class type are introduced by field declarations.
     = FieldDecl
-      { info                :: l
+      { infoFieldDecl       :: l
       , memberDeclModifiers :: [Modifier l]
       , fieldType           :: Type
       , fieldVarDecls       :: [VarDecl l]
       }
     -- | A method declares executable code that can be invoked, passing a fixed number of values as arguments.
     | MethodDecl
-      { info                :: l
+      { infoMethodDecl      :: l
       , methodDeclModifiers :: [Modifier l]
       , methodTypeParams    :: [TypeParam]
       , returnType          :: Maybe Type
@@ -226,7 +230,7 @@ data MemberDecl l
       }
     -- | A constructor is used in the creation of an object that is an instance of a class.
     | ConstructorDecl
-      { info                    :: l
+      { infoConstructorDecl     :: l
       , constructorMod          :: [Modifier l]
       , constructorTypeParams   :: [TypeParam]
       , constructorClassName    :: Ident
@@ -236,13 +240,13 @@ data MemberDecl l
       }
     -- | A member class is a class whose declaration is directly enclosed in another class or interface declaration.
     | MemberClassDecl
-      { info            :: l
-      , memberClassDecl :: ClassDecl l
+      { infoMemberClassDecl :: l
+      , memberClassDecl     :: ClassDecl l
       }
     -- | A member interface is an interface whose declaration is directly enclosed in another class or interface declaration.
     | MemberInterfaceDecl
-      { info                 :: l
-      , memberInterfaceDecls :: InterfaceDecl l
+      { infoMemberInterfaceDecl :: l
+      , memberInterfaceDecls    :: InterfaceDecl l
       }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
@@ -256,27 +260,27 @@ instance CollectTypes (MemberDecl l) where
 
 -- | A declaration of a variable, which may be explicitly initialized.
 data VarDecl l
-    = VarDecl { info :: l, varDeclName :: VarDeclId l, varInit :: Maybe (VarInit l) }
+    = VarDecl { infoVarDecl :: l, varDeclName :: VarDeclId l, varInit :: Maybe (VarInit l) }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | The name of a variable in a declaration, which may be an array.
 data VarDeclId l
-    = VarId { info :: l, varIdName :: Ident }
-    | VarDeclArray { info :: l, varIdDecl :: VarDeclId l }
+    = VarId { infoVarId :: l, varIdName :: Ident }
+    | VarDeclArray { infoVarDeclArray :: l, varIdDecl :: VarDeclId l }
     -- ^ Multi-dimensional arrays are represented by nested applications of 'VarDeclArray'.
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | Explicit initializer for a variable declaration.
 data VarInit l
-    = InitExp { info :: l, init :: Exp l }
-    | InitArray { info :: l, varArrayInit :: ArrayInit l }
+    = InitExp { infoInitExp :: l, init :: Exp l }
+    | InitArray { infoInitArray :: l, varArrayInit :: ArrayInit l }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | A formal parameter in method declaration. The last parameter
 --   for a given declaration may be marked as variable arity,
 --   indicated by the boolean argument.
 data FormalParam l = FormalParam
-  { info                 :: l
+  { infoFormalParam      :: l
   , formalParamModifiers :: [Modifier l]
   , paramType            :: Type
   , variableArity        :: Bool
@@ -290,15 +294,15 @@ instance HasType (FormalParam l) where
 
 -- | A method body is either a block of code that implements the method or simply a
 --   semicolon, indicating the lack of an implementation (modelled by 'Nothing').
-data MethodBody l = MethodBody { info :: l, impl :: Maybe (Block l) }
+data MethodBody l = MethodBody { infoMethodBody :: l, impl :: Maybe (Block l) }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | The first statement of a constructor body may be an explicit invocation of
 --   another constructor of the same class or of the direct superclass.
 data ConstructorBody l = ConstructorBody
-  { info             :: l
-  , constructorInvoc :: Maybe (ExplConstrInv l)
-  , constrBody       :: [BlockStmt l]
+  { infoConstructorBody :: l
+  , constructorInvoc    :: Maybe (ExplConstrInv l)
+  , constrBody          :: [BlockStmt l]
   }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
@@ -308,20 +312,20 @@ data ConstructorBody l = ConstructorBody
 --   enclosing instance.
 data ExplConstrInv l
     = ThisInvoke
-      { info            :: l
+      { infoThisInvoke  :: l
       , typeArguments   :: [RefType]
       , constrArguments :: [Argument l]
       }
     | SuperInvoke
-      { info            :: l
+      { infoSuperInvoke :: l
       , typeArguments   :: [RefType]
       , constrArguments :: [Argument l]
       }
     | PrimarySuperInvoke
-      { info            :: l
-      , primary         :: Exp l
-      , typeArguments   :: [RefType]
-      , constrArguments :: [Argument l]
+      { infoPrimarySuperInvoke :: l
+      , primary                :: Exp l
+      , typeArguments          :: [RefType]
+      , constrArguments        :: [Argument l]
       }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
@@ -374,8 +378,8 @@ desugarAnnotation' :: Annotation l -> Annotation l
 desugarAnnotation' = uncurry NormalAnnotation . desugarAnnotation
 
 -- | Annotations may contain  annotations or (loosely) expressions
-data ElementValue l = EVVal { info :: l, elementVarInit :: VarInit l }
-                  | EVAnn { info :: l, annotation :: Annotation l}
+data ElementValue l = EVVal { infoEVVal :: l, elementVarInit :: VarInit l }
+                  | EVAnn { infoEVAnn :: l, annotation :: Annotation l}
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -----------------------------------------------------------------------
@@ -383,16 +387,16 @@ data ElementValue l = EVVal { info :: l, elementVarInit :: VarInit l }
 
 -- | A block is a sequence of statements, local class declarations
 --   and local variable declaration statements within braces.
-data Block l = Block { info :: l, blockStatements :: [BlockStmt l] }
+data Block l = Block { infoBlock :: l, blockStatements :: [BlockStmt l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | A block statement is either a normal statement, a local
 --   class declaration or a local variable declaration.
 data BlockStmt l
-    = BlockStmt { info :: l, statement :: Stmt l }
-    | LocalClass { info :: l, blockLocalClassDecl :: ClassDecl l }
+    = BlockStmt { infoBlockStmt :: l, statement :: Stmt l }
+    | LocalClass { infoLocalClass :: l, blockLocalClassDecl :: ClassDecl l }
     | LocalVars
-      { info             :: l
+      { infoLocalVars    :: l
       , locaVarModifiers :: [Modifier l]
       , blockVarType     :: Type
       , localVarDecls    :: [VarDecl l]
@@ -403,23 +407,23 @@ data BlockStmt l
 -- | A Java statement.
 data Stmt l
     -- | A statement can be a nested block.
-    = StmtBlock { info :: l, block :: Block l }
+    = StmtBlock { infoStmtBlock :: l, block :: Block l }
     -- | The @if-then@ statement allows conditional execution of a statement.
-    | IfThenElse { info :: l, ifExp :: Exp l, thenExp :: Stmt l, elseExp :: Maybe (Stmt l) }
+    | IfThenElse { infoIfThenElse :: l, ifExp :: Exp l, thenExp :: Stmt l, elseExp :: Maybe (Stmt l) }
     -- | The @while@ statement executes an expression and a statement repeatedly until the value of the expression is false.
-    | While { info :: l, whileVondition :: Exp l, whileBody :: Stmt l }
+    | While { infoWhile :: l, whileVondition :: Exp l, whileBody :: Stmt l }
     -- | The basic @for@ statement executes some initialization code, then executes an expression, a statement, and some
     --   update code repeatedly until the value of the expression is false.
     | BasicFor
-      { info      :: l
-      , forInit   :: Maybe (ForInit l)
-      , forCond   :: Maybe (Exp l)
-      , forUpdate :: Maybe [Exp l]
-      , forBody   :: Stmt l
+      { infoBasicFor :: l
+      , forInit      :: Maybe (ForInit l)
+      , forCond      :: Maybe (Exp l)
+      , forUpdate    :: Maybe [Exp l]
+      , forBody      :: Stmt l
       }
     -- | The enhanced @for@ statement iterates over an array or a value of a class that implements the @iterator@ interface.
     | EnhancedFor
-      { info             :: l
+      { infoEnhancedFor  :: l
       , loopVarModifiers :: [Modifier l] -- ^ example: for (final Int x : set) {..}
       , loopVarType      :: Type
       , loopVarName      :: Ident
@@ -427,67 +431,68 @@ data Stmt l
       , forBody          :: Stmt l
       }
     -- | An empty statement does nothing.
-    | Empty { info :: l }
+    | Empty { infoEmpty :: l }
     -- | Certain kinds of expressions may be used as statements by following them with semicolons:
     --   assignments, pre- or post-inc- or decrementation, method invocation or class instance
     --   creation expressions.
-    | ExpStmt { info :: l, exp :: Exp l }
+    | ExpStmt { infoExpStmt :: l, exp :: Exp l }
     -- | An assertion is a statement containing a boolean expression, where an error is reported if the expression
     --   evaluates to false.
-    | Assert { info :: l, booleanExp :: Exp l, valueExp :: Maybe (Exp l) }
+    | Assert { infoAssert :: l, booleanExp :: Exp l, valueExp :: Maybe (Exp l) }
     -- | The switch statement transfers control to one of several statements depending on the value of an expression.
-    | Switch { info :: l, switchValue :: Exp l, switchBlocks :: [SwitchBlock l] }
+    | Switch { infoSwitch :: l, switchValue :: Exp l, switchBlocks :: [SwitchBlock l] }
     -- | The @do@ statement executes a statement and an expression repeatedly until the value of the expression is false.
-    | Do { info :: l, doBody :: Stmt l, doCondition :: Exp l }
+    | Do { infoDo :: l, doBody :: Stmt l, doCondition :: Exp l }
     -- | A @break@ statement transfers control out of an enclosing statement.
-    | Break { info :: l, breakLabel :: Maybe Ident }
+    | Break { infoBreak :: l, breakLabel :: Maybe Ident }
     -- | A @continue@ statement may occur only in a while, do, or for statement. Control passes to the loop-continuation
     --   point of that statement.
-    | Continue { info :: l, continueLabel :: Maybe Ident }
+    | Continue { infoContinue :: l, continueLabel :: Maybe Ident }
     -- A @return@ statement returns control to the invoker of a method or constructor.
-    | Return { info :: l, returnExp :: Maybe (Exp l) }
+    | Return { infoReturn :: l, returnExp :: Maybe (Exp l) }
     -- | A @synchronized@ statement acquires a mutual-exclusion lock on behalf of the executing thread, executes a block,
     --   then releases the lock. While the executing thread owns the lock, no other thread may acquire the lock.
-    | Synchronized { info :: l, synchronizeOn :: Exp l, synchronizeBloc :: Block l }
+    | Synchronized { infoSynchronized :: l, synchronizeOn :: Exp l, synchronizeBloc :: Block l }
     -- | A @throw@ statement causes an exception to be thrown.
-    | Throw { info :: l, throwExp :: Exp l }
+    | Throw { infoThrow :: l, throwExp :: Exp l }
     -- | A try statement executes a block. If a value is thrown and the try statement has one or more catch clauses that
     --   can catch it, then control will be transferred to the first such catch clause. If the try statement has a finally
     --   clause, then another block of code is executed, no matter whether the try block completes normally or abruptly,
     --   and no matter whether a catch clause is first given control.
-    | Try { info :: l, tryBlock :: Block l, catches :: [Catch l], finally ::  Maybe (Block l) }
+    | Try { infoTry :: l, tryBlock :: Block l, catches :: [Catch l], finally ::  Maybe (Block l) }
     -- | Statements may have label prefixes.
-    | Labeled { info :: l, label :: Ident, labeledStmt :: Stmt l }
+    | Labeled { infoLabeled :: l, label :: Ident, labeledStmt :: Stmt l }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | If a value is thrown and the try statement has one or more catch clauses that can catch it, then control will be
 --   transferred to the first such catch clause.
-data Catch l = Catch { info :: l, catchParam :: FormalParam l, catchBlock :: Block l }
+data Catch l = Catch { infoCatch :: l, catchParam :: FormalParam l, catchBlock :: Block l }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | A block of code labelled with a @case@ or @default@ within a @switch@ statement.
-data SwitchBlock l = SwitchBlock { info :: l, switchLabel :: SwitchLabel l, switchStmts :: [BlockStmt l] }
+data SwitchBlock l = SwitchBlock { infoSwitchBlock :: l, switchLabel :: SwitchLabel l, switchStmts :: [BlockStmt l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | A label within a @switch@ statement.
 data SwitchLabel l
     -- | The expression contained in the @case@ must be a 'Lit' or an @enum@ constant.
-    = SwitchCase { info :: l, switchExp :: Exp l}
-    | Default { info :: l }
+    = SwitchCase { infoSwitchCase :: l, switchExp :: Exp l}
+    | Default { infoDefault :: l }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | Initialization code for a basic @for@ statement.
 data ForInit l
-    = ForLocalVars { info :: l
-      , forVarModifiers   :: [Modifier l]
-      , forVarType        :: Type
-      , forVarDecls       :: [VarDecl l]
+    = ForLocalVars
+      { infoForLocalVars :: l
+      , forVarModifiers  :: [Modifier l]
+      , forVarType       :: Type
+      , forVarDecls      :: [VarDecl l]
       }
-    | ForInitExps { info :: l, initExpr :: [Exp l] }
+    | ForInitExps { infoForInitExps :: l, initExpr :: [Exp l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | An exception type has to be a class type or a type variable.
-data ExceptionType l = ExceptionType { info :: l, expectionType :: RefType }-- restricted to ClassType or TypeVariable
+data ExceptionType l = ExceptionType { infoExceptionType :: l, expectionType :: RefType }-- restricted to ClassType or TypeVariable
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | Gets type of ExceptionType
@@ -500,134 +505,134 @@ type Argument = Exp
 -- | A Java expression.
 data Exp l
     -- | A literal denotes a fixed, unchanging value.
-    = Lit { info :: l, literal :: Literal }
+    = Lit { infoLit :: l, literal :: Literal }
     -- | A class literal, which is an expression consisting of the name of a class, interface, array,
     --   or primitive type, or the pseudo-type void (modelled by 'Nothing'), followed by a `.' and the token class.
-    | ClassLit { info :: l, classLit :: Maybe Type }
+    | ClassLit { infoClassLit :: l, classLit :: Maybe Type }
     -- | The keyword @this@ denotes a value that is a reference to the object for which the instance method
     --   was invoked, or to the object being constructed.
-    | This { info :: l }
+    | This { infoThis :: l }
     -- | Any lexically enclosing instance can be referred to by explicitly qualifying the keyword this.
     -- TODO: Fix Parser here
-    | QualifiedThis { info :: l, qualiType :: Type }
+    | QualifiedThis { infoQualifiedThis :: l, qualiType :: Type }
     -- | A class instance creation expression is used to create new objects that are instances of classes.
     -- | The first argument is a list of non-wildcard type arguments to a generic constructor.
     --   What follows is the type to be instantiated, the list of arguments passed to the constructor, and
     --   optionally a class body that makes the constructor result in an object of an /anonymous/ class.
     | InstanceCreation
-      { info              :: l
-      , typeArgs          :: [TypeArgument]
-      , typeDecl          :: TypeDeclSpecifier
-      , instanceArguments :: [Argument l]
-      , anonymousClass    :: Maybe (ClassBody l)
+      { infoInstanceCreation :: l
+      , typeArgs             :: [TypeArgument]
+      , typeDecl             :: TypeDeclSpecifier
+      , instanceArguments    :: [Argument l]
+      , anonymousClass       :: Maybe (ClassBody l)
       }
     -- | A qualified class instance creation expression enables the creation of instances of inner member classes
     --   and their anonymous subclasses.
     {- TODO what is is the mysteryExp used for?-}
     | QualInstanceCreation
-      { info                   :: l
-      , mysteryExp             :: Exp l
-      , typeArgs               :: [TypeArgument]
-      , className              :: Ident
-      , qualiInstanceArguments :: [Argument l]
-      , anonymousClass         :: Maybe (ClassBody l)
+      { infoQualInstanceCreation :: l
+      , mysteryExp               :: Exp l
+      , typeArgs                 :: [TypeArgument]
+      , className                :: Ident
+      , qualiInstanceArguments   :: [Argument l]
+      , anonymousClass           :: Maybe (ClassBody l)
       }
     -- | An array instance creation expression is used to create new arrays. The last argument denotes the number
     --   of dimensions that have no explicit length given. These dimensions must be given last.
-    | ArrayCreate { info :: l, arrayType :: Type, arrayDimExprs :: [Exp l], dimensions :: Int }
+    | ArrayCreate { infoArrayCreate :: l, arrayType :: Type, arrayDimExprs :: [Exp l], dimensions :: Int }
     -- | An array instance creation expression may come with an explicit initializer. Such expressions may not
     --   be given explicit lengths for any of its dimensions.
-    | ArrayCreateInit { info :: l, arrayType :: Type, dimensions :: Int, arrayCreatInit :: ArrayInit l }
+    | ArrayCreateInit { infoArrayCreateInit :: l, arrayType :: Type, dimensions :: Int, arrayCreatInit :: ArrayInit l }
     -- | A field access expression.
-    | FieldAccess { info :: l, fieldAccess :: FieldAccess l }
+    | FieldAccess { infoFieldAccess :: l, fieldAccess :: FieldAccess l }
     -- | A method invocation expression.
-    | MethodInv { info :: l, methodInvoc :: MethodInvocation l }
+    | MethodInv { infoMethodInv :: l, methodInvoc :: MethodInvocation l }
     -- | An array access expression refers to a variable that is a component of an array.
-    | ArrayAccess { info :: l, arrayAccessIndex :: ArrayIndex l }
+    | ArrayAccess { infoArrayAccess :: l, arrayAccessIndex :: ArrayIndex l }
 {-    | ArrayAccess Exp Exp -- Should this be made into a datatype, for consistency and use with Lhs? -}
     -- | An expression name, e.g. a variable.
-    | ExpName { info :: l, expName :: Name }
+    | ExpName { infoExpName :: l, expName :: Name }
     -- | Post-incrementation expression, i.e. an expression followed by @++@.
-    | PostIncrement { info :: l, postIncExp :: Exp l }
+    | PostIncrement { infoPostIncrement :: l, postIncExp :: Exp l }
     -- | Post-decrementation expression, i.e. an expression followed by @--@.
-    | PostDecrement { info :: l, postDecExp :: Exp l }
+    | PostDecrement { infoPostDecrement :: l, postDecExp :: Exp l }
     -- | Pre-incrementation expression, i.e. an expression preceded by @++@.
-    | PreIncrement { info :: l, preIncExp :: Exp l }
+    | PreIncrement { infoPreIncrement :: l, preIncExp :: Exp l }
     -- | Pre-decrementation expression, i.e. an expression preceded by @--@.
-    | PreDecrement { info :: l, preDecExp :: Exp l }
+    | PreDecrement { infoPreDecrement :: l, preDecExp :: Exp l }
     -- | Unary plus, the promotion of the value of the expression to a primitive numeric type.
-    | PrePlus  { info :: l, plusArg :: Exp l }
+    | PrePlus  { infoPrePlus :: l, plusArg :: Exp l }
     -- | Unary minus, the promotion of the negation of the value of the expression to a primitive numeric type.
-    | PreMinus { info :: l, minusArg :: Exp l }
+    | PreMinus { infoPreMinus :: l, minusArg :: Exp l }
     -- | Unary bitwise complementation: note that, in all cases, @~x@ equals @(-x)-1@.
-    | PreBitCompl { info :: l, bitComplArg :: Exp l }
+    | PreBitCompl { infoPreBitCompl :: l, bitComplArg :: Exp l }
     -- | Logical complementation of boolean values.
-    | PreNot { info :: l, notArg :: Exp l }
+    | PreNot { infoPreNot :: l, notArg :: Exp l }
     -- | A cast expression converts, at run time, a value of one numeric type to a similar value of another
     --   numeric type; or confirms, at compile time, that the type of an expression is boolean; or checks,
     --   at run time, that a reference value refers to an object whose class is compatible with a specified
     --   reference type.
-    | Cast { info :: l, castTarget :: Type, castArg :: Exp l }
+    | Cast { infoCast :: l, castTarget :: Type, castArg :: Exp l }
     -- | The application of a binary operator to two operand expressions.
-    | BinOp { info :: l, binArgLeft :: Exp l, binOp :: Op, binOpRight :: Exp l }
+    | BinOp { infoBinOp :: l, binArgLeft :: Exp l, binOp :: Op, binOpRight :: Exp l }
     -- | Testing whether the result of an expression is an instance of some reference type.
-    | InstanceOf { info :: l, instanceOfArg :: Exp l, instanceOfTarget :: RefType }
+    | InstanceOf { infoInstanceOf :: l, instanceOfArg :: Exp l, instanceOfTarget :: RefType }
     -- | The conditional operator @? :@ uses the boolean value of one expression to decide which of two other
     --   expressions should be evaluated.
-    | Cond { info :: l, condition :: Exp l, conditionTrueExp :: Exp l, conditionFalseExp :: Exp l }
+    | Cond { infoCond :: l, condition :: Exp l, conditionTrueExp :: Exp l, conditionFalseExp :: Exp l }
     -- | Assignment of the result of an expression to a variable.
-    | Assign { info :: l, assignTarget :: Lhs l, assignOp :: AssignOp, assignSource :: Exp l }
+    | Assign { infoAssign :: l, assignTarget :: Lhs l, assignOp :: AssignOp, assignSource :: Exp l }
     -- | Lambda expression
-    | Lambda { info :: l, lambdaParams :: LambdaParams l, lambdaExpression :: LambdaExpression l }
+    | Lambda { infoLambda :: l, lambdaParams :: LambdaParams l, lambdaExpression :: LambdaExpression l }
     -- | Method reference
-    | MethodRef { info :: l, methodClass :: Name, methodName :: Ident }
+    | MethodRef { infoMethodRef :: l, methodClass :: Name, methodName :: Ident }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | The left-hand side of an assignment expression. This operand may be a named variable, such as a local
 --   variable or a field of the current object or class, or it may be a computed variable, as can result from
 --   a field access or an array access.
 data Lhs l
-    = NameLhs { info :: l, varLhsName :: Name }          -- ^ Assign to a variable
-    | FieldLhs { info :: l, fieldLhsName :: FieldAccess l }  -- ^ Assign through a field access
-    | ArrayLhs { info :: l, arrayLhsIndex :: ArrayIndex l }   -- ^ Assign to an array
+    = NameLhs { infoNameLhs :: l, varLhsName :: Name }          -- ^ Assign to a variable
+    | FieldLhs { infoFieldLhs :: l, fieldLhsName :: FieldAccess l }  -- ^ Assign through a field access
+    | ArrayLhs { infoArrayLhs :: l, arrayLhsIndex :: ArrayIndex l }   -- ^ Assign to an array
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | Array access
 data ArrayIndex l = ArrayIndex
-  { info         :: l
-  , arrayName    :: Exp l
-  , arrayIndices :: [Exp l]
+  { infoArrayIndex :: l
+  , arrayName      :: Exp l
+  , arrayIndices   :: [Exp l]
   }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | A field access expression may access a field of an object or array, a reference to which is the value
 --   of either an expression or the special keyword super.
 data FieldAccess l
-    = PrimaryFieldAccess { info :: l, targetObject :: Exp l, targetField :: Ident } -- ^ Accessing a field of an object or array computed from an expression.
-    | SuperFieldAccess { info :: l, superField :: Ident } -- ^ Accessing a field of the superclass.
-    | ClassFieldAccess { info :: l, targetClass :: Name, staticField :: Ident } -- ^ Accessing a (static) field of a named class.
+    = PrimaryFieldAccess { infoPrimaryFieldAccess :: l, targetObject :: Exp l, targetField :: Ident } -- ^ Accessing a field of an object or array computed from an expression.
+    | SuperFieldAccess { infoSuperFieldAccess :: l, superField :: Ident } -- ^ Accessing a field of the superclass.
+    | ClassFieldAccess { infoClassFieldAccess :: l, targetClass :: Name, staticField :: Ident } -- ^ Accessing a (static) field of a named class.
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- ¦ A lambda parameter can be a single parameter, or mulitple formal or mulitple inferred parameters
 data LambdaParams l
-  = LambdaSingleParam { info :: l, lambdaParamName :: Ident }
-  | LambdaFormalParams { info :: l, lambdaFormalParams :: [FormalParam l] }
-  | LambdaInferredParams { info :: l, lambdaParamNames :: [Ident] }
+  = LambdaSingleParam { infoLambdaSingleParam :: l, lambdaParamName :: Ident }
+  | LambdaFormalParams { infoLambdaFormalParams :: l, lambdaFormalParams :: [FormalParam l] }
+  | LambdaInferredParams { infoLambdaInferredParams :: l, lambdaParamNames :: [Ident] }
     deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | Lambda expression, starting from java 8
 data LambdaExpression l
-    = LambdaExpression { info ::l, singleLambdaExp :: Exp l }
-    | LambdaBlock { info :: l, lambdaBlock :: Block l }
+    = LambdaExpression { infoLambdaExpression ::l, singleLambdaExp :: Exp l }
+    | LambdaBlock { infoLambdaBlock :: l, lambdaBlock :: Block l }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 -- | A method invocation expression is used to invoke a class or instance method.
 data MethodInvocation l
     -- | Invoking a specific named method.
-    = MethodCall { info :: l, methodCallName :: Name, methodCallArgs :: [Argument l] }
+    = MethodCall { infoMethodCall :: l, methodCallName :: Name, methodCallArgs :: [Argument l] }
     -- | Invoking a method of a class computed from a primary expression, giving arguments for any generic type parameters.
     | PrimaryMethodCall
-      { info                  :: l
+      { infoPrimaryMethodCall :: l
       , methodCallTargetObj   :: Exp l
       , mysteryRefTypes       :: [RefType] {- TODO: mysteryRefTypes, prob. type args. not set in Parser -}
       , primaryMethodName     :: Ident
@@ -635,14 +640,14 @@ data MethodInvocation l
       }
     -- | Invoking a method of the super class, giving arguments for any generic type parameters.
     | SuperMethodCall
-      { info                :: l
+      { infoSuperMethodCall :: l
       , superMethodTypeArgs :: [RefType]
       , superMethodName     :: Ident
       , superMethodArgs     :: [Argument l]
       }
     -- | Invoking a method of the superclass of a named class, giving arguments for any generic type parameters.
     | ClassMethodCall
-      { info                :: l
+      { infoClassMethodCall :: l
       , methodClassTarget   :: Name
       , classMethodTypeArgs :: [RefType]
       , classMethodName     :: Ident
@@ -650,7 +655,7 @@ data MethodInvocation l
       }
     -- | Invoking a method of a named type, giving arguments for any generic type parameters.
     | TypeMethodCall
-      { info                  :: l
+      { infoTypeMethodCall    :: l
       , typeMethodClassTarget :: Name
       , typeMethodTypeArgs    :: [RefType]
       , typeMethodName        :: Ident
@@ -661,5 +666,5 @@ data MethodInvocation l
 -- | An array initializer may be specified in a declaration, or as part of an array creation expression, creating an
 --   array and providing some initial values
 data ArrayInit l
-    = ArrayInit { info :: l, arrayInits :: [VarInit l] }
+    = ArrayInit { infoArrayInit :: l, arrayInits :: [VarInit l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
