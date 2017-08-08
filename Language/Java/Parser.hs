@@ -80,9 +80,13 @@ instance Parsable Segment where
 tP :: (Parsable l) => (l -> a) -> P a
 tP = toParser
 
-(<$$>) :: (Parsable l) => (l -> a -> b) -> P a -> P b
-(<$$>) constr pa = tP constr <*> pa
+(<$$>) :: (Parsable l) => (l -> a -> b) -> P a -> P (l -> b)
+(<$$>) constr pa = flip constr <$> pa
 infixl 4 <$$>
+
+(<**>) :: (Parsable l) => P (l -> a -> b) -> P a -> P (l -> b)
+(<**>) constr pa = flip <$> constr <*> pa
+infixl 4 <**>
 
 ----------------------------------------------------------------------------
 -- Top-level parsing
