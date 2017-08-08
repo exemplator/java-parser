@@ -220,7 +220,7 @@ data MemberDecl l
       , methodTypeParams    :: [TypeParam]
       , returnType          :: Maybe Type
       , methodDeclName      :: Ident
-      , params              :: [FormalParamx l]
+      , params              :: [FormalParam l]
       , exceptions          :: [ExceptionType l]
       , methodBody          :: MethodBody l
       }
