@@ -190,6 +190,9 @@ script:
     stack)
       stack --no-terminal $ARGS test --bench --no-run-benchmarks --haddock --no-haddock-deps
       ;;
+      stack --no-terminal $ARGS haddock
+      docs=$(stack path | sed -n -e 's/^.*local-doc-root: //p')
+      mv $docs ./docs/ 
     cabal)
       cabal install --enable-tests --enable-benchmarks --force-reinstalls --ghc-options=-O0 --reorder-goals --max-backjumps=-1 $CABALARGS $PACKAGES
 
@@ -213,7 +216,7 @@ script:
   set +ex
 
 deploy:
-  local_dir: stack path | sed -n -e 's/^.*local-doc-root: //p'
+  local_dir: ./docs/
   provider: pages
   skip_cleanup: true
   github_token: $GITHUB_TOKEN # Set in travis-ci.org dashboard
