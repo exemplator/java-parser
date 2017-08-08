@@ -6,7 +6,8 @@
 {-# LANGUAGE FlexibleInstances  #-}
 
 module Language.Java.Syntax
-    ( CompilationUnit(..)
+    ( HasBody(..)
+    , CompilationUnit(..)
     , PackageDecl(..)
     , ModuleSpec (..)
     , ImportDecl(..)
