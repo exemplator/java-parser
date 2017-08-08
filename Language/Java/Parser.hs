@@ -52,6 +52,8 @@ import qualified Prelude                as P ((>>), (>>=))
 
 import           Control.Applicative    ((<$), (<$>), (<*), (<*>))
 
+import           Debug.Trace            (trace)
+
 type P = Parsec [L Token] ()
 
 -- A trick to allow >> and >>=, normally infixr 1, to be
@@ -343,16 +345,22 @@ interfaceMemberDecl =
 
 absMethodDecl :: (Parsable l) => P (Mod l (MemberDecl l))
 absMethodDecl = do
-    meBod <- tP MethodBody
     meDec <- tP MethodDecl
-    tps <- lopt typeParams
+    needsBody <- methodModifier
+    tps <- lopt $ trace ("needs body: " ++ show needsBody) typeParams
     rt  <- resultType
     idt  <- ident
     fps <- formalParams
     thr <- lopt throws
     def <- opt defaultValue
-    semiColon
-    return $ \ms -> meDec ms tps rt idt fps thr def (meBod Nothing)
+    body <- bodyParser needsBody
+    return $ \ms -> meDec ms tps rt idt fps thr def body
+    where
+        methodModifier = try ((try (tok KW_Default) <|> try (tok KW_Private) <|> tok KW_Static) >> return True) <|>
+                         (try (tok KW_Public >> try (tok KW_Abstract)) >> return False)
+
+        bodyParser False = do meBod <- tP MethodBody; semiColon >> return (meBod Nothing)
+        bodyParser True = methodBodyParser
 
 throws :: (Parsable l) => P [ExceptionType l]
 throws = (tok KW_Throws >> refTypeList) >>= mapM (\x -> tP ExceptionType <*> pure x)
