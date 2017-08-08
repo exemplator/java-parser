@@ -86,7 +86,7 @@ data ImportDecl l
   deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
 
 instance HasType (ImportDecl l) where
-  getType ImportDecl{package=pkg} = getTypeFromPackage pkg
+  getType = getTypeFromPackage . importPackage
 
 getTypeFromPackage :: Package -> Type
 getTypeFromPackage pkg = RefType $ ClassRefType $ WithPackage pkg WildcardName

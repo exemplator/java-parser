@@ -4,6 +4,7 @@ import           Data.Char            (toLower)
 import           Text.PrettyPrint
 import           Text.Printf          (printf)
 
+import           Data.Maybe           (fromMaybe)
 import           Language.Java.Syntax
 
 
@@ -102,14 +103,14 @@ instance (Show l) => Pretty (MemberDecl l) where
   prettyPrec p (FieldDecl _ mods t vds) =
     hsep (map (prettyPrec p) mods ++ prettyPrec p t:punctuate (text ",") (map (prettyPrec p) vds)) <> semi
 
-  prettyPrec p (MethodDecl _ mods tParams mt ident fParams throws def body) =
+  prettyPrec p (MethodDecl _ mods tParams mt ident fParams throws {-def-} body) =
     hsep [hsep (map (prettyPrec p) mods)
           , ppTypeParams p tParams
           , ppResultType p mt
           , prettyPrec p ident
           , ppArgs fParams
           , ppThrows p throws
-          , ppDefault p def
+          --, ppDefault p def
          ] $$ prettyPrec p body
 
   prettyPrec p (ConstructorDecl _ mods tParams ident fParams throws body) =
@@ -124,8 +125,8 @@ instance (Show l) => Pretty (MemberDecl l) where
   prettyPrec p (MemberInterfaceDecl _ idecl) = prettyPrec p idecl
 
 instance (Show l) => Pretty (VarDecl l) where
-  prettyPrec p (VarDecl vdId Nothing) = prettyPrec p vdId
-  prettyPrec p (VarDecl vdId (Just ie)) =
+  prettyPrec p (VarDecl _ vdId Nothing) = prettyPrec p vdId
+  prettyPrec p (VarDecl _ vdId (Just ie)) =
     (prettyPrec p vdId <+> char '=') <+> prettyPrec p ie
 
 instance Pretty (VarDeclId l) where
@@ -192,11 +193,10 @@ instance (Show l) => Pretty (BlockStmt l) where
 
 instance (Show l) => Pretty (Stmt l) where
   prettyPrec p (StmtBlock _ block) = prettyPrec p block
-  prettyPrec _ (IfThen _ c th) =
-    text "if" <+> parens (prettyPrec 0 c) $+$ prettyNestedStmt 0 th
-
-  prettyPrec p (IfThenElse _ c th el) =
-    text "if" <+> parens (prettyPrec p c) $+$ prettyNestedStmt 0 th $+$ text "else" $+$ prettyNestedStmt 0 el
+  prettyPrec _ (IfThenElse _ c th mayElse) =
+    text "if" <+> parens (prettyPrec 0 c) $+$ prettyNestedStmt 0 th $+$ elseText
+      where
+        elseText = fromMaybe (text "") ((\el -> text "else" $+$ prettyNestedStmt 0 el) <$> mayElse)
 
   prettyPrec p (While _ c stmt) =
     text "while" <+> parens (prettyPrec p c) $+$ prettyNestedStmt 0 stmt

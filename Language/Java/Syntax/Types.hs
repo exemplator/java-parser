@@ -93,7 +93,7 @@ instance HasType PrimType where
 
 -- | A class is generic if it declares one or more type variables. These type variables are known
 --   as the type parameters of the class.
-data TypeParam = TypeParam Ident [RefType]
+data TypeParam = TypeParam { typeParamName :: Ident, typeParamBounds :: [RefType] }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -----------------------------------------------------------------------
