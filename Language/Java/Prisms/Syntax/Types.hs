@@ -1,29 +1,29 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Language.Java.Prisms.Syntax.Types where
 
-import           Control.Lens
+import           Language.Java.Prisms.CustomLenses
 import           Language.Java.Syntax.Types
 
-makeLenses ''Type
+allLenses ''Type
 
-makeLenses ''RefType
+allLenses ''RefType
 
-makeLenses ''ClassName
+allLenses ''ClassName
 
-makeLenses ''Package
+allLenses ''Package
 
-makeLenses ''TypeArgument
+allLenses ''TypeArgument
 
-makeLenses ''TypeDeclSpecifier
+allLenses ''TypeDeclSpecifier
 
-makeLenses ''WildcardBound
+allLenses ''WildcardBound
 
-makeLenses ''PrimType
+allLenses ''PrimType
 
-makeLenses ''TypeParam
+allLenses ''TypeParam
 
-makeLenses ''Ident
+allLenses ''Ident
 
-makeLenses ''Name
+allLenses ''Name
 
-makeLenses ''RelaxedType
+allLenses ''RelaxedType

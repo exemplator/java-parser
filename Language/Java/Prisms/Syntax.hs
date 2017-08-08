@@ -2,85 +2,83 @@
 module Language.Java.Prisms.Syntax where
 
 
-import           Control.Lens
-import           Language.Java.Syntax
+import           Language.Java.Prisms.CustomLenses
+import qualified Language.Java.Syntax              as S
 
-makeLenses ''CompilationUnit
+allLenses ''S.CompilationUnit
 
-makeLenses ''PackageDecl
+allLenses ''S.PackageDecl
 
-makeLenses ''ImportDecl
+allLenses ''S.ImportDecl
 
-makeLenses ''TypeDecl
+allLenses ''S.TypeDecl
 
-makeLenses ''ClassDecl
+allLenses ''S.ClassDecl
 
-makeLenses ''ClassBody
+allLenses ''S.ClassBody
 
-makeLenses ''EnumBody
+allLenses ''S.EnumBody
 
-makeLenses ''EnumConstant
+allLenses ''S.EnumConstant
 
-makeLenses ''InterfaceDecl
+allLenses ''S.InterfaceDecl
 
-makeLenses ''InterfaceBody
+allLenses ''S.InterfaceBody
 
-makeLenses ''InterfaceKind
+allLenses ''S.InterfaceKind
 
-makeLenses ''Decl
+allLenses ''S.Decl
 
-makeLenses ''MemberDecl
+allLenses ''S.MemberDecl
 
-makeLenses ''VarDecl
+allLenses ''S.VarDecl
 
-makeLenses ''VarDeclId
+allLenses ''S.VarDeclId
 
-makeLenses ''VarInit
+allLenses ''S.VarInit
 
-makeLenses ''FormalParam
+allLenses ''S.FormalParam
 
-makeLenses ''MethodBody
+allLenses ''S.MethodBody
 
-makeLenses ''ConstructorBody
+allLenses ''S.ConstructorBody
 
-makeLenses ''ExplConstrInv
+allLenses ''S.ExplConstrInv
 
-makeLenses ''Modifier
+allLenses ''S.Modifier
 
-makeLenses ''Annotation
+allLenses ''S.Annotation
 
-makeLenses ''FormalParam
+allLenses ''S.ElementValue
 
-makeLenses ''ElementValue
+allLenses ''S.Block
 
-makeLenses ''Block
+allLenses ''S.BlockStmt
 
-makeLenses ''BlockStmt
+allLenses ''S.Stmt
 
-makeLenses ''Stmt
+allLenses ''S.Catch
 
-makeLenses ''Catch
+allLenses ''S.SwitchBlock
 
-makeLenses ''SwitchBlock
+allLenses ''S.SwitchLabel
 
-makeLenses ''SwitchLabel
+allLenses ''S.ForInit
 
-makeLenses ''ForInit
+allLenses ''S.ExceptionType
 
-makeLenses ''ExceptionType
+allLenses ''S.Exp
 
-makeLenses ''Exp
+allLenses ''S.Lhs
 
-makeLenses ''Lhs
+allLenses ''S.ArrayIndex
 
-makeLenses ''ArrayIndex
+allLenses ''S.FieldAccess
 
-makeLenses ''FieldAccess
+allLenses ''S.LambdaParams
 
-makeLenses ''LambdaParams
+allLenses ''S.LambdaExpression
 
-makeLenses ''LambdaExpression
+allLenses ''S.ArrayInit
 
-makeLenses ''ArrayInit
-
-makeLenses ''MethodInvocation
+allLenses ''S.MethodInvocation
