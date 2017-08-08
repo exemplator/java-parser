@@ -192,7 +192,7 @@ instance (Show l) => Pretty (BlockStmt l) where
       hsep (punctuate comma $ map (prettyPrec p) vds) <> semi
 
 instance (Show l) => Pretty (Stmt l) where
-  prettyPrec p (StmtBlock _ block) = prettyPrec p block
+  prettyPrec p (StmtBlock _ blockP) = prettyPrec p blockP
   prettyPrec _ (IfThenElse _ c th mayElse) =
     text "if" <+> parens (prettyPrec 0 c) $+$ prettyNestedStmt 0 th $+$ elseText
       where
@@ -243,15 +243,15 @@ instance (Show l) => Pretty (Stmt l) where
   prettyPrec p (Return _ mE) =
     text "return" <+> maybePP p mE <> semi
 
-  prettyPrec p (Synchronized _ e block) =
-    text "synchronized" <+> parens (prettyPrec p e) $$ prettyPrec p block
+  prettyPrec p (Synchronized _ e blockP) =
+    text "synchronized" <+> parens (prettyPrec p e) $$ prettyPrec p blockP
 
   prettyPrec p (Throw _ e) =
     text "throw" <+> prettyPrec p e <> semi
 
-  prettyPrec p (Try _ block catches mFinally) =
-    text "try" $$ prettyPrec p block $$
-      vcat (map (prettyPrec p) catches ++ [ppFinally mFinally])
+  prettyPrec p (Try _ blockP catchesP mFinally) =
+    text "try" $$ prettyPrec p blockP $$
+      vcat (map (prettyPrec p) catchesP ++ [ppFinally mFinally])
    where ppFinally Nothing = empty
          ppFinally (Just bl) = text "finally" <+> prettyPrec p bl
 
@@ -259,8 +259,8 @@ instance (Show l) => Pretty (Stmt l) where
     prettyPrec p ident <> colon <+> prettyPrec p stmt
 
 instance (Show l) => Pretty (Catch l) where
-  prettyPrec p (Catch _ fParam block) =
-    hsep [text "catch", parens (prettyPrec p fParam)] $$ prettyPrec p block
+  prettyPrec p (Catch _ fParam blockP) =
+    hsep [text "catch", parens (prettyPrec p fParam)] $$ prettyPrec p blockP
 
 instance (Show l) => Pretty (SwitchBlock l) where
   prettyPrec p (SwitchBlock _ lbl stmts) =
@@ -357,20 +357,20 @@ instance (Show l) => Pretty (Exp l) where
   prettyPrec p (Assign _ lhs aop e) =
     hsep [prettyPrec p lhs, prettyPrec p aop, prettyPrec p e]
 
-  prettyPrec p (Lambda _ params body) =
-    prettyPrec p params <+> text "->" <+> prettyPrec p body
+  prettyPrec p (Lambda _ paramsP body) =
+    prettyPrec p paramsP <+> text "->" <+> prettyPrec p body
 
   prettyPrec p (MethodRef _ i1 i2) =
     prettyPrec p i1 <+> text "::" <+> prettyPrec p i2
 
 instance (Show l) => Pretty (LambdaParams l) where
   prettyPrec p (LambdaSingleParam _ ident) = prettyPrec p ident
-  prettyPrec _ (LambdaFormalParams _ params) = ppArgs params
+  prettyPrec _ (LambdaFormalParams _ paramsP) = ppArgs paramsP
   prettyPrec _ (LambdaInferredParams _ idents) = ppArgs idents
 
 instance (Show l) => Pretty (LambdaExpression l) where
   prettyPrec p (LambdaExpression _ expression) = prettyPrec p expression
-  prettyPrec p (LambdaBlock _ block) = prettyPrec p block
+  prettyPrec p (LambdaBlock _ blockP) = prettyPrec p blockP
 
 instance Pretty Literal where
   prettyPrec _ (Int i) = text (show i)
@@ -482,7 +482,7 @@ instance Pretty ClassType where
 
 instance Pretty ClassName where
   prettyPrec p (ClassName name) = hcat (punctuate (char '.') (map (\(i,tas) -> prettyPrec p i <> ppTypeParams p tas) name))
-  prettyPrec p WildcardName = text "*"
+  prettyPrec _ WildcardName = text "*"
 
 instance Pretty Package where
   prettyPrec p (FullQualiPackage pkgs) = hcat ((punctuate (char '.') . map (prettyPrec p)) pkgs)

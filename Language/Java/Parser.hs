@@ -46,7 +46,7 @@ import           Text.Parsec.Pos
 
 import           Data.Char              (toLower)
 import           Data.Maybe             (catMaybes, isJust, listToMaybe, maybe)
-import           Prelude                hiding (expParser, (>>), (>>=))
+import           Prelude                hiding ((>>), (>>=))
 import qualified Prelude                as P ((>>), (>>=))
 
 import           Control.Applicative    ((<$), (<$>), (<*), (<*>))
@@ -352,9 +352,6 @@ absMethodDecl = do
     semiColon
     return $ \ms -> meDec ms tps rt idt fps thr (meBod Nothing)
 
-defaultValue :: (Parsable l) => P (Exp l)
-defaultValue = tok KW_Default >> expParser
-
 throws :: (Parsable l) => P [ExceptionType l]
 throws = (tok KW_Throws >> refTypeList) >>= mapM (\x -> tP ExceptionType <*> pure x)
 
@@ -428,10 +425,10 @@ varDecls = seplist1 varDecl comma
 
 varDecl :: (Parsable l) => P (VarDecl l)
 varDecl = do
-    varDecl <- tP VarDecl
+    varDeclP <- tP VarDecl
     vid <- varDeclId
     mvi <- opt $ tok Op_Equal >> varInitParser
-    return $ varDecl vid mvi
+    return $ varDeclP vid mvi
 
 varDeclId :: (Parsable l) => P (VarDeclId l)
 varDeclId = do
@@ -483,7 +480,7 @@ blockStmt =
     BlockStmt <$$> stmt
 
 stmt :: (Parsable l) => P (Stmt l)
-stmt = ifStmt <|> whileStmt <|> forStmt <|> labeledStmt <|> stmtNoTrail
+stmt = ifStmt <|> whileStmt <|> forStmt <|> labeledStmtParser <|> stmtNoTrail
   where
     ifStmt = do
         ifThenElse <- tP IfThenElse
@@ -518,7 +515,7 @@ stmt = ifStmt <|> whileStmt <|> forStmt <|> labeledStmt <|> stmtNoTrail
                 return $ enhancedFor ms t i e)
         s <- stmt
         return $ f s
-    labeledStmt = try $ do
+    labeledStmtParser = try $ do
         labeled <- tP Labeled
         lbl <- ident
         colon
@@ -526,7 +523,7 @@ stmt = ifStmt <|> whileStmt <|> forStmt <|> labeledStmt <|> stmtNoTrail
         return $ labeled lbl s
 
 stmtNSI :: (Parsable l) => P (Stmt l)
-stmtNSI = ifStmt <|> whileStmt <|> forStmt <|> labeledStmt <|> stmtNoTrail
+stmtNSI = ifStmt <|> whileStmt <|> forStmt <|> labeledStmtParser <|> stmtNoTrail
   where
     ifStmt = do
         ifThenElse <- tP IfThenElse
@@ -561,7 +558,7 @@ stmtNSI = ifStmt <|> whileStmt <|> forStmt <|> labeledStmt <|> stmtNoTrail
             return $ enhancedFor ms t i e)
         s <- stmtNSI
         return $ f s
-    labeledStmt = try $ do
+    labeledStmtParser = try $ do
         labeled <- tP Labeled
         i <- ident
         colon
@@ -672,11 +669,11 @@ switchLabelParser = (tok KW_Default >> colon >> tP Default) <|>
 
 catch :: (Parsable l) => P (Catch l)
 catch = do
-    catch <- tP Catch
+    catchP <- tP Catch
     tok KW_Catch
     fp <- parens formalParam
     b  <- blockParser
-    return $ catch fp b
+    return $ catchP fp b
 
 ----------------------------------------------------------------------------
 -- Expressions
@@ -752,10 +749,10 @@ infixExpWithOperators (op : ops) = do
 
 infixExpSuffix :: (Parsable l) => P Op -> [P Op] -> P (Exp l -> Exp l)
 infixExpSuffix infixOp ops =
-    (do binOp <- tP BinOp
+    (do binOpP <- tP BinOp
         op <- infixOp
         e2 <- infixExpWithOperators ops
-        return $ \e1 -> binOp e1 op e2) <|>
+        return $ \e1 -> binOpP e1 op e2) <|>
 
     -- FIXME 'instanceof' should have the same precedence as relational operators
     (do insOf <- tP InstanceOf
@@ -801,10 +798,10 @@ primaryNoNewArrayNPS =
     parens expParser <|>
     -- TODO: These two following should probably be merged more
     try ( do
-        classLit <- tP ClassLit
+        classLitP <- tP ClassLit
         rt <- resultType
         period >> tok KW_Class
-        return $ classLit rt) <|>
+        return $ classLitP rt) <|>
     try ( do
         qualThis <- tP QualifiedThis
         t <- ttype
@@ -1220,9 +1217,9 @@ classType = toClassType <$> parseClass
         typeArgsWithDiamond = try typeArgsParser <|> (:[]) <$> typeDiamond
 
 classTypeSpec :: P [TypeArgument] -> P (Ident, [TypeArgument])
-classTypeSpec args = do
+classTypeSpec argsP = do
     i   <- ident
-    tas <- lopt args
+    tas <- lopt argsP
     return (i, tas)
 
 resultType :: P (Maybe Type)
