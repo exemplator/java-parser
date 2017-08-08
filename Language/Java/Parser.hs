@@ -428,9 +428,10 @@ varDecls = seplist1 varDecl comma
 
 varDecl :: (Parsable l) => P (VarDecl l)
 varDecl = do
+    varDecl <- tP VarDecl
     vid <- varDeclId
     mvi <- opt $ tok Op_Equal >> varInitParser
-    return $ VarDecl vid mvi
+    return $ varDecl vid mvi
 
 varDeclId :: (Parsable l) => P (VarDeclId l)
 varDeclId = do
@@ -489,8 +490,7 @@ stmt = ifStmt <|> whileStmt <|> forStmt <|> labeledStmt <|> stmtNoTrail
         tok KW_If
         e  <- parens expParser
         th <- stmtNSI
-        tok KW_Else
-        el <- optionMaybe stmt
+        el <- optionMaybe $ tok KW_Else >> stmt
         return $ ifThenElse e th el
     whileStmt = do
         while <- tP While
@@ -533,8 +533,7 @@ stmtNSI = ifStmt <|> whileStmt <|> forStmt <|> labeledStmt <|> stmtNoTrail
         tok KW_If
         e  <- parens expParser
         th <- stmtNSI
-        tok KW_Else
-        el <- stmtNSI
+        el <- optionMaybe $ tok KW_Else >> stmtNSI
         return $ ifThenElse e th el
     whileStmt = do
         while <- tP While
