@@ -486,17 +486,13 @@ stmt :: (Parsable l) => P (Stmt l)
 stmt = ifStmt <|> whileStmt <|> forStmt <|> labeledStmt <|> stmtNoTrail
   where
     ifStmt = do
-        tok KW_If
+        ifThenElse <- tP IfThenElse
+        KW_If
         e   <- parens exp
-        try (do
-               ifThenElse <- tP IfThenElse
-               th <- stmtNSI
-               tok KW_Else
-               el <- stmt
-               return $ ifThenElse e th el) <|>
-           (do ifThen <- tP IfThen
-               th <- stmt
-               return $ ifThen e th)
+        th <- stmtNSI
+        tok KW_Else
+        el <- optionMaybe stmt
+        return $ ifThenElse e th el
     whileStmt = do
         while <- tP While
         tok KW_While
