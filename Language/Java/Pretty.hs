@@ -103,14 +103,14 @@ instance (Show l) => Pretty (MemberDecl l) where
   prettyPrec p (FieldDecl _ mods t vds) =
     hsep (map (prettyPrec p) mods ++ prettyPrec p t:punctuate (text ",") (map (prettyPrec p) vds)) <> semi
 
-  prettyPrec p (MethodDecl _ mods tParams mt ident fParams throws {-def-} body) =
+  prettyPrec p (MethodDecl _ mods tParams mt ident fParams throws def body) =
     hsep [hsep (map (prettyPrec p) mods)
           , ppTypeParams p tParams
           , ppResultType p mt
           , prettyPrec p ident
           , ppArgs fParams
           , ppThrows p throws
-          --, ppDefault p def
+          , ppDefault p def
          ] $$ prettyPrec p body
 
   prettyPrec p (ConstructorDecl _ mods tParams ident fParams throws body) =

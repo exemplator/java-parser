@@ -358,7 +358,7 @@ throws :: (Parsable l) => P [ExceptionType l]
 throws = (tok KW_Throws >> refTypeList) >>= mapM (\x -> tP ExceptionType <*> pure x)
 
 defaultValue :: (Parsable l) => P (Exp l)
-defaultValue = tok KW_Default >> exp
+defaultValue = tok KW_Default >> expParser
 
 -- Formal parameters
 

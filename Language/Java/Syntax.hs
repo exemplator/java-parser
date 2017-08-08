@@ -254,7 +254,7 @@ data MemberDecl l
 -- | Get type of MemberDecl if it is a MethodDecl (our solution to handeling the Maybe)
 instance CollectTypes (MemberDecl l) where
   collectTypes (FieldDecl _ _ t _) =  [t]
-  collectTypes (MethodDecl _ _ _ t _ _ _ _) =  maybeToList t
+  collectTypes (MethodDecl _ _ _ t _ _ _ _ _) =  maybeToList t
   collectTypes ConstructorDecl{} = []
   collectTypes (MemberClassDecl _ cd) =  [getType cd]
   collectTypes (MemberInterfaceDecl _ idecl) =  [getType idecl]
