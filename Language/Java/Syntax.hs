@@ -1,10 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable   #-}
-{-# LANGUAGE DeriveFoldable       #-}
-{-# LANGUAGE DeriveFunctor        #-}
 {-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE DeriveTraversable    #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module Language.Java.Syntax
@@ -72,11 +68,11 @@ data CompilationUnit l = CompilationUnit
   , imports         :: [ImportDecl l]
   , typeDecls       :: [TypeDecl l]
   }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A package declaration appears within a compilation unit to indicate the package to which the compilation unit belongs.
 data PackageDecl l = PackageDecl { infoPackDec :: l, packageDecl :: Package}
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 instance HasType (PackageDecl l) where
   getType PackageDecl{packageDecl=pkg} = getTypeFromPackage pkg
@@ -87,7 +83,7 @@ instance HasType (PackageDecl l) where
 --   a single name into scope.
 data ImportDecl l
     = ImportDecl { infoImportDecl :: l, staticImport :: Bool, importPackage :: Package}
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 instance HasType (ImportDecl l) where
   getType = getTypeFromPackage . importPackage
@@ -103,7 +99,7 @@ getTypeFromPackage pkg = RefType $ ClassRefType $ WithPackage pkg WildcardName
 data TypeDecl l
     = ClassTypeDecl { infoClassTypeDecl :: l, classDecl :: ClassDecl l }
     | InterfaceTypeDecl { infoInterfaceTypeDecl :: l, interfaceDecl :: InterfaceDecl l}
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Get type of TypeDecl
 instance HasType (TypeDecl l) where
@@ -132,7 +128,7 @@ data ClassDecl l
       , implements        :: [RefType]
       , enumBody          :: EnumBody l
       }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Get type of ClassDecl
 instance HasType (ClassDecl l) where
@@ -148,11 +144,11 @@ instance CollectTypes (ClassDecl l) where
 --   A class body may also contain instance initializers, static
 --   initializers, and declarations of constructors for the class.
 data ClassBody l = ClassBody { infoClassBody :: l, classDecls :: [Decl l] }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | The body of an enum type may contain enum constants.
 data EnumBody l = EnumBody { infoEnumBody :: l, enumConstans :: [EnumConstant l], enumDecls :: [Decl l] }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | An enum constant defines an instance of the enum type.
 data EnumConstant l = EnumConstant
@@ -161,7 +157,7 @@ data EnumConstant l = EnumConstant
   , enumArguments    :: [Argument l]
   , enumConstantBody :: Maybe (ClassBody l)
   }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Get type of EnumConstant
 instance HasType (EnumConstant l) where
@@ -180,7 +176,7 @@ data InterfaceDecl l = InterfaceDecl
   , interfaceExtends       :: [RefType]
   , interfaceBody          :: InterfaceBody l
   }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Get type of InterfaceDecl
 instance HasType (InterfaceDecl l) where
@@ -196,14 +192,14 @@ data InterfaceKind = InterfaceNormal | InterfaceAnnotation
 -- | The body of an interface may declare members of the interface.
 data InterfaceBody l
     = InterfaceBody { infoInterfaceBody ::l, members :: [MemberDecl l]}
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A declaration is either a member declaration, or a declaration of an
 --   initializer, which may be static.
 data Decl l
     = MemberDecl { infoMemberDecl :: l, member :: MemberDecl l }
     | InitDecl { infoInitDecl :: l, staticDecl :: Bool, statements :: Block l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 
 -- | A class or interface member can be an inner class or interface, a field or
@@ -249,7 +245,7 @@ data MemberDecl l
       { infoMemberInterfaceDecl :: l
       , memberInterfaceDecls    :: InterfaceDecl l
       }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Get type of MemberDecl if it is a MethodDecl (our solution to handeling the Maybe)
 instance CollectTypes (MemberDecl l) where
@@ -262,20 +258,20 @@ instance CollectTypes (MemberDecl l) where
 -- | A declaration of a variable, which may be explicitly initialized.
 data VarDecl l
     = VarDecl { infoVarDecl :: l, varDeclName :: VarDeclId l, varInit :: Maybe (VarInit l) }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | The name of a variable in a declaration, which may be an array.
 data VarDeclId l
     = VarId { infoVarId :: l, varIdName :: Ident }
     | VarDeclArray { infoVarDeclArray :: l, varIdDecl :: VarDeclId l }
     -- ^ Multi-dimensional arrays are represented by nested applications of 'VarDeclArray'.
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Explicit initializer for a variable declaration.
 data VarInit l
     = InitExp { infoInitExp :: l, init :: Exp l }
     | InitArray { infoInitArray :: l, varArrayInit :: ArrayInit l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A formal parameter in method declaration. The last parameter
 --   for a given declaration may be marked as variable arity,
@@ -287,7 +283,7 @@ data FormalParam l = FormalParam
   , variableArity        :: Bool
   , paramName            :: VarDeclId l
   }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Gets type of FormalParam
 instance HasType (FormalParam l) where
@@ -296,7 +292,7 @@ instance HasType (FormalParam l) where
 -- | A method body is either a block of code that implements the method or simply a
 --   semicolon, indicating the lack of an implementation (modelled by 'Nothing').
 data MethodBody l = MethodBody { infoMethodBody :: l, impl :: Maybe (Block l) }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | The first statement of a constructor body may be an explicit invocation of
 --   another constructor of the same class or of the direct superclass.
@@ -305,7 +301,7 @@ data ConstructorBody l = ConstructorBody
   , constructorInvoc    :: Maybe (ExplConstrInv l)
   , constrBody          :: [BlockStmt l]
   }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | An explicit constructor invocation invokes another constructor of the
 --   same class, or a constructor of the direct superclass, which may
@@ -328,7 +324,7 @@ data ExplConstrInv l
       , typeArguments          :: [RefType]
       , constrArguments        :: [Argument l]
       }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 
 -- | A modifier specifying properties of a given declaration. In general only
@@ -347,7 +343,7 @@ data Modifier l
     | Native l
     | Annotation l (Annotation l)
     | Synchronized_ l
-  deriving (Eq,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Read,Typeable,Generic,Data)
 
 instance (Show l) => Show (Modifier l) where
    show (Public _) = "public"
@@ -369,7 +365,7 @@ data Annotation l = NormalAnnotation      { annName :: Name -- Not type because 
                 | SingleElementAnnotation { annName  :: Name
                                           , annValue:: ElementValue l }
                 | MarkerAnnotation        { annName :: Name }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 desugarAnnotation :: Annotation l -> (Name, [(Ident, ElementValue l)])
 desugarAnnotation (MarkerAnnotation n)          = (n, [])
@@ -381,7 +377,7 @@ desugarAnnotation' = uncurry NormalAnnotation . desugarAnnotation
 -- | Annotations may contain  annotations or (loosely) expressions
 data ElementValue l = EVVal { infoEVVal :: l, elementVarInit :: VarInit l }
                   | EVAnn { infoEVAnn :: l, annotation :: Annotation l}
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -----------------------------------------------------------------------
 -- Statements
@@ -389,7 +385,7 @@ data ElementValue l = EVVal { infoEVVal :: l, elementVarInit :: VarInit l }
 -- | A block is a sequence of statements, local class declarations
 --   and local variable declaration statements within braces.
 data Block l = Block { infoBlock :: l, blockStatements :: [BlockStmt l] }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A block statement is either a normal statement, a local
 --   class declaration or a local variable declaration.
@@ -402,7 +398,7 @@ data BlockStmt l
       , blockVarType     :: Type
       , localVarDecls    :: [VarDecl l]
       }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 
 -- | A Java statement.
@@ -463,23 +459,23 @@ data Stmt l
     | Try { infoTry :: l, tryBlock :: Block l, catches :: [Catch l], finally ::  Maybe (Block l) }
     -- | Statements may have label prefixes.
     | Labeled { infoLabeled :: l, label :: Ident, labeledStmt :: Stmt l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | If a value is thrown and the try statement has one or more catch clauses that can catch it, then control will be
 --   transferred to the first such catch clause.
 data Catch l = Catch { infoCatch :: l, catchParam :: FormalParam l, catchBlock :: Block l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A block of code labelled with a @case@ or @default@ within a @switch@ statement.
 data SwitchBlock l = SwitchBlock { infoSwitchBlock :: l, switchLabel :: SwitchLabel l, switchStmts :: [BlockStmt l] }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A label within a @switch@ statement.
 data SwitchLabel l
     -- | The expression contained in the @case@ must be a 'Lit' or an @enum@ constant.
     = SwitchCase { infoSwitchCase :: l, switchExp :: Exp l}
     | Default { infoDefault :: l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Initialization code for a basic @for@ statement.
 data ForInit l
@@ -490,11 +486,11 @@ data ForInit l
       , forVarDecls      :: [VarDecl l]
       }
     | ForInitExps { infoForInitExps :: l, initExpr :: [Exp l] }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | An exception type has to be a class type or a type variable.
 data ExceptionType l = ExceptionType { infoExceptionType :: l, expectionType :: RefType }-- restricted to ClassType or TypeVariable
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Gets type of ExceptionType
 instance HasType (ExceptionType l) where
@@ -587,7 +583,7 @@ data Exp l
     | Lambda { infoLambda :: l, lambdaParams :: LambdaParams l, lambdaExpression :: LambdaExpression l }
     -- | Method reference
     | MethodRef { infoMethodRef :: l, methodClass :: Name, methodName :: Ident }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | The left-hand side of an assignment expression. This operand may be a named variable, such as a local
 --   variable or a field of the current object or class, or it may be a computed variable, as can result from
@@ -596,7 +592,7 @@ data Lhs l
     = NameLhs { infoNameLhs :: l, varLhsName :: Name }          -- ^ Assign to a variable
     | FieldLhs { infoFieldLhs :: l, fieldLhsName :: FieldAccess l }  -- ^ Assign through a field access
     | ArrayLhs { infoArrayLhs :: l, arrayLhsIndex :: ArrayIndex l }   -- ^ Assign to an array
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Array access
 data ArrayIndex l = ArrayIndex
@@ -604,7 +600,7 @@ data ArrayIndex l = ArrayIndex
   , arrayName      :: Exp l
   , arrayIndices   :: [Exp l]
   }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A field access expression may access a field of an object or array, a reference to which is the value
 --   of either an expression or the special keyword super.
@@ -612,20 +608,20 @@ data FieldAccess l
     = PrimaryFieldAccess { infoPrimaryFieldAccess :: l, targetObject :: Exp l, targetField :: Ident } -- ^ Accessing a field of an object or array computed from an expression.
     | SuperFieldAccess { infoSuperFieldAccess :: l, superField :: Ident } -- ^ Accessing a field of the superclass.
     | ClassFieldAccess { infoClassFieldAccess :: l, targetClass :: Name, staticField :: Ident } -- ^ Accessing a (static) field of a named class.
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- ¦ A lambda parameter can be a single parameter, or mulitple formal or mulitple inferred parameters
 data LambdaParams l
   = LambdaSingleParam { infoLambdaSingleParam :: l, lambdaParamName :: Ident }
   | LambdaFormalParams { infoLambdaFormalParams :: l, lambdaFormalParams :: [FormalParam l] }
   | LambdaInferredParams { infoLambdaInferredParams :: l, lambdaParamNames :: [Ident] }
-    deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+    deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Lambda expression, starting from java 8
 data LambdaExpression l
     = LambdaExpression { infoLambdaExpression ::l, singleLambdaExp :: Exp l }
     | LambdaBlock { infoLambdaBlock :: l, lambdaBlock :: Block l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A method invocation expression is used to invoke a class or instance method.
 data MethodInvocation l
@@ -662,10 +658,10 @@ data MethodInvocation l
       , typeMethodName        :: Ident
       , typeMethodArgs        :: [Argument l]
       }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | An array initializer may be specified in a declaration, or as part of an array creation expression, creating an
 --   array and providing some initial values
 data ArrayInit l
     = ArrayInit { infoArrayInit :: l, arrayInits :: [VarInit l] }
-  deriving (Eq,Show,Read,Typeable,Generic,Data,Functor,Foldable,Traversable)
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
