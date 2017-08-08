@@ -1,4 +1,4 @@
-module Language.Java.Lib
+module Language.Java.Helper
     ( getBody
     , desugarAnnotation
     , desugarAnnotation'
