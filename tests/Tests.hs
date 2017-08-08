@@ -101,25 +101,28 @@ main = do
                                                             Right g'  -> g == g'
                                                             Left perr -> error (show (pretty g) ++ show perr))
         , testGroup "generating.parsing==id"
-          [ testRoundTrip exp "ClassFieldAccess" "Object.super.x"
-          , testRoundTrip exp "QualInstanceCreation" "foo.new Bar()"
-          , testRoundTrip exp "MethodInvocation" "foo(1 + 2)"
+          [ testRoundTrip expParser' "ClassFieldAccess" "Object.super.x"
+          , testRoundTrip expParser' "QualInstanceCreation" "foo.new Bar()"
+          , testRoundTrip expParser' "MethodInvocation" "foo(1 + 2)"
           ]
         , testGroup "operator parsing"
-          [ testParseSame exp "precedence 1"
+          [ testParseSame expParser' "precedence 1"
               "1 +  2 * 3"
               "1 + (2 * 3)"
-          , testParseSame exp "precedence 2"
+          , testParseSame expParser' "precedence 2"
               " 1 * 2  +  2 * 3"
               "(1 * 2) + (2 * 3)"
-          , testParseSame exp "precedence 3"
+          , testParseSame expParser' "precedence 3"
               "1 || 2 && 3 | 4 ^ 5 == 6 > 7 >>> 8 - 9 * 10"
               "1 || (2 && (3 | (4 ^ (5 == (6 > (7 >>> (8 - (9 * 10))))))))"
-          , testParseSame exp "associativity"
+          , testParseSame expParser' "associativity"
               "  1 - 2  - 3  - 4"
               "((1 - 2) - 3) - 4"
           ]
         ]
+    where
+        expParser' :: P (Exp Singleton)
+        expParser' = expParser
 
 testRoundTrip p testName str = testCase testName $
   case parserSeg p str of

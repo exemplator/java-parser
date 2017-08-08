@@ -27,9 +27,7 @@ Library
                       , array >= 0.1
                       , pretty >= 1.0
                       , parsec >= 3.0
-
-  if impl(ghc < 7.6)
-    Build-Depends:      syb
+                      , lens >= 4.15.1
 
   ghc-options:         -Wall -fwarn-tabs -fno-warn-missing-signatures
 
