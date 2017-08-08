@@ -46,6 +46,7 @@ module Language.Java.Syntax
     , MethodInvocation(..)
     , module Language.Java.Syntax.Exp
     , module Language.Java.Syntax.Types
+    , module Language.Java.Lib
     ) where
 
 import           Data.Data
