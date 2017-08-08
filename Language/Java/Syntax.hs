@@ -46,12 +46,14 @@ module Language.Java.Syntax
     , MethodInvocation(..)
     , module Language.Java.Syntax.Exp
     , module Language.Java.Syntax.Types
+    , module Language.Java.Helper
     ) where
 
 import           Data.Data
 import           Data.Maybe
 import           GHC.Generics               (Generic)
 
+import           Language.Java.Helper
 import           Language.Java.Syntax.Exp
 import           Language.Java.Syntax.Types
 
