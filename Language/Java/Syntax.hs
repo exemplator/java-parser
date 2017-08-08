@@ -79,8 +79,11 @@ instance HasType (PackageDecl l) where
 --   The first argument signals whether the declaration only imports static members.
 --   The last argument signals whether the declaration brings all names in the named type or package, or only brings
 --   a single name into scope.
-data ImportDecl l
-    = ImportDecl { infoImportDecl :: l, staticImport :: Bool, importPackage :: Package}
+data ImportDecl l = ImportDecl
+  { infoImportDecl :: l
+  , staticImport   :: Bool
+  , importPackage  :: Package
+  }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 instance HasType (ImportDecl l) where
@@ -205,6 +208,16 @@ data Decl l
 --   constants (not fields), abstract methods, and no constructors.
 data MemberDecl l
     -- | The variables of a class type are introduced by field declarations.
+    -- 
+    -- Example:
+    -- 
+    -- >>> parseCompilationUnit "public class MyClass {private String foo = \"Hello World\"; }"
+    -- ...
+    -- __FieldDecl__ {__infoFieldDecl__ = Segment (Position 1 31) (Position 1 31), __memberDeclModifiers__ = [private], __fieldType__ =
+    -- RefType (ClassRefType (WithoutPackage (ClassName [(Ident "String",[])]))), __fieldVarDecls__ = [VarDecl {infoVarDecl =
+    -- Segment (Position 1 38) (Position 1 38), varDeclName = VarId {infoVarId = Segment (Position 1 38) (Position 1 38),
+    -- varIdName = Ident "foo"}, varInit = Just (InitExp {infoInitExp= Segment (Position 1 44) (Position 1 44), init = Lit
+    -- {infoLit = Segment (Position 1 44) (Position 1 44), literal = String "Hello World"}})}]}}]}}}]})
     = FieldDecl
       { infoFieldDecl       :: l
       , memberDeclModifiers :: [Modifier l]
@@ -212,6 +225,15 @@ data MemberDecl l
       , fieldVarDecls       :: [VarDecl l]
       }
     -- | A method declares executable code that can be invoked, passing a fixed number of values as arguments.
+    -- Example:
+    -- 
+    -- >>> parseCompilationUnit "public class MyClass {private String foo() {}}"
+    -- ...
+    -- [MemberDecl {infoMemberDecl = Segment (Position 1 23) (Position 1 23), member = MethodDecl {infoMethodDecl =
+    -- Segment (Position 1 31) (Position 1 31), methodDeclModifiers = [private], methodTypeParams = [], returnType =
+    -- Just (RefType (ClassRefType (WithoutPackage (ClassName [(Ident "String",[])])))), methodDeclName = Ident "foo", params = [],
+    -- exceptions = [], defaultInterfaceAnnotation = Nothing, methodBody = MethodBody {infoMethodBody = Segment (Position 1 44)
+    -- (Position 1 44), impl= Just (Block {infoBlock = Segment (Position 1 45) (Position 1 45), blockStatements = []})}}}]}}}]})
     | MethodDecl
       { infoMethodDecl             :: l
       , methodDeclModifiers        :: [Modifier l]
@@ -248,7 +270,7 @@ data MemberDecl l
 -- | Get type of MemberDecl if it is a MethodDecl (our solution to handeling the Maybe)
 instance CollectTypes (MemberDecl l) where
   collectTypes (FieldDecl _ _ t _) =  [t]
-  collectTypes (MethodDecl _ _ _ t _ _ _ _ _) =  maybeToList t
+  collectTypes (MethodDecl _ _ _ _ name _ _ _ _) =  [withoutPackageIdentToType name]
   collectTypes ConstructorDecl{} = []
   collectTypes (MemberClassDecl _ cd) =  [getType cd]
   collectTypes (MemberInterfaceDecl _ idecl) =  [getType idecl]

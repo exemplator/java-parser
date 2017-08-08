@@ -16,11 +16,10 @@ data Type
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 class HasType a where
-  getType :: a -> Type
+  getType :: a -> Type  
 
 instance HasType Type where
   getType = id
-
 
 --instance HasType a => CollectTypes a where
 --  collectTypes x = [getType x]
