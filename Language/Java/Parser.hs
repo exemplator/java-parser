@@ -275,7 +275,7 @@ methodDecl = do
     fps <- formalParams
     thr <- lopt throws
     bod <- methodBodyParser
-    return $ \ms -> mDec ms tps rt idt fps thr bod
+    return $ \ms -> mDec ms tps rt idt fps thr Nothing bod
 
 methodBodyParser :: (Parsable l) => P (MethodBody l)
 methodBodyParser = MethodBody <$$>
@@ -349,11 +349,15 @@ absMethodDecl = do
     idt  <- ident
     fps <- formalParams
     thr <- lopt throws
+    def <- opt defaultValue
     semiColon
-    return $ \ms -> meDec ms tps rt idt fps thr (meBod Nothing)
+    return $ \ms -> meDec ms tps rt idt fps thr def (meBod Nothing)
 
 throws :: (Parsable l) => P [ExceptionType l]
 throws = (tok KW_Throws >> refTypeList) >>= mapM (\x -> tP ExceptionType <*> pure x)
+
+defaultValue :: (Parsable l) => P (Exp l)
+defaultValue = tok KW_Default >> exp
 
 -- Formal parameters
 
