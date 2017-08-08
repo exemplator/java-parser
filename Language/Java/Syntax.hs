@@ -1,9 +1,9 @@
-{-# LANGUAGE DeriveDataTypeable   #-}
-{-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleInstances  #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeSynonymInstances  #-}
 
 module Language.Java.Syntax
     ( HasBody(..)
@@ -56,15 +56,16 @@ module Language.Java.Syntax
 import           Data.Data
 import           GHC.Generics               (Generic)
 
+import           Data.Function              (on)
 import           Language.Java.Syntax.Exp
 import           Language.Java.Syntax.Types
 
 -----------------------------------------------------------------------
 -- Packages
 
--- | Provides functionality to access the body as a list of declarations of a class, enum and an interface. 
+-- | Provides functionality to access the body as a list of declarations of a class, enum and an interface.
 class HasBody a l where
-  getBody :: a -> [Decl l]  
+  getBody :: a -> [Decl l]
 
 -- | A compilation unit is the top level syntactic goal symbol of a Java program.
 data CompilationUnit l
@@ -262,9 +263,9 @@ data Decl l
 --   constants (not fields), abstract methods, and no constructors.
 data MemberDecl l
     -- | The variables of a class type are introduced by field declarations.
-    -- 
+    --
     -- Example:
-    -- 
+    --
     -- >>> parseCompilationUnit "public class MyClass {private String foo = \"Hello World\"; }"
     -- ...
     -- __FieldDecl__ {__infoFieldDecl__ = Segment (Position 1 31) (Position 1 31), __memberDeclModifiers__ = [private], __fieldType__ =
@@ -280,7 +281,7 @@ data MemberDecl l
       }
     -- | A method declares executable code that can be invoked, passing a fixed number of values as arguments.
     -- Example:
-    -- 
+    --
     -- >>> parseCompilationUnit "public class MyClass {private String foo() {}}"
     -- ...
     -- [MemberDecl {infoMemberDecl = Segment (Position 1 23) (Position 1 23), member = MethodDecl {infoMethodDecl =
@@ -328,6 +329,15 @@ instance CollectTypes (MemberDecl l) where
   collectTypes ConstructorDecl{} = []
   collectTypes (MemberClassDecl _ cd) =  [getType cd]
   collectTypes (MemberInterfaceDecl _ idecl) =  [getType idecl]
+
+instance Eq l => Ord (MemberDecl l) where
+  compare = compare `on` memToInt
+    where
+      memToInt FieldDecl{} = 1
+      memToInt MethodDecl{} = 2
+      memToInt ConstructorDecl{} = 3
+      memToInt MemberClassDecl{} = 4
+      memToInt MemberInterfaceDecl{} = 5
 
 -- | A declaration of a variable, which may be explicitly initialized.
 data VarDecl l
