@@ -77,9 +77,9 @@ matrix:
   #  compiler: ": #stack 7.10.2"
     addons: {apt: {packages: [libgmp-dev]}}
 
-  - env: BUILD=stack ARGS="--resolver lts-6"
-    compiler: ": #stack 7.10.3"
-    addons: {apt: {packages: [libgmp-dev]}}
+  #- env: BUILD=stack ARGS="--resolver lts-6"
+  #  compiler: ": #stack 7.10.3"
+  #  addons: {apt: {packages: [libgmp-dev]}}
 
   #- env: BUILD=stack ARGS="--resolver lts-7"
   #  compiler: ": #stack 8.0.1"
@@ -211,3 +211,11 @@ script:
       ;;
   esac
   set +ex
+
+deploy:
+  local_dir: stack path | sed -n -e 's/^.*local-doc-root: //p'
+  provider: pages
+  skip_cleanup: true
+  github_token: $GITHUB_TOKEN # Set in travis-ci.org dashboard
+  on:
+    branch: master

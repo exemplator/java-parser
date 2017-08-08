@@ -1,18 +1,20 @@
-{-# LANGUAGE TemplateHaskell #-}
-module Language.Java.Syntax.Lib
+module Language.Java.Lib
     ( getBody
+    , desugarAnnotation
+    , desugarAnnotation'
     ) where
 
-import           Control.Lens
 import           Language.Java.Syntax
 
 -----------------------------------------------------------------------
 -- Functions
 
---makeLenses 'ImportDecl
-
---isStaticImport :: ImportDecl l -> Bool
---isStaticImport = view _2
+desugarAnnotation :: Annotation l -> (Name, [(Ident, ElementValue l)])
+desugarAnnotation (MarkerAnnotation n)          = (n, [])
+desugarAnnotation (SingleElementAnnotation n e) = (n, [(Ident "value", e)])
+desugarAnnotation (NormalAnnotation n kv)       = (n, kv)
+desugarAnnotation' :: Annotation l -> Annotation l
+desugarAnnotation' = uncurry NormalAnnotation . desugarAnnotation
 
 getBody :: TypeDecl l -> [Decl l]
 getBody (ClassTypeDecl _ (ClassDecl _ _ _ _ _ _ (ClassBody _ decls))) = decls

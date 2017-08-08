@@ -26,8 +26,6 @@ module Language.Java.Syntax
     , ExplConstrInv(..)
     , Modifier(..)
     , Annotation(..)
-    , desugarAnnotation
-    , desugarAnnotation'
     , ElementValue(..)
     , Block(..)
     , BlockStmt(..)
@@ -366,13 +364,6 @@ data Annotation l = NormalAnnotation      { annName :: Name -- Not type because 
                                           , annValue:: ElementValue l }
                 | MarkerAnnotation        { annName :: Name }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-
-desugarAnnotation :: Annotation l -> (Name, [(Ident, ElementValue l)])
-desugarAnnotation (MarkerAnnotation n)          = (n, [])
-desugarAnnotation (SingleElementAnnotation n e) = (n, [(Ident "value", e)])
-desugarAnnotation (NormalAnnotation n kv)       = (n, kv)
-desugarAnnotation' :: Annotation l -> Annotation l
-desugarAnnotation' = uncurry NormalAnnotation . desugarAnnotation
 
 -- | Annotations may contain  annotations or (loosely) expressions
 data ElementValue l = EVVal { infoEVVal :: l, elementVarInit :: VarInit l }
