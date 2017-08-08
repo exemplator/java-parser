@@ -30,9 +30,15 @@ class Pretty a where
 instance (Show l) => Pretty (CompilationUnit l) where
   prettyPrec p (CompilationUnit _ mpd ids tds) =
     vcat $ (maybePP p mpd: map (prettyPrec p) ids) ++ map (prettyPrec p) tds
+  prettyPrec p (ModuleDeclaration _ pkg moduleSpecs) =
+    text "module " <+> prettyPrec p pkg <+> braceBlock (map (prettyPrec p) moduleSpecs)
 
 instance Pretty (PackageDecl l) where
   prettyPrec p (PackageDecl _ name) = text "package" <+> prettyPrec p name <> semi
+
+instance Pretty (ModuleSpec l) where
+  prettyPrec p (ModuleRequires _ name) = text "requires" <+> prettyPrec p name <> semi
+  prettyPrec p (ModuleExports _ name) = text "exports" <+> prettyPrec p name <> semi
 
 instance Pretty (ImportDecl l) where
   prettyPrec p (ImportDecl _ st pkg) =
