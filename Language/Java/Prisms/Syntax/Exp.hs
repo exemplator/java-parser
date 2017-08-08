@@ -1,11 +1,11 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Language.Java.Prisms.Syntax.Exp where
 
-import           Control.Lens
+import           Language.Java.Prisms.CustomLenses
 import           Language.Java.Syntax.Exp
 
-makeLenses ''Literal
+allLenses ''Literal
 
-makeLenses ''Op
+allLenses ''Op
 
-makeLenses ''AssignOp
+allLenses ''AssignOp

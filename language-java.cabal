@@ -28,6 +28,7 @@ Library
                       , pretty >= 1.0
                       , parsec >= 3.0
                       , lens >= 4.15.1
+                      , template-haskell
 
   ghc-options:         -Wall -fwarn-tabs -fno-warn-missing-signatures
 
@@ -39,10 +40,12 @@ Library
                         Language.Java.Helper,
                         Language.Java.Prisms.Syntax,
                         Language.Java.Prisms.Syntax.Exp,
-                        Language.Java.Prisms.Syntax.Types
+                        Language.Java.Prisms.Syntax.Types,
+                        Language.Java.Prisms.Prisms
   
   Other-modules:        Language.Java.Syntax.Types,
-                        Language.Java.Syntax.Exp
+                        Language.Java.Syntax.Exp,
+                        Language.Java.Prisms.CustomLenses
 
 
 Test-Suite test-java-parse
