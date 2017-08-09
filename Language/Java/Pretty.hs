@@ -70,6 +70,12 @@ instance (Show l) => Pretty (ClassDecl l) where
           , ppImplements p impls
          ] $$ prettyPrec p body
 
+instance (Show l) => Pretty (Extends l) where
+  prettyPrec p (Extends _ ref) = prettyPrec p ref
+
+instance (Show l) => Pretty (Implements l) where
+  prettyPrec p (Implements _ ref) = prettyPrec p ref
+
 instance (Show l) => Pretty (ClassBody l) where
   prettyPrec p (ClassBody _ ds) =
     braceBlock (map (prettyPrec p) ds)
@@ -538,12 +544,12 @@ ppTypeParams p tps = char '<'
     <> hsep (punctuate comma (map (prettyPrec p) tps))
     <> char '>'
 
-ppImplements :: Int -> [RefType] -> Doc
+ppImplements :: (Show l) => Int -> [Implements l] -> Doc
 ppImplements _ [] = empty
 ppImplements p rts = text "implements"
     <+> hsep (punctuate comma (map (prettyPrec p) rts))
 
-ppExtends :: Int -> [RefType] -> Doc
+ppExtends :: (Show l) => Int -> [Extends l] -> Doc
 ppExtends _ [] = empty
 ppExtends p rts = text "extends"
     <+> hsep (punctuate comma (map (prettyPrec p) rts))

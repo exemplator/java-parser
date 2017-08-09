@@ -4,6 +4,8 @@ module Language.Java.Prisms.Prisms
     , S.ModuleSpec ()
     , S.ImportDecl()
     , S.TypeDecl()
+    , S.Extends ()
+    , S.Implements ()
     , S.ClassDecl()
     , S.ClassBody()
     , S.EnumBody()

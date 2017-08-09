@@ -12,6 +12,8 @@ module Language.Java.Syntax
     , ModuleSpec (..)
     , ImportDecl(..)
     , TypeDecl(..)
+    , Extends (..)
+    , Implements (..)
     , ClassDecl(..)
     , ClassBody(..)
     , EnumBody(..)
@@ -152,15 +154,15 @@ data ClassDecl l
       , classDeclModifiers :: [Modifier l]
       , classDeclName      :: Ident
       , classTypeParams    :: [TypeParam]
-      , extends            :: Maybe RefType
-      , implements         :: [RefType]
+      , extends            :: Maybe (Extends l)
+      , implements         :: [Implements l]
       , classBody          :: ClassBody l
       }
     | EnumDecl
       { infoEnumDecl      :: l
       , enumDeclModifiers :: [Modifier l]
       , enumeDeclName     :: Ident
-      , implements        :: [RefType]
+      , implements        :: [Implements l]
       , enumBody          :: EnumBody l
       }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
@@ -178,6 +180,20 @@ instance HasBody (ClassDecl l) l where
 instance CollectTypes (ClassDecl l) where
   collectTypes (ClassDecl _ _ i _ _ types _) = withoutPackageIdentToType i : collectTypes types
   collectTypes (EnumDecl _ _ i types _) = withoutPackageIdentToType i : collectTypes types
+
+-- | An extends clause
+data Extends l = Extends { infoExtends :: l, extendsClass :: RefType }
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
+
+instance HasType (Extends l) where
+  getType = getType . extendsClass
+
+-- | An implements clause
+data Implements l = Implements { infoImplements :: l, implementsInterface :: RefType }
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
+
+instance HasType (Implements l) where
+  getType = getType . implementsInterface
 
 -- | A class body may contain declarations of members of the class, that is,
 --   fields, classes, interfaces and methods.
@@ -221,7 +237,7 @@ data InterfaceDecl l = InterfaceDecl
   , interfaceDeclModifiers :: [Modifier l]
   , interfaceDeclName      :: Ident
   , interfaceTypeParams    :: [TypeParam]
-  , interfaceExtends       :: [RefType]
+  , interfaceExtends       :: [Extends l]
   , interfaceBody          :: InterfaceBody l
   }
   deriving (Eq,Show,Read,Typeable,Generic,Data)

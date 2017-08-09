@@ -184,11 +184,11 @@ normalClassDecl = do
     bod <- classBodyParser
     return $ \ms -> clDec ms i tps (fmap head mex) imp bod
 
-extendsParser :: P [RefType]
-extendsParser = tok KW_Extends >> refTypeList
+extendsParser :: (Parsable l) => P [Extends l]
+extendsParser = tok KW_Extends >> map <$> tP Extends <*> refTypeList
 
-implementsParsre :: P [RefType]
-implementsParsre = tok KW_Implements >> refTypeList
+implementsParsre :: (Parsable l) => P [Implements l]
+implementsParsre = tok KW_Implements >> map <$> tP Implements <*> refTypeList
 
 enumClassDecl :: (Parsable l) => P (Mod l (ClassDecl l))
 enumClassDecl = do
