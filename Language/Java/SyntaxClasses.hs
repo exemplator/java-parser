@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 module Language.Java.SyntaxClasses where
 
 import           Data.Function        (on)
@@ -7,50 +8,57 @@ import           Language.Java.Syntax
 class HasBody a l where
   getBody :: a -> [Decl l]
 
--- | Get type of TypeDecl
+-- | Get type of TypeDeclNode
 instance HasType (TypeDeclNode l) where
-  getType (ClassTypeDecl _ ctd) = getType ctd
-  getType (InterfaceTypeDecl _ itd) = getType itd
+  getType (ClassTypeDeclNode _ ctd) = getType ctd
+  getType (InterfaceTypeDeclNode _ itd) = getType itd
 
 instance CollectTypes (TypeDeclNode l) where
-  collectTypes (ClassTypeDecl _ ctd) = collectTypes ctd
-  collectTypes (InterfaceTypeDecl _ itd) = collectTypes itd
+  collectTypes (ClassTypeDeclNode _ ctd) = collectTypes ctd
+  collectTypes (InterfaceTypeDeclNode _ itd) = collectTypes itd
 
 -- | Get the body of TypeDecl
 instance HasBody (TypeDeclNode l) l where
-  getBody (ClassTypeDecl _ classDeclB) = getBody classDeclB
-  getBody (InterfaceTypeDecl _ iterDecl) = getBody iterDecl
+  getBody (ClassTypeDeclNode _ classDeclB) = getBody classDeclB
+  getBody (InterfaceTypeDeclNode _ iterDecl) = getBody iterDecl
 
 -- | Get type of ClassDecl
 instance HasType (ClassDeclNode l) where
-  getType (ClassDecl _ _ i _ _ _ _) = withoutPackageIdentToType i
-  getType (EnumDecl _ _ i _ _) = withoutPackageIdentToType i
+  getType (ClassDeclNode _ ctd) = getType ctd
+  getType (EnumDeclNode _ itd) = getType itd
+  --getType (ClassDeclNode _ _ i _ _ _ _) = withoutPackageIdentToType i
+  --getType (EnumDeclNode _ _ i _ _) = withoutPackageIdentToType i
 
 -- | Get the body of ClassDecl
 instance HasBody (ClassDeclNode l) l where
-  getBody (ClassDecl _ _ _ _ _ _ classBodyB) = getBody classBodyB
-  getBody (EnumDecl _ _ _ _ enumBodyB) = getBody enumBodyB
+  getBody (ClassDeclNode _ ctd) = getBody ctd
+  getBody (EnumDeclNode _ itd) = getBody itd
+  --getBody (ClassDeclNode _ _ _ _ _ _ classBodyB) = getBody classBodyB
+  --getBody (EnumDeclNode _ _ _ _ enumBodyB) = getBody enumBodyB
 
 instance CollectTypes (ClassDeclNode l) where
-  collectTypes (ClassDecl _ _ i _ _ types _) = withoutPackageIdentToType i : collectTypes types
-  collectTypes (EnumDecl _ _ i types _) = withoutPackageIdentToType i : collectTypes types
+  collectTypes (ClassDeclNode _ ctd) = collectTypes ctd
+  collectTypes (EnumDeclNode _ itd) = collectTypes itd
+  --collectTypes (ClassDeclNode _ _ i _ _ types _) = withoutPackageIdentToType i : collectTypes types
+  --collectTypes (EnumDeclNode _ _ i types _) = withoutPackageIdentToType i : collectTypes types
 
 -- | Get type of MemberDecl if it is a MethodDecl (our solution to handeling the Maybe)
 instance CollectTypes (MemberDeclNode l) where
-  collectTypes (FieldDecl _ _ t _) =  [t]
-  collectTypes (MethodDecl _ _ _ _ name _ _ _ _) =  [withoutPackageIdentToType name]
-  collectTypes ConstructorDecl{} = []
-  collectTypes (MemberClassDecl _ cd) =  [getType cd]
-  collectTypes (MemberInterfaceDecl _ idecl) =  [getType idecl]
+  collectTypes (FieldDeclNode _ ctd) = collectTypes ctd
+  collectTypes (MethodDeclNode _ ctd) = collectTypes ctd
+  collectTypes (ConstructorDeclNode _ ctd) = collectTypes ctd
+  collectTypes (MemberClassDeclNode _ ctd) = collectTypes ctd
+  collectTypes (MemberClassDeclNode _ ctd) = collectTypes ctd
+  collectTypes (MemberInterfaceDeclNode _ ctd) = collectTypes ctd
 
 instance Eq l => Ord (MemberDeclNode l) where
   compare = compare `on` memToInt
     where
-      memToInt FieldDecl{} = 1
-      memToInt MethodDecl{} = 2
-      memToInt ConstructorDecl{} = 3
-      memToInt MemberClassDecl{} = 4
-      memToInt MemberInterfaceDecl{} = 5
+      memToInt FieldDeclNode{} = 1
+      memToInt MethodDeclNode{} = 2
+      memToInt ConstructorDeclNode{} = 3
+      memToInt MemberClassDeclNode{} = 4
+      memToInt MemberInterfaceDeclNode{} = 5
 
 instance HasType (ImportDecl l) where
   getType = getTypeFromPackage . importPackage
@@ -60,31 +68,27 @@ getTypeFromPackage pkg = RefType $ ClassRefType $ WithPackage pkg WildcardName
 
 -- TODO ClassTypeDecl InterfaceTypeDecl
 -- | Get type of TypeDecl
-instance HasType (TypeDecl l) where
+instance HasType (ClassTypeDecl l) where
   getType (ClassTypeDecl _ ctd) = getType ctd
+instance HasType (ClassTypeDecl l) where
   getType (InterfaceTypeDecl _ itd) = getType itd
 
-instance CollectTypes (TypeDecl l) where
-  collectTypes (ClassTypeDecl _ ctd) = collectTypes ctd
-  collectTypes (InterfaceTypeDecl _ itd) = collectTypes itd
 
 -- | Get the body of TypeDecl
-instance HasBody (TypeDecl l) l where
+instance HasBody (ClassTypeDecl l) l where
   getBody (ClassTypeDecl _ classDeclB) = getBody classDeclB
+instance HasBody (InterfaceTypeDecl l) where
   getBody (InterfaceTypeDecl _ iterDecl) = getBody iterDecl
-
--- | Get type of ClassDecl
-instance HasType (ClassDecl l) where
-  getType (ClassDecl _ _ i _ _ _ _) = withoutPackageIdentToType i
-  getType (EnumDecl _ _ i _ _) = withoutPackageIdentToType i
 
 -- | Get the body of ClassDecl
 instance HasBody (ClassDecl l) l where
   getBody (ClassDecl _ _ _ _ _ _ classBodyB) = getBody classBodyB
+instance HasBody (EnumDecl l) where
   getBody (EnumDecl _ _ _ _ enumBodyB) = getBody enumBodyB
 
 instance CollectTypes (ClassDecl l) where
   collectTypes (ClassDecl _ _ i _ _ types _) = withoutPackageIdentToType i : collectTypes types
+instance CollectTypes (EnumDecl l) where
   collectTypes (EnumDecl _ _ i types _) = withoutPackageIdentToType i : collectTypes types
 
 instance HasType (Extends l) where
@@ -127,18 +131,11 @@ instance HasBody (InterfaceBody l) l where
 
 
 -- | Get type of MemberDecl if it is a MethodDecl (our solution to handeling the Maybe)
-instance CollectTypes (MemberDecl l) where
+instance CollectTypes (FieldDecl l) where
   collectTypes (FieldDecl _ _ t _) =  [t]
+instance CollectTypes (MethodDecl l) where
   collectTypes (MethodDecl _ _ _ _ name _ _ _ _) =  [withoutPackageIdentToType name]
-  collectTypes ConstructorDecl{} = []
+instance CollectTypes (MemberClassDecl l) where
   collectTypes (MemberClassDecl _ cd) =  [getType cd]
+instance CollectTypes (MemberInterfaceDecl l) where
   collectTypes (MemberInterfaceDecl _ idecl) =  [getType idecl]
-
-instance Eq l => Ord (MemberDecl l) where
-  compare = compare `on` memToInt
-    where
-      memToInt FieldDecl{} = 1
-      memToInt MethodDecl{} = 2
-      memToInt ConstructorDecl{} = 3
-      memToInt MemberClassDecl{} = 4
-      memToInt MemberInterfaceDecl{} = 5
