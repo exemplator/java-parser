@@ -41,7 +41,8 @@ Library
                         Language.Java.Prisms.Syntax,
                         Language.Java.Prisms.Syntax.Exp,
                         Language.Java.Prisms.Syntax.Types,
-                        Language.Java.Prisms.Prisms
+                        Language.Java.Prisms.Prisms,
+                        Language.Java.SyntaxClasses
   
   Other-modules:        Language.Java.Syntax.Types,
                         Language.Java.Syntax.Exp,

@@ -10,29 +10,24 @@ module Language.Java.Syntax where
 import           Data.Data
 import           GHC.Generics               (Generic)
 
-import           Data.Function              (on)
 import           Language.Java.Syntax.Exp
 import           Language.Java.Syntax.Types
-
--- | Provides functionality to access the body as a list of declarations of a class, enum and an interface.
-class HasBody a l where
-  getBody :: a -> [Decl l]
 
 -----------------------------------------------------------------------
 -- Nodes
 
 -- | A compilation unit is the top level syntactic goal symbol of a Java program.
 data CompilationUnitNodesNode l
-  = CompilationUnitNode CompilationUnit
-  | ModuleDeclarationNode ModuleDeclaration
+  = CompilationUnitNode l (CompilationUnit l)
+  | ModuleDeclarationNode l (ModuleDeclaration l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | specifies the module declarations
 data ModuleSpecNode l
   -- | requires the module to work
-  = ModuleRequiresNode ModuleRequires
+  = ModuleRequiresNode l (ModuleRequires l)
   -- | exports the package
-  | ModuleExportsNode ModuleExports
+  | ModuleExportsNode l (ModuleExports l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -----------------------------------------------------------------------
@@ -41,96 +36,50 @@ data ModuleSpecNode l
 
 -- | A type declaration declares a class type or an interface type.
 data TypeDeclNode l
-    = ClassTypeDeclNode ClassTypeDecl
-    | InterfaceTypeDeclNode InterfaceTypeDecl
+    = ClassTypeDeclNode l (ClassTypeDecl l)
+    | InterfaceTypeDeclNode l (InterfaceTypeDecl l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-
--- | Get type of TypeDecl
-instance HasType (TypeDeclNode l) where
-  getType (ClassTypeDecl _ ctd) = getType ctd
-  getType (InterfaceTypeDecl _ itd) = getType itd
-
-instance CollectTypes (TypeDeclNode l) where
-  collectTypes (ClassTypeDecl _ ctd) = collectTypes ctd
-  collectTypes (InterfaceTypeDecl _ itd) = collectTypes itd
-
--- | Get the body of TypeDecl
-instance HasBody (TypeDeclNode l) l where
-  getBody (ClassTypeDecl _ classDeclB) = getBody classDeclB
-  getBody (InterfaceTypeDecl _ iterDecl) = getBody iterDecl
 
 -- | A class declaration specifies a new named reference type.
 data ClassDeclNode l
-    = ClassDeclNode ClassDecl
-    | EnumDeclNode EnumDecl
+    = ClassDeclNode l (ClassDecl l)
+    | EnumDeclNode l (EnumDecl l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-
--- | Get type of ClassDecl
-instance HasType (ClassDeclNode l) where
-  getType (ClassDecl _ _ i _ _ _ _) = withoutPackageIdentToType i
-  getType (EnumDecl _ _ i _ _) = withoutPackageIdentToType i
-
--- | Get the body of ClassDecl
-instance HasBody (ClassDeclNode l) l where
-  getBody (ClassDecl _ _ _ _ _ _ classBodyB) = getBody classBodyB
-  getBody (EnumDecl _ _ _ _ enumBodyB) = getBody enumBodyB
-
-instance CollectTypes (ClassDeclNode l) where
-  collectTypes (ClassDecl _ _ i _ _ types _) = withoutPackageIdentToType i : collectTypes types
-  collectTypes (EnumDecl _ _ i types _) = withoutPackageIdentToType i : collectTypes types
 
 -- | A declaration is either a member declaration, or a declaration of an
 --   initializer, which may be static.
 data DeclNode l
-    = MemberDeclNode MemberDeclNode
-    | InitDeclNode InitDecl
+    = MemberDeclNode l (MemberDeclNode l)
+    | InitDeclNode l (InitDecl l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-
 
 -- | A class or interface member can be an inner class or interface, a field or
 --   constant, or a method or constructor. An interface may only have as members
 --   constants (not fields), abstract methods, and no constructors.
 data MemberDeclNode l
     -- | The variables of a class type are introduced by field declarations.
-    = FieldDeclNode FieldDecl
+    = FieldDeclNode l (FieldDecl l)
     -- | A method declares executable code that can be invoked, passing a fixed number of values as arguments.
-    | MethodDeclNode MethodDecl
+    | MethodDeclNode l (MethodDecl l)
     -- | A constructor is used in the creation of an object that is an instance of a class.
-    | ConstructorDeclNode ConstructorDecl
+    | ConstructorDeclNode l (ConstructorDecl l)
     -- | A member class is a class whose declaration is directly enclosed in another class or interface declaration.
-    | MemberClassDeclNode MemberClassDecl
+    | MemberClassDeclNode l (MemberClassDecl l)
     -- | A member interface is an interface whose declaration is directly enclosed in another class or interface declaration.
-    | MemberInterfaceDeclNode MemberInterfaceDecl
+    | MemberInterfaceDeclNode l (MemberInterfaceDecl l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-
--- | Get type of MemberDecl if it is a MethodDecl (our solution to handeling the Maybe)
-instance CollectTypes (MemberDeclNode l) where
-  collectTypes (FieldDecl _ _ t _) =  [t]
-  collectTypes (MethodDecl _ _ _ _ name _ _ _ _) =  [withoutPackageIdentToType name]
-  collectTypes ConstructorDecl{} = []
-  collectTypes (MemberClassDecl _ cd) =  [getType cd]
-  collectTypes (MemberInterfaceDecl _ idecl) =  [getType idecl]
-
-instance Eq l => Ord (MemberDeclNode l) where
-  compare = compare `on` memToInt
-    where
-      memToInt FieldDecl{} = 1
-      memToInt MethodDecl{} = 2
-      memToInt ConstructorDecl{} = 3
-      memToInt MemberClassDecl{} = 4
-      memToInt MemberInterfaceDecl{} = 5
 
 -- | The name of a variable in a declaration, which may be an array.
 data VarDeclIdNode l
-    = VarIdNode VarId
-    | VarDeclArrayNode VarDeclArray
+    = VarIdNode l (VarId l)
+    | VarDeclArrayNode l (VarDeclArray l)
     -- ^ Multi-dimensional arrays are represented by nested applications of 'VarDeclArray'.
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Explicit initializer for a variable declaration.
 data VarInitNode l
-    = InitExpNode InitExp
-    | InitArrayNode InitArray
+    = InitExpNode l (InitExp l)
+    | InitArrayNode l (InitArray l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | An explicit constructor invocation invokes another constructor of the
@@ -138,14 +87,9 @@ data VarInitNode l
 --   be qualified to explicitly specify the newly created object's immediately
 --   enclosing instance.
 data ExplConstrInvNode l
-    = ThisInvokeNode ThisInvoke
-    | SuperInvokeNode SuperInvoke
-    | PrimarySuperInvokeNode PrimarySuperInvoke
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
-
--- | Annotations may contain  annotations or (loosely) expressions
-data ElementValueNode l = EVValNode EVValNode
-                  | EVAnnNode EVAnnNode
+    = ThisInvokeNode l (ThisInvoke l)
+    | SuperInvokeNode l (SuperInvoke l)
+    | PrimarySuperInvokeNode l (PrimarySuperInvoke l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -----------------------------------------------------------------------
@@ -154,192 +98,192 @@ data ElementValueNode l = EVValNode EVValNode
 -- | A block statement is either a normal statement, a local
 --   class declaration or a local variable declaration.
 data BlockStmtNode l
-    = BlockStmtNode  BlockStmt
-    | LocalClassNode LocalClass
-    | LocalVarsNode LocalVars
+    = BlockStmtNode l (BlockStmt l)
+    | LocalClassNode l (LocalClass l)
+    | LocalVarsNode l (LocalVars l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 
 -- | A Java statement.
 data StmtNode l
     -- | A statement can be a nested block.
-    = StmtBlockNode StmtBlock
+    = StmtBlockNode l (StmtBlock l)
     -- | The @if-then@ statement allows conditional execution of a statement.
-    | IfThenElseNode IfThenElse
+    | IfThenElseNode l (IfThenElse l)
     -- | The @while@ statement executes an expression and a statement repeatedly until the value of the expression is false.
-    | WhileNode While
+    | WhileNode l (While l)
     -- | The basic @for@ statement executes some initialization code, then executes an expression, a statement, and some
     --   update code repeatedly until the value of the expression is false.
-    | BasicForNode BasicFor
+    | BasicForNode l (BasicFor l)
     -- | The enhanced @for@ statement iterates over an array or a value of a class that implements the @iterator@ interface.
-    | EnhancedForNode EnhancedFor
+    | EnhancedForNode l (EnhancedFor l)
     -- | An empty statement does nothing.
-    | EmptyNode Empty
+    | EmptyNode l (Empty l)
     -- | Certain kinds of expressions may be used as statements by following them with semicolons:
     --   assignments, pre- or post-inc- or decrementation, method invocation or class instance
     --   creation expressions.
-    | ExpStmtNode ExpStmt
+    | ExpStmtNode l (ExpStmt l)
     -- | An assertion is a statement containing a boolean expression, where an error is reported if the expression
     --   evaluates to false.
-    | AssertNode Assert
+    | AssertNode l (Assert l)
     -- | The switch statement transfers control to one of several statements depending on the value of an expression.
-    | SwitchNode Switch
+    | SwitchNode l (Switch l)
     -- | The @do@ statement executes a statement and an expression repeatedly until the value of the expression is false.
-    | DoNode Do
+    | DoNode l (Do l)
     -- | A @break@ statement transfers control out of an enclosing statement.
-    | BreakNode Break
+    | BreakNode l (Break l)
     -- | A @continue@ statement may occur only in a while, do, or for statement. Control passes to the loop-continuation
     --   point of that statement.
-    | ContinueNode Continue
+    | ContinueNode l (Continue l)
     -- A @return@ statement returns control to the invoker of a method or constructor.
-    | ReturnNode Return
+    | ReturnNode l (Return l)
     -- | A @synchronized@ statement acquires a mutual-exclusion lock on behalf of the executing thread, executes a block,
     --   then releases the lock. While the executing thread owns the lock, no other thread may acquire the lock.
-    | SynchronizedNode Synchronized
+    | SynchronizedNode l (Synchronized l)
     -- | A @throw@ statement causes an exception to be thrown.
-    | ThrowNode Throw
+    | ThrowNode l (Throw l)
     -- | A try statement executes a block and may catch a thrown exception
-    | TryNode Try
+    | TryNode l (Try l)
     -- | Statements may have label prefixes.
-    | LabeledNode Labeled
+    | LabeledNode l (Labeled l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Resource in a try-with-resources statement
-data TryResourceNode l =
+data TryResourceNode l
     -- | Newly declared variables
-    TryResourceVarNode TryResourceVar
+    = TryResourceVarNode l (TryResourceVar l)
     -- | Effectively final variable
-    | TryResourceFinalVarNode TryResourceFinalVar
+    | TryResourceFinalVarNode l (TryResourceFinalVar l)
     deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A label within a @switch@ statement.
 data SwitchLabelNode l
     -- | The expression contained in the @case@ must be a 'Lit' or an @enum@ constant.
-    = SwitchCaseNode SwitchCase
-    | DefaultNode SwitchDefault
+    = SwitchCaseNode l (SwitchCase l)
+    | DefaultNode l (SwitchDefault l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Initialization code for a basic @for@ statement.
 data ForInitNode l
-    = ForLocalVarsNode ForLocalVars
-    | ForInitExpsNode ForInitExps
+    = ForLocalVarsNode l (ForLocalVars l)
+    | ForInitExpsNode l (ForInitExps l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A Java expression.
 data ExpNode l
     -- | A literal denotes a fixed, unchanging value.
-    = LitNode LitNode
+    = LitNode l (Lit l)
     -- | A class literal, which is an expression consisting of the name of a class, interface, array,
     --   or primitive type, or the pseudo-type void (modelled by 'Nothing'), followed by a `.' and the token class.
-    | ClassLitNode ClassLit
+    | ClassLitNode l (ClassLit l)
     -- | The keyword @this@ denotes a value that is a reference to the object for which the instance method
     --   was invoked, or to the object being constructed.
-    | ThisNode This
+    | ThisNode l (This l)
     -- | Any lexically enclosing instance can be referred to by explicitly qualifying the keyword this.
     -- TODO: Fix Parser here
-    | QualifiedThisNode QualifiedThis
+    | QualifiedThisNode l (QualifiedThis l)
     -- | A class instance creation expression is used to create new objects that are instances of classes.
     -- | The first argument is a list of non-wildcard type arguments to a generic constructor.
     --   What follows is the type to be instantiated, the list of arguments passed to the constructor, and
     --   optionally a class body that makes the constructor result in an object of an /anonymous/ class.
-    | InstanceCreationNode InstanceCreation
+    | InstanceCreationNode l (InstanceCreation l)
     -- | A qualified class instance creation expression enables the creation of instances of inner member classes
     --   and their anonymous subclasses.
     {- TODO what is is the mysteryExp used for?-}
-    | QualInstanceCreationNode QualInstanceCreation
+    | QualInstanceCreationNode l (QualInstanceCreation l)
     -- | An array instance creation expression is used to create new arrays. The last argument denotes the number
     --   of dimensions that have no explicit length given. These dimensions must be given last.
-    | ArrayCreateNode ArrayCreate
+    | ArrayCreateNode l (ArrayCreate l)
     -- | An array instance creation expression may come with an explicit initializer. Such expressions may not
     --   be given explicit lengths for any of its dimensions.
-    | ArrayCreateInitNode ArrayCreateInit
+    | ArrayCreateInitNode l (ArrayCreateInit l)
     -- | A field access expression.
-    | FieldAccessNode FieldAccess
+    | FieldAccessNode l (FieldAccess l)
     -- | A method invocation expression.
-    | MethodInvNode MethodInv
+    | MethodInvNode l (MethodInv l)
     -- | An array access expression refers to a variable that is a component of an array.
-    | ArrayAccessNode ArrayAccess
+    | ArrayAccessNode l (ArrayAccess l)
 {-    | ArrayAccess ExpNode ExpNode -- Should this be made into a datatype, for consistency and use with Lhs? -}
     -- | An expression name, e.g. a variable.
-    | ExpNameNode ExpName
+    | ExpNameNode l (ExpName l)
     -- | Post-incrementation expression, i.e. an expression followed by @++@.
-    | PostIncrementNode PostIncrement
+    | PostIncrementNode l (PostIncrement l)
     -- | Post-decrementation expression, i.e. an expression followed by @--@.
-    | PostDecrementNode PostDecrement
+    | PostDecrementNode l (PostDecrement l)
     -- | Pre-incrementation expression, i.e. an expression preceded by @++@.
-    | PreIncrementNode PreIncrement
+    | PreIncrementNode l (PreIncrement l)
     -- | Pre-decrementation expression, i.e. an expression preceded by @--@.
-    | PreDecrementNode PreDecrement
+    | PreDecrementNode l (PreDecrement l)
     -- | Unary plus, the promotion of the value of the expression to a primitive numeric type.
-    | PrePlusNode PrePlus
+    | PrePlusNode l (PrePlus l)
     -- | Unary minus, the promotion of the negation of the value of the expression to a primitive numeric type.
-    | PreMinusNode PreMinus
+    | PreMinusNode l (PreMinus l)
     -- | Unary bitwise complementation: note that, in all cases, @~x@ equals @(-x)-1@.
-    | PreBitComplNode PreBitCompl
+    | PreBitComplNode l (PreBitCompl l)
     -- | Logical complementation of boolean values.
-    | PreNotNode PreNot
+    | PreNotNode l (PreNot l)
     -- | A cast expression converts, at run time, a value of one numeric type to a similar value of another
     --   numeric type; or confirms, at compile time, that the type of an expression is boolean; or checks,
     --   at run time, that a reference value refers to an object whose class is compatible with a specified
     --   reference type.
-    | CastNode Cast
+    | CastNode l (Cast l)
     -- | The application of a binary operator to two operand expressions.
-    | BinOpNode BinOp
+    | BinOpNode l (BinOp l)
     -- | Testing whether the result of an expression is an instance of some reference type.
-    | InstanceOfNode InstanceOf
+    | InstanceOfNode l (InstanceOf l)
     -- | The conditional operator @? :@ uses the boolean value of one expression to decide which of two other
     --   expressions should be evaluated.
-    | CondNode Cond
+    | CondNode l (Cond l)
     -- | Assignment of the result of an expression to a variable.
-    | AssignNode Assign
+    | AssignNode l (Assign l)
     -- | Lambda expression
-    | LambdaNode Lambda
+    | LambdaNode l (Lambda l)
     -- | Method reference
-    | MethodRefNode MethodRef
+    | MethodRefNode l (MethodRef l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | The left-hand side of an assignment expression. This operand may be a named variable, such as a local
 --   variable or a field of the current object or class, or it may be a computed variable, as can result from
 --   a field access or an array access.
 data LhsNode l
-    = NameLhsNode NameLhs         -- ^ Assign to a variable
-    | FieldLhsNode FieldLhs  -- ^ Assign through a field access
-    | ArrayLhsNode ArrayLhs   -- ^ Assign to an array
+    = NameLhsNode l (NameLhs l)         -- ^ Assign to a variable
+    | FieldLhsNode l (FieldLhs l)  -- ^ Assign through a field access
+    | ArrayLhsNode l (ArrayLhs l)   -- ^ Assign to an array
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A field access expression may access a field of an object or array, a reference to which is the value
 --   of either an expression or the special keyword super.
 data FieldAccessNode l
-    = PrimaryFieldAccessNode PrimaryFieldAccess -- ^ Accessing a field of an object or array computed from an expression.
-    | SuperFieldAccessNode SuperFieldAccess -- ^ Accessing a field of the superclass.
-    | ClassFieldAccessNode ClassFieldAccess -- ^ Accessing a (static) field of a named class.
+    = PrimaryFieldAccessNode l (PrimaryFieldAccess l) -- ^ Accessing a field of an object or array computed from an expression.
+    | SuperFieldAccessNode l (SuperFieldAccess l) -- ^ Accessing a field of the superclass.
+    | ClassFieldAccessNode l (ClassFieldAccess l) -- ^ Accessing a (static) field of a named class.
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- ¦ A lambda parameter can be a single parameter, or mulitple formal or mulitple inferred parameters
 data LambdaParamsNode l
-  = LambdaSingleParamNode LambdaSingleParam
-  | LambdaFormalParamsNode LambdaFormalParams
-  | LambdaInferredParamsNode LambdaInferredParams
+  = LambdaSingleParamNode l (LambdaSingleParam l)
+  | LambdaFormalParamsNode l (LambdaFormalParams l)
+  | LambdaInferredParamsNode l (LambdaInferredParams l)
     deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Lambda expression, starting from java 8
 data LambdaExpressionNode l
-    = LambdaExpressionNode LambdaExpression
-    | LambdaBlockNode LambdaBlock
+    = LambdaExpressionNode l (LambdaExpression l)
+    | LambdaBlockNode l (LambdaBlock l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A method invocation expression is used to invoke a class or instance method.
 data MethodInvocationNode l
     -- | Invoking a specific named method.
-    = MethodCallNode MethodCall
+    = MethodCallNode l (MethodCall l)
     -- | Invoking a method of a class computed from a primary expression, giving arguments for any generic type parameters.
-    | PrimaryMethodCallNode PrimaryMethodCall
+    | PrimaryMethodCallNode l (PrimaryMethodCall l)
     -- | Invoking a method of the super class, giving arguments for any generic type parameters.
-    | SuperMethodCallNode SuperMethodCall
+    | SuperMethodCallNode l (SuperMethodCall l)
     -- | Invoking a method of the superclass of a named class, giving arguments for any generic type parameters.
-    | ClassMethodCallNode ClassMethodCall
+    | ClassMethodCallNode l (ClassMethodCall l)
     -- | Invoking a method of a named type, giving arguments for any generic type parameters.
-    | TypeMethodCallNode TypeMethodCall
+    | TypeMethodCallNode l (TypeMethodCall l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 
@@ -391,12 +335,6 @@ data ImportDecl l = ImportDecl
   }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
-instance HasType (ImportDecl l) where
-  getType = getTypeFromPackage . importPackage
-
-getTypeFromPackage :: Package -> Type
-getTypeFromPackage pkg = RefType $ ClassRefType $ WithPackage pkg WildcardName
-
 -----------------------------------------------------------------------
 -- Declarations
 
@@ -406,20 +344,6 @@ data ClassTypeDecl l = ClassTypeDecl { infoClassTypeDecl :: l, classDecl :: Clas
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 data InterfaceTypeDecl l = InterfaceTypeDecl { infoInterfaceTypeDecl :: l, interfaceDecl :: InterfaceDecl l}
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-
--- | Get type of TypeDecl
-instance HasType (TypeDecl l) where
-  getType (ClassTypeDecl _ ctd) = getType ctd
-  getType (InterfaceTypeDecl _ itd) = getType itd
-
-instance CollectTypes (TypeDecl l) where
-  collectTypes (ClassTypeDecl _ ctd) = collectTypes ctd
-  collectTypes (InterfaceTypeDecl _ itd) = collectTypes itd
-
--- | Get the body of TypeDecl
-instance HasBody (TypeDecl l) l where
-  getBody (ClassTypeDecl _ classDeclB) = getBody classDeclB
-  getBody (InterfaceTypeDecl _ iterDecl) = getBody iterDecl
 
 -- | A class declaration specifies a new named reference type.
 data ClassDecl l = ClassDecl
@@ -441,33 +365,13 @@ data EnumDecl l = EnumDecl
       }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
--- | Get type of ClassDecl
-instance HasType (ClassDecl l) where
-  getType (ClassDecl _ _ i _ _ _ _) = withoutPackageIdentToType i
-  getType (EnumDecl _ _ i _ _) = withoutPackageIdentToType i
-
--- | Get the body of ClassDecl
-instance HasBody (ClassDecl l) l where
-  getBody (ClassDecl _ _ _ _ _ _ classBodyB) = getBody classBodyB
-  getBody (EnumDecl _ _ _ _ enumBodyB) = getBody enumBodyB
-
-instance CollectTypes (ClassDecl l) where
-  collectTypes (ClassDecl _ _ i _ _ types _) = withoutPackageIdentToType i : collectTypes types
-  collectTypes (EnumDecl _ _ i types _) = withoutPackageIdentToType i : collectTypes types
-
 -- | An extends clause
 data Extends l = Extends { infoExtends :: l, extendsClass :: RefType }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
-instance HasType (Extends l) where
-  getType = getType . extendsClass
-
 -- | An implements clause
 data Implements l = Implements { infoImplements :: l, implementsInterface :: RefType }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-
-instance HasType (Implements l) where
-  getType = getType . implementsInterface
 
 -- | A class body may contain declarations of members of the class, that is,
 --   fields, classes, interfaces and methods.
@@ -476,17 +380,11 @@ instance HasType (Implements l) where
 data ClassBody l = ClassBody { infoClassBody :: l, classDecls :: [Decl l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
--- | Get the body of ClassBody
-instance HasBody (ClassBody l) l where
-  getBody (ClassBody _ decls) = decls
 
 -- | The body of an enum type may contain enum constants.
 data EnumBody l = EnumBody { infoEnumBody :: l, enumConstans :: [EnumConstant l], enumDecls :: [Decl l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
--- | Get the body of EnumBody
-instance HasBody (EnumBody l) l where
-  getBody (EnumBody _ _ decls) = decls
 
 -- | An enum constant defines an instance of the enum type.
 data EnumConstant l = EnumConstant
@@ -496,10 +394,6 @@ data EnumConstant l = EnumConstant
   , enumConstantBody :: Maybe (ClassBody l)
   }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-
--- | Get type of EnumConstant
-instance HasType (EnumConstant l) where
-  getType (EnumConstant _ i _ _) =  withoutPackageIdentToType i
 
 -- | An interface declaration introduces a new reference type whose members
 --   are classes, interfaces, constants and abstract methods. This type has
@@ -516,17 +410,6 @@ data InterfaceDecl l = InterfaceDecl
   }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
--- | Get type of InterfaceDecl
-instance HasType (InterfaceDecl l) where
-  getType (InterfaceDecl _ _ _ i _ _ _) =  withoutPackageIdentToType i
-
-instance CollectTypes (InterfaceDecl l) where
-  collectTypes (InterfaceDecl _ _ _ i _ types _) = withoutPackageIdentToType i : collectTypes types
-
--- | Get the body of InterfaceDecl
-instance HasBody (InterfaceDecl l) l where
-  getBody (InterfaceDecl _ _ _ _ _ _ iterBody) = getBody iterBody
-
 -- | Interface can declare either a normal interface or an annotation
 data InterfaceKind = InterfaceNormal | InterfaceAnnotation
   deriving (Eq,Show,Read,Typeable,Generic,Data)
@@ -534,10 +417,6 @@ data InterfaceKind = InterfaceNormal | InterfaceAnnotation
 -- | The body of an interface may declare members of the interface.
 data InterfaceBody l = InterfaceBody { infoInterfaceBody ::l, members :: [MemberDeclNode l]}
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-
--- | Get the body of ClassDecl
-instance HasBody (InterfaceBody l) l where
-  getBody (InterfaceBody l memDecls) = map (MemberDecl l) memDecls
 
 -- | A declaration is either a member declaration, or a declaration of an
 --   initializer, which may be static.
@@ -613,36 +492,20 @@ data MemberInterfaceDecl l =  MemberInterfaceDecl
       }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
--- | Get type of MemberDecl if it is a MethodDecl (our solution to handeling the Maybe)
-instance CollectTypes (MemberDecl l) where
-  collectTypes (FieldDecl _ _ t _) =  [t]
-  collectTypes (MethodDecl _ _ _ _ name _ _ _ _) =  [withoutPackageIdentToType name]
-  collectTypes ConstructorDecl{} = []
-  collectTypes (MemberClassDecl _ cd) =  [getType cd]
-  collectTypes (MemberInterfaceDecl _ idecl) =  [getType idecl]
-
-instance Eq l => Ord (MemberDecl l) where
-  compare = compare `on` memToInt
-    where
-      memToInt FieldDecl{} = 1
-      memToInt MethodDecl{} = 2
-      memToInt ConstructorDecl{} = 3
-      memToInt MemberClassDecl{} = 4
-      memToInt MemberInterfaceDecl{} = 5
-
 -- | A declaration of a variable, which may be explicitly initialized.
-data VarDecl l = VarDecl { infoVarDecl :: l, varDeclName :: VarDeclId l, varInit :: Maybe (VarInit l) }
+data VarDecl l = VarDecl { infoVarDecl :: l, varDeclName :: VarDeclIdNode l, varInit :: Maybe (VarInitNode l) }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | The name of a variable in a declaration, which may be an array.
 data VarId l = VarId { infoVarId :: l, varIdName :: Ident }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 -- | Multi-dimensional arrays are represented by nested applications of 'VarDeclArray'.
-data VarDeclArray l = VarDeclArray { infoVarDeclArray :: l, varIdDecl :: VarDeclId l }
+data VarDeclArray l = VarDeclArray { infoVarDeclArray :: l, varIdDecl :: VarDeclIdNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Explicit initializer for a variable declaration.
 data InitExp l = InitExp { infoInitExp :: l, init :: ExpNode l }
+  deriving (Eq,Show,Read,Typeable,Generic,Data)
 data InitArray l =  InitArray { infoInitArray :: l, varArrayInit :: ArrayInit l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
@@ -654,7 +517,7 @@ data FormalParam l = FormalParam
   , formalParamModifiers :: [Modifier l]
   , paramType            :: Type
   , variableArity        :: Bool
-  , paramName            :: VarDeclId l
+  , paramName            :: VarDeclIdNode l
   }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
@@ -671,7 +534,7 @@ data MethodBody l = MethodBody { infoMethodBody :: l, impl :: Maybe (Block l) }
 --   another constructor of the same class or of the direct superclass.
 data ConstructorBody l = ConstructorBody
   { infoConstructorBody :: l
-  , constructorInvoc    :: Maybe (ExplConstrInv l)
+  , constructorInvoc    :: Maybe (ExplConstrInvNode l)
   , constrBody          :: [BlockStmt l]
   }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
@@ -744,7 +607,7 @@ data Annotation l = NormalAnnotation      { annName :: Name -- Not type because 
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Annotations may contain  annotations or (loosely) expressions
-data ElementValue l = EVVal { infoEVVal :: l, elementVarInit :: VarInit l }
+data ElementValue l = EVVal { infoEVVal :: l, elementVarInit :: VarInitNode l }
                   | EVAnn { infoEVAnn :: l, annotation :: Annotation l}
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
@@ -758,7 +621,7 @@ data Block l = Block { infoBlock :: l, blockStatements :: [BlockStmt l] }
 
 -- | A block statement is either a normal statement, a local
 --   class declaration or a local variable declaration.
-data BlockStmt l = BlockStmt { infoBlockStmt :: l, statement :: Stmt l }
+data BlockStmt l = BlockStmt { infoBlockStmt :: l, statement :: StmtNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 data LocalClass l =  LocalClass { infoLocalClass :: l, blockLocalClassDecl :: ClassDecl l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
@@ -775,19 +638,19 @@ data LocalVars l = LocalVars
 data StmtBlock l = StmtBlock { infoStmtBlock :: l, block :: Block l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | The @if-then@ statement allows conditional execution of a statement.
-data IfThenElse l =  IfThenElse { infoIfThenElse :: l, ifExp :: ExpNode l, thenExp :: Stmt l, elseExp :: Maybe (Stmt l) }
+data IfThenElse l =  IfThenElse { infoIfThenElse :: l, ifExp :: ExpNode l, thenExp :: StmtNode l, elseExp :: Maybe (StmtNode l) }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | The @while@ statement executes an expression and a statement repeatedly until the value of the expression is false.
-data While l = While { infoWhile :: l, whileVondition :: ExpNode l, whileBody :: Stmt l }
+data While l = While { infoWhile :: l, whileVondition :: ExpNode l, whileBody :: StmtNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | The basic @for@ statement executes some initialization code, then executes an expression, a statement, and some
     --   update code repeatedly until the value of the expression is false.
 data BasicFor l = BasicFor
       { infoBasicFor :: l
-      , forInit      :: Maybe (ForInit l)
+      , forInit      :: Maybe (ForInitNode l)
       , forCond      :: Maybe (ExpNode l)
       , forUpdate    :: Maybe [ExpNode l]
-      , basicForBody :: Stmt l
+      , basicForBody :: StmtNode l
       }
       deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | The enhanced @for@ statement iterates over an array or a value of a class that implements the @iterator@ interface.
@@ -797,7 +660,7 @@ data EnhancedFor l = EnhancedFor
       , loopVarType      :: Type
       , loopVarName      :: Ident
       , iterable         :: ExpNode l
-      , enhancedForBody  :: Stmt l
+      , enhancedForBody  :: StmtNode l
       }
       deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | An empty statement does nothing.
@@ -816,7 +679,7 @@ data Assert l = Assert { infoAssert :: l, booleanExp :: ExpNode l, valueExp :: M
 data Switch l = Switch { infoSwitch :: l, switchValue :: ExpNode l, switchBlocks :: [SwitchBlock l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | The @do@ statement executes a statement and an expression repeatedly until the value of the expression is false.
-data Do l = Do { infoDo :: l, doBody :: Stmt l, doCondition :: ExpNode l }
+data Do l = Do { infoDo :: l, doBody :: StmtNode l, doCondition :: ExpNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | A @break@ statement transfers control out of an enclosing statement.
 data Break l = Break { infoBreak :: l, breakLabel :: Maybe Ident }
@@ -841,7 +704,7 @@ data Throw l = Throw { infoThrow :: l, throwExp :: ExpNode l }
     --   and no matter whether a catch clause is first given control.
 data Try l = Try
       { infoTry     :: l
-      , tryResource :: [TryResource l]
+      , tryResource :: [TryResourceNode l]
       , tryBlock    :: Block l
       , catches     :: [Catch l]
       , finally     ::  Maybe (Block l)
@@ -849,7 +712,7 @@ data Try l = Try
       deriving (Eq,Show,Read,Typeable,Generic,Data)
 
     -- | Statements may have label prefixes.
-data Labeled l = Labeled { infoLabeled :: l, label :: Ident, labeledStmt :: Stmt l }
+data Labeled l = Labeled { infoLabeled :: l, label :: Ident, labeledStmt :: StmtNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | If a value is thrown and the try statement has one or more catch clauses that can catch it, then control will be
@@ -873,7 +736,7 @@ data TryResourceFinalVar l = TryResourceFinalVar
     deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A block of code labelled with a @case@ or @default@ within a @switch@ statement.
-data SwitchBlock l = SwitchBlock { infoSwitchBlock :: l, switchLabel :: SwitchLabel l, switchStmts :: [BlockStmt l] }
+data SwitchBlock l = SwitchBlock { infoSwitchBlock :: l, switchLabel :: SwitchLabelNode l, switchStmts :: [BlockStmt l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
     -- | The expression contained in the @case@ must be a 'Lit' or an @enum@ constant.
@@ -905,7 +768,7 @@ instance HasType (ExceptionType l) where
 type Argument = ExpNode
 
     -- | A literal denotes a fixed, unchanging value.
-data ExpLit l = Lit { infoLit :: l, literal :: Literal }
+data Lit l = Lit { infoLit :: l, literal :: Literal }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | A class literal, which is an expression consisting of the name of a class, interface, array,
     --   or primitive type, or the pseudo-type void (modelled by 'Nothing'), followed by a `.' and the token class.
@@ -917,13 +780,13 @@ newtype This l = This { infoThis :: l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | Any lexically enclosing instance can be referred to by explicitly qualifying the keyword this.
     -- TODO: Fix Parser here
-data QualifiedThis = QualifiedThis { infoQualifiedThis :: l, qualiType :: Type }
+data QualifiedThis l = QualifiedThis { infoQualifiedThis :: l, qualiType :: Type }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | A class instance creation expression is used to create new objects that are instances of classes.
     -- | The first argument is a list of non-wildcard type arguments to a generic constructor.
     --   What follows is the type to be instantiated, the list of arguments passed to the constructor, and
     --   optionally a class body that makes the constructor result in an object of an /anonymous/ class.
-data InstanceCreation = InstanceCreation
+data InstanceCreation l = InstanceCreation
       { infoInstanceCreation :: l
       , instanceTypeArgs     :: [TypeArgument]
       , instanceTypeDecl     :: TypeDeclSpecifier
@@ -965,7 +828,7 @@ data ArrayCreateInit l = ArrayCreateInit
 data FieldAccess l = FieldAccess { infoFieldAccess :: l, fieldAccess :: FieldAccess l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | A method invocation expression.
-data MethodInv l = MethodInv { infoMethodInv :: l, methodInvoc :: MethodInvocation l }
+data MethodInv l = MethodInv { infoMethodInv :: l, methodInvoc :: MethodInvocationNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | An array access expression refers to a variable that is a component of an array.
 data ArrayAccess l = ArrayAccess { infoArrayAccess :: l, arrayAccessIndex :: ArrayIndex l }
@@ -1015,10 +878,10 @@ data InstanceOf l = InstanceOf { infoInstanceOf :: l, instanceOfArg :: ExpNode l
 data Cond l = Cond { infoCond :: l, condition :: ExpNode l, conditionTrueExp :: ExpNode l, conditionFalseExp :: ExpNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | Assignment of the result of an expression to a variable.
-data Assign l = Assign { infoAssign :: l, assignTarget :: Lhs l, assignOp :: AssignOp, assignSource :: ExpNode l }
+data Assign l = Assign { infoAssign :: l, assignTarget :: LhsNode l, assignOp :: AssignOp, assignSource :: ExpNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | Lambda expression
-data Lambda l = Lambda { infoLambda :: l, lambdaParams :: LambdaParams l, lambdaExpression :: LambdaExpression l }
+data Lambda l = Lambda { infoLambda :: l, lambdaParams :: LambdaParamsNode l, lambdaExpression :: LambdaExpression l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | Method reference
 data MethodRef l = MethodRef { infoMethodRef :: l, methodClass :: Name, methodName :: Ident }
@@ -1113,5 +976,5 @@ data TypeMethodCall l = TypeMethodCall
 
 -- | An array initializer may be specified in a declaration, or as part of an array creation expression, creating an
 --   array and providing some initial values
-data ArrayInit l = ArrayInit { infoArrayInit :: l, arrayInits :: [VarInit l] }
+data ArrayInit l = ArrayInit { infoArrayInit :: l, arrayInits :: [VarInitNode l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
