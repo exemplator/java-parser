@@ -25,19 +25,160 @@ class Pretty a where
   prettyPrec _ = pretty
 
 -----------------------------------------------------------------------
+-- Nodes
+
+instance (Show l) => Pretty (CompilationUnitNodesNode l) where
+  prettyPrec p (CompilationUnitNode _ cu) = prettyPrec p cu
+  prettyPrec p (ModuleDeclarationNode _ md) = prettyPrec p md
+
+instance (Show l) => Pretty (ModuleSpecNode l) where
+  prettyPrec p (ModuleRequiresNode _ mr) = prettyPrec p mr
+  prettyPrec p (ModuleExportsNode _ me) = prettyPrec p me
+
+-----------------------------------------------------------------------
+-- Declarations
+
+instance (Show l) => Pretty (ClassTypeDecl l) where
+  prettyPrec p (ClassTypeDeclNode _ x) = prettyPrec p x
+  prettyPrec p (InterfaceTypeDeclNode _ x) = prettyPrec p x
+
+instance (Show l) => Pretty (ClassDeclNode l) where
+  prettyPrec p (ClassDeclNode _ x) = prettyPrec p x
+  prettyPrec p (EnumDeclNode _ x) = prettyPrec p x
+
+instance (Show l) => Pretty (DeclNode l) where
+  prettyPrec p (MemberDeclNode _ mr) = prettyPrec p mr
+  prettyPrec p (InitDeclNode _ me) = prettyPrec p me
+
+instance (Show l) => Pretty (MemberDeclNode l) where
+  prettyPrec p (FieldDeclNode _ mr) = prettyPrec p mr
+  prettyPrec p (MethodDeclNode _ me) = prettyPrec p me
+  prettyPrec p (ConstructorDeclNode _ me) = prettyPrec p me
+  prettyPrec p (MemberClassDeclNode _ me) = prettyPrec p me
+  prettyPrec p (MemberInterfaceDeclNode _ me) = prettyPrec p me
+
+instance (Show l) => Pretty (VarDeclIdNode l) where
+  prettyPrec p (VarIdNode _ mr) = prettyPrec p mr
+  prettyPrec p (VarDeclArrayNode _ me) = prettyPrec p me
+
+instance (Show l) => Pretty (VarInitNode l) where
+  prettyPrec p (InitExpNode _ mr) = prettyPrec p mr
+  prettyPrec p (InitArrayNode _ me) = prettyPrec p me
+
+instance (Show l) => Pretty (ExplConstrInvNode l) where
+  prettyPrec p (ThisInvokeNode _ mr) = prettyPrec p mr
+  prettyPrec p (SuperInvokeNode _ me) = prettyPrec p me
+  prettyPrec p (PrimarySuperInvokeNode _ me) = prettyPrec p me
+
+-----------------------------------------------------------------------
+-- Statements
+
+instance (Show l) => Pretty (BlockStmtNode l) where
+  prettyPrec p (BlockStmtNode _ mr) = prettyPrec p mr
+  prettyPrec p (LocalClassNode _ me) = prettyPrec p me
+  prettyPrec p (LocalVarsNode _ me) = prettyPrec p me
+
+instance (Show l) => Pretty (StmtNode l) where
+  prettyPrec p (StmtBlockNode _ mr) = prettyPrec p mr
+  prettyPrec p (IfThenElseNode _ me) = prettyPrec p me
+  prettyPrec p (WhileNode _ me) = prettyPrec p me
+  prettyPrec p (BasicForNode _ me) = prettyPrec p me
+  prettyPrec p (EnhancedForNode _ me) = prettyPrec p me
+  prettyPrec p (EmptyNode _ me) = prettyPrec p me
+  prettyPrec p (AssertNode _ me) = prettyPrec p me
+  prettyPrec p (SwitchNode _ me) = prettyPrec p me
+  prettyPrec p (DoNode _ me) = prettyPrec p me
+  prettyPrec p (BreakNode _ me) = prettyPrec p me
+  prettyPrec p (ContinueNode _ me) = prettyPrec p me
+  prettyPrec p (ReturnNode _ me) = prettyPrec p me
+  prettyPrec p (SynchronizedNode _ me) = prettyPrec p me
+  prettyPrec p (ThrowNode _ me) = prettyPrec p me
+  prettyPrec p (TryNode _ me) = prettyPrec p me
+  prettyPrec p (LabeledNode _ me) = prettyPrec p me
+
+instance (Show l) => Pretty (TryResourceNode l) where
+  prettyPrec p (TryResourceVarNode _ mr) = prettyPrec p mr
+  prettyPrec p (TryResourceFinalVarNode _ me) = prettyPrec p me
+
+instance (Show l) => Pretty (SwitchLabelNode l) where
+  prettyPrec p (SwitchCaseNode _ mr) = prettyPrec p mr
+  prettyPrec p (DefaultNode _ me) = prettyPrec p me
+
+instance (Show l) => Pretty (ForInitNode l) where
+  prettyPrec p (ForLocalVarsNode _ mr) = prettyPrec p mr
+  prettyPrec p (ForInitExpsNode _ me) = prettyPrec p me
+
+instance (Show l) => Pretty (ExpNode l) where
+  prettyPrec p (LitNode _ mr) = prettyPrec p mr
+  prettyPrec p (ClassLitNode _ me) = prettyPrec p me
+  prettyPrec p (ThisNode _ x) = prettyPrec p x
+  prettyPrec p (QualifiedThisNode _ x) = prettyPrec p x
+  prettyPrec p (InstanceCreationNode _ x) = prettyPrec p x
+  prettyPrec p (QualInstanceCreationNode _ x) = prettyPrec p x
+  prettyPrec p (ArrayCreateNode _ x) = prettyPrec p x
+  prettyPrec p (ArrayCreateInitNode _ x) = prettyPrec p x
+  prettyPrec p (FieldAccessNode _ x) = prettyPrec p x
+  prettyPrec p (MethodInvNode _ x) = prettyPrec p x
+  prettyPrec p (ArrayAccessNode _ x) = prettyPrec p x
+  prettyPrec p (ExpNameNode _ x) = prettyPrec p x
+  prettyPrec p (PostIncrementNode _ x) = prettyPrec p x
+  prettyPrec p (PostDecrementNode _ x) = prettyPrec p x
+  prettyPrec p (PreIncrementNode _ x) = prettyPrec p x
+  prettyPrec p (PreDecrementNode _ x) = prettyPrec p x
+  prettyPrec p (PrePlusNode _ x) = prettyPrec p x
+  prettyPrec p (PreMinusNode _ x) = prettyPrec p x
+  prettyPrec p (PreBitComplNode _ x) = prettyPrec p x
+  prettyPrec p (PreNotNode _ x) = prettyPrec p x
+  prettyPrec p (CastNode _ x) = prettyPrec p x
+  prettyPrec p (BinOpNode _ x) = prettyPrec p x
+  prettyPrec p (InstanceOfNode _ x) = prettyPrec p x
+  prettyPrec p (CondNode _ x) = prettyPrec p x
+  prettyPrec p (AssignNode _ x) = prettyPrec p x
+  prettyPrec p (LambdaNode _ x) = prettyPrec p x
+  prettyPrec p (MethodRefNode _ x) = prettyPrec p x
+
+instance (Show l) => Pretty (LhsNode l) where
+  prettyPrec p (NameLhsNode _ mr) = prettyPrec p mr
+  prettyPrec p (FieldLhsNode _ me) = prettyPrec p me
+  prettyPrec p (ArrayLhsNode _ me) = prettyPrec p me
+
+instance (Show l) => Pretty (FieldAccessNode l) where
+  prettyPrec p (PrimaryFieldAccessNode _ mr) = prettyPrec p mr
+  prettyPrec p (SuperFieldAccessNode _ me) = prettyPrec p me
+  prettyPrec p (ClassFieldAccessNode _ me) = prettyPrec p me
+
+instance (Show l) => Pretty (LambdaParamsNode l) where
+  prettyPrec p (LambdaSingleParamNode _ mr) = prettyPrec p mr
+  prettyPrec p (LambdaFormalParamsNode _ me) = prettyPrec p me
+  prettyPrec p (LambdaInferredParamsNode _ me) = prettyPrec p me
+
+instance (Show l) => Pretty (LambdaExpressionNode l) where
+  prettyPrec p (LambdaExpressionNode _ mr) = prettyPrec p mr
+  prettyPrec p (LambdaBlockNode _ me) = prettyPrec p me
+
+instance (Show l) => Pretty (MethodInvocationNode l) where
+  prettyPrec p (MethodCallNode _ mr) = prettyPrec p mr
+  prettyPrec p (PrimaryMethodCallNode _ me) = prettyPrec p me
+  prettyPrec p (SuperMethodCallNode _ me) = prettyPrec p me
+  prettyPrec p (ClassMethodCallNode _ me) = prettyPrec p me
+  prettyPrec p (TypeMethodCallNode _ me) = prettyPrec p me
+
+-----------------------------------------------------------------------
 -- Packages
 
 instance (Show l) => Pretty (CompilationUnit l) where
   prettyPrec p (CompilationUnit _ mpd ids tds) =
     vcat $ (maybePP p mpd: map (prettyPrec p) ids) ++ map (prettyPrec p) tds
+instance (Show l) => Pretty (ModuleDeclaration l) where
   prettyPrec p (ModuleDeclaration _ pkg moduleSpecs) =
     text "module " <+> prettyPrec p pkg <+> braceBlock (map (prettyPrec p) moduleSpecs)
 
 instance Pretty (PackageDecl l) where
   prettyPrec p (PackageDecl _ name) = text "package" <+> prettyPrec p name <> semi
 
-instance Pretty (ModuleSpec l) where
+instance Pretty (ModuleRequires l) where
   prettyPrec p (ModuleRequires _ name) = text "requires" <+> prettyPrec p name <> semi
+instance Pretty (ModuleExports l) where
   prettyPrec p (ModuleExports _ name) = text "exports" <+> prettyPrec p name <> semi
 
 instance Pretty (ImportDecl l) where
@@ -49,11 +190,12 @@ instance Pretty (ImportDecl l) where
 -----------------------------------------------------------------------
 -- Declarations
 
-instance (Show l) => Pretty (TypeDecl l) where
+instance (Show l) => Pretty (ClassTypeDecl l) where
   prettyPrec p (ClassTypeDecl _ cd) = prettyPrec p cd
+instance (Show l) => Pretty (InterfaceTypeDecl l) where
   prettyPrec p (InterfaceTypeDecl _ idecl) = prettyPrec p idecl
 
-instance (Show l) => Pretty (ClassDecl l) where
+instance (Show l) => Pretty (EnumDecl l) where
   prettyPrec p (EnumDecl _ mods ident impls body) =
     hsep [hsep (map (prettyPrec p) mods)
           , text "enum"
@@ -61,6 +203,7 @@ instance (Show l) => Pretty (ClassDecl l) where
           , ppImplements p impls
          ] $$ prettyPrec p body
 
+instance (Show l) => Pretty (EnumDecl l) where
   prettyPrec p (ClassDecl _ mods ident tParams mSuper impls body) =
     hsep [hsep (map (prettyPrec p) mods)
           , text "class"
@@ -106,15 +249,16 @@ instance (Show l) => Pretty (InterfaceBody l) where
   prettyPrec p (InterfaceBody _ mds) =
     braceBlock (map (prettyPrec p) mds)
 
-instance (Show l) => Pretty (Decl l) where
+instance (Show l) => Pretty (MemberDecl l) where
   prettyPrec p (MemberDecl _ md) = prettyPrec p md
+instance (Show l) => Pretty (InitDecl l) where
   prettyPrec p (InitDecl _ b bl) =
     opt b (text "static") <+> prettyPrec p bl
 
-instance (Show l) => Pretty (MemberDecl l) where
+instance (Show l) => Pretty (FieldDecl l) where
   prettyPrec p (FieldDecl _ mods t vds) =
     hsep (map (prettyPrec p) mods ++ prettyPrec p t:punctuate (text ",") (map (prettyPrec p) vds)) <> semi
-
+instance (Show l) => Pretty (MethodDecl l) where
   prettyPrec p (MethodDecl _ mods tParams mt ident fParams throws def body) =
     hsep [hsep (map (prettyPrec p) mods)
           , ppTypeParams p tParams
@@ -124,7 +268,7 @@ instance (Show l) => Pretty (MemberDecl l) where
           , ppThrows p throws
           , ppDefault p def
          ] $$ prettyPrec p body
-
+instance (Show l) => Pretty (ConstructorDecl l) where
   prettyPrec p (ConstructorDecl _ mods tParams ident fParams throws body) =
     hsep [hsep (map (prettyPrec p) mods)
           , ppTypeParams p tParams
@@ -132,21 +276,25 @@ instance (Show l) => Pretty (MemberDecl l) where
           , ppArgs fParams
           , ppThrows p throws
          ] $$ prettyPrec p body
-
+instance (Show l) => Pretty (MemberClassDecl l) where
   prettyPrec p (MemberClassDecl _ cd) = prettyPrec p cd
+instance (Show l) => Pretty (MemberInterfaceDecl l) where
   prettyPrec p (MemberInterfaceDecl _ idecl) = prettyPrec p idecl
 
 instance (Show l) => Pretty (VarDecl l) where
   prettyPrec p (VarDecl _ vdId Nothing) = prettyPrec p vdId
+instance (Show l) => Pretty (VarDecl l) where
   prettyPrec p (VarDecl _ vdId (Just ie)) =
     (prettyPrec p vdId <+> char '=') <+> prettyPrec p ie
 
-instance Pretty (VarDeclId l) where
+instance Pretty (VarId l) where
   prettyPrec p (VarId _ ident) = prettyPrec p ident
+instance (Show l) => Pretty (VarDeclArray l) where
   prettyPrec p (VarDeclArray _ vId) = prettyPrec p vId <> text "[]"
 
-instance (Show l) => Pretty (VarInit l) where
+instance (Show l) => Pretty (InitExp l) where
   prettyPrec p (InitExp _ e) = prettyPrec p e
+instance (Show l) => Pretty (InitArray l) where
   prettyPrec p (InitArray _ (ArrayInit _ ai)) =
     text "{" <+> hsep (punctuate comma (map (prettyPrec p) ai)) <+> text "}"
 
@@ -164,11 +312,13 @@ instance (Show l) => Pretty (ConstructorBody l) where
   prettyPrec p (ConstructorBody _ mECI stmts) =
     braceBlock $ maybePP p mECI : map (prettyPrec p) stmts
 
-instance (Show l) => Pretty (ExplConstrInv l) where
+instance (Show l) => Pretty (ThisInvoke l) where
   prettyPrec p (ThisInvoke _ rts args) =
     ppTypeParams p rts <+> text "this" <> ppArgs args <> semi
+instance (Show l) => Pretty (SuperInvoke l) where
   prettyPrec p (SuperInvoke _ rts args) =
     ppTypeParams p rts <+> text "super" <> ppArgs args <> semi
+instance (Show l) => Pretty (PrimarySuperInvoke l) where
   prettyPrec p (PrimarySuperInvoke _ e rts args) =
     prettyPrec p e <> char '.' <>
       ppTypeParams p rts <+> text "super" <> ppArgs args <> semi
@@ -185,8 +335,9 @@ instance (Show l) => Pretty (Annotation l) where
 
 ppEVList p = hsep . punctuate comma . map (\(k,v) -> prettyPrec p k <+> text "=" <+> prettyPrec p v)
 
-instance (Show l) => Pretty (ElementValue l) where
+instance (Show l) => Pretty (EVVal l) where
   prettyPrec p (EVVal _ vi) = prettyPrec p vi
+instance (Show l) => Pretty (EVAnn l) where
   prettyPrec p (EVAnn _ ann) = prettyPrec p ann
 
 -----------------------------------------------------------------------
@@ -198,27 +349,30 @@ instance (Show l) => Pretty (Block l) where
 
 instance (Show l) => Pretty (BlockStmt l) where
   prettyPrec p (BlockStmt _ stmt) = prettyPrec p stmt
+instance (Show l) => Pretty (LocalClass l) where
   prettyPrec p (LocalClass _ cd) = prettyPrec p cd
+instance (Show l) => Pretty (LocalVars l) where
   prettyPrec p (LocalVars _ mods t vds) =
     hsep (map (prettyPrec p) mods) <+> prettyPrec p t <+>
       hsep (punctuate comma $ map (prettyPrec p) vds) <> semi
 
-instance (Show l) => Pretty (Stmt l) where
+instance (Show l) => Pretty (StmtBlock l) where
   prettyPrec p (StmtBlock _ blockP) = prettyPrec p blockP
+instance (Show l) => Pretty (IfThenElse l) where
   prettyPrec _ (IfThenElse _ c th mayElse) =
     text "if" <+> parens (prettyPrec 0 c) $+$ prettyNestedStmt 0 th $+$ elseText
       where
         elseText = fromMaybe (text "") ((\el -> text "else" $+$ prettyNestedStmt 0 el) <$> mayElse)
-
+instance (Show l) => Pretty (While l) where
   prettyPrec p (While _ c stmt) =
     text "while" <+> parens (prettyPrec p c) $+$ prettyNestedStmt 0 stmt
-
+instance (Show l) => Pretty (BasicFor l) where
   prettyPrec p (BasicFor _ mInit mE mUp stmt) =
     text "for" <+> parens (hsep [maybePP p mInit, semi
                            , maybePP p mE, semi
                            , maybe empty (hsep . punctuate comma . map (prettyPrec p)) mUp
                           ]) $+$ prettyNestedStmt p stmt
-
+instance (Show l) => Pretty (EnhancedFor l) where
   prettyPrec p (EnhancedFor _ mods t ident e stmt) =
     hsep [text "for"
           , parens $ hsep [
@@ -230,50 +384,51 @@ instance (Show l) => Pretty (Stmt l) where
                ]
           , prettyPrec p stmt
          ]
-
+instance (Show l) => Pretty (Empty l) where
   prettyPrec _ (Empty _) = semi
-
+instance (Show l) => Pretty (ExpStmt l) where
   prettyPrec p (ExpStmt _ e) = prettyPrec p e <> semi
-
+instance (Show l) => Pretty (Assert l) where
   prettyPrec p (Assert _ ass mE) =
     text "assert" <+> prettyPrec p ass
       <+> maybe empty ((colon <>) . prettyPrec p) mE <> semi
-
+instance (Show l) => Pretty (Switch l) where
   prettyPrec p (Switch _ e sBlocks) =
     text "switch" <+> parens (prettyPrec p e)
       $$ braceBlock (map (prettyPrec p) sBlocks)
-
+instance (Show l) => Pretty (Do l) where
   prettyPrec p (Do _ stmt e) =
     text "do" $+$ prettyPrec p stmt <+> text "while" <+> parens (prettyPrec p e) <> semi
-
+instance (Show l) => Pretty (Break l) where
   prettyPrec p (Break _ mIdent) =
     text "break" <+> maybePP p mIdent <> semi
-
+instance (Show l) => Pretty (Continue l) where
   prettyPrec p (Continue _ mIdent) =
     text "continue" <+> maybePP p mIdent <> semi
-
+instance (Show l) => Pretty (Return l) where
   prettyPrec p (Return _ mE) =
     text "return" <+> maybePP p mE <> semi
-
+instance (Show l) => Pretty (Synchronized l) where
   prettyPrec p (Synchronized _ e blockP) =
     text "synchronized" <+> parens (prettyPrec p e) $$ prettyPrec p blockP
-
+instance (Show l) => Pretty (Throw l) where
   prettyPrec p (Throw _ e) =
     text "throw" <+> prettyPrec p e <> semi
-
+instance (Show l) => Pretty (Try l) where
   prettyPrec p (Try _ resources blockP catchesP mFinally) =
     text "try" $$ ppArgs resources $$ prettyPrec p blockP $$
       vcat (map (prettyPrec p) catchesP ++ [ppFinally mFinally])
    where ppFinally Nothing = empty
          ppFinally (Just bl) = text "finally" <+> prettyPrec p bl
-
+instance (Show l) => Pretty (Labeled l) where
   prettyPrec p (Labeled _ ident stmt) =
     prettyPrec p ident <> colon <+> prettyPrec p stmt
 
-instance (Show l) => Pretty (TryResource l) where
+instance (Show l) => Pretty (TryResourceVar l) where
   prettyPrec p (TryResourceVar _ mods ty decls) =
     hsep (map (prettyPrec p) mods) <+> prettyPrec p ty <+>
       hsep (punctuate comma $ map (prettyPrec p) decls)
+instance (Show l) => Pretty (TryResourceFinalVar l) where
   prettyPrec p (TryResourceFinalVar _ ident) = prettyPrec p ident
 
 instance (Show l) => Pretty (Catch l) where
@@ -284,15 +439,17 @@ instance (Show l) => Pretty (SwitchBlock l) where
   prettyPrec p (SwitchBlock _ lbl stmts) =
     vcat (prettyPrec p lbl : map (nest 2 . prettyPrec p) stmts)
 
-instance (Show l) => Pretty (SwitchLabel l) where
+instance (Show l) => Pretty (SwitchCase l) where
   prettyPrec p (SwitchCase _ e) =
     text "case" <+> prettyPrec p e <> colon
+instance (Show l) => Pretty (Default l) where
   prettyPrec _ (Default _) = text "default:"
 
-instance (Show l) => Pretty (ForInit l) where
+instance (Show l) => Pretty (ForLocalVars l) where
   prettyPrec p (ForLocalVars _ mods t vds) =
     hsep $ map (prettyPrec p) mods ++
             prettyPrec p t: punctuate comma (map (prettyPrec p) vds)
+instance (Show l) => Pretty (ForInitExps l) where
   prettyPrec p (ForInitExps _ es) =
     hsep $ punctuate comma (map (prettyPrec p) es)
 
@@ -300,94 +457,97 @@ instance (Show l) => Pretty (ForInit l) where
 -----------------------------------------------------------------------
 -- Expressions
 
-instance (Show l) => Pretty (Exp l) where
+instance (Show l) => Pretty (Lit l) where
   prettyPrec p (Lit _ l) = prettyPrec p l
-
+instance (Show l) => Pretty (ClassLit l) where
   prettyPrec p (ClassLit _ mT) =
     ppResultType p mT <> text ".class"
-
+instance (Show l) => Pretty (This l) where
   prettyPrec _ (This _) = text "this"
-
+instance (Show l) => Pretty (QualifiedThis l) where
   prettyPrec p (QualifiedThis _ name) =
     prettyPrec p name <> text ".this"
-
+instance (Show l) => Pretty (InstanceCreation l) where
   prettyPrec p (InstanceCreation _ tArgs tds args mBody) =
     hsep [text "new"
           , ppTypeParams p tArgs
           , prettyPrec p tds <> ppArgs args
          ] $$ maybePP p mBody
-
+instance (Show l) => Pretty (QualInstanceCreation l) where
   prettyPrec p (QualInstanceCreation _ e tArgs ident args mBody) =
     hsep [prettyPrec p e <> char '.' <> text "new"
           , ppTypeParams p tArgs
           , prettyPrec p ident <> ppArgs args
          ] $$ maybePP p mBody
-
+instance (Show l) => Pretty (ArrayCreate l) where
   prettyPrec p (ArrayCreate _ t es k) =
     text "new" <+>
       hcat (prettyPrec p t : map (brackets . prettyPrec p) es
                 ++ replicate k (text "[]"))
-
+instance (Show l) => Pretty (ArrayCreateInit l) where
   prettyPrec p (ArrayCreateInit _ t k ini) =
     text "new"
       <+> hcat (prettyPrec p t : replicate k (text "[]"))
       <+> prettyPrec p ini
-
+instance (Show l) => Pretty (FieldAccess l) where
   prettyPrec p (FieldAccess _ fa) = parenPrec p 1 $ prettyPrec 1 fa
-
+instance (Show l) => Pretty (MethodInv l) where
   prettyPrec p (MethodInv _ mi) = parenPrec p 1 $ prettyPrec 1 mi
-
+instance (Show l) => Pretty (ArrayAccess l) where
   prettyPrec p (ArrayAccess _ ain) = parenPrec p 1 $ prettyPrec 1 ain
-
+instance (Show l) => Pretty (ExpName l) where
   prettyPrec p (ExpName _ name) = prettyPrec p name
-
+instance (Show l) => Pretty (PostIncrement l) where
   prettyPrec p (PostIncrement _ e) = parenPrec p 1 $ prettyPrec 2 e <> text "++"
-
+instance (Show l) => Pretty (PostDecrement l) where
   prettyPrec p (PostDecrement _ e) = parenPrec p 1 $ prettyPrec 2 e <> text "--"
-
+instance (Show l) => Pretty (PreIncrement l) where
   prettyPrec p (PreIncrement _ e)  = parenPrec p 1 $ text "++" <> prettyPrec 2 e
-
+instance (Show l) => Pretty (PreDecrement l) where
   prettyPrec p (PreDecrement _ e)  = parenPrec p 1 $ text "--" <> prettyPrec 2 e
-
+instance (Show l) => Pretty (PrePlus l) where
   prettyPrec p (PrePlus _ e) = parenPrec p 2 $ char '+' <> prettyPrec 2 e
-
+instance (Show l) => Pretty (PreMinus l) where
   prettyPrec p (PreMinus _ e) = parenPrec p 2 $ char '-' <> prettyPrec 2 e
-
+instance (Show l) => Pretty (PreBitCompl l) where
   prettyPrec p (PreBitCompl _ e) = parenPrec p 2 $ char '~' <> prettyPrec 2 e
-
+instance (Show l) => Pretty (PreNot l) where
   prettyPrec p (PreNot _ e) = parenPrec p 2 $ char '!' <> prettyPrec 2 e
-
+instance (Show l) => Pretty (Cast l) where
   prettyPrec p (Cast _ t e) = parenPrec p 2 $ parens (prettyPrec p t) <+> prettyPrec 2 e
-
+instance (Show l) => Pretty (BinOp l) where
   prettyPrec p (BinOp _ e1 op e2) =
     let prec = opPrec op in
     parenPrec p prec (prettyPrec prec e1 <+> prettyPrec p op <+> prettyPrec prec e2)
-
+instance (Show l) => Pretty (InstanceOf l) where
   prettyPrec p (InstanceOf _ e rt) =
     let cp = opPrec LThan in
     parenPrec p cp $ prettyPrec cp e
                    <+> text "instanceof" <+> prettyPrec cp rt
-
+instance (Show l) => Pretty (Cond l) where
   prettyPrec p (Cond _ c th el) =
     parenPrec p 13 $ prettyPrec 13 c <+> char '?'
                    <+> prettyPrec p th <+> colon <+> prettyPrec 13 el
-
+instance (Show l) => Pretty (Assign l) where
   prettyPrec p (Assign _ lhs aop e) =
     hsep [prettyPrec p lhs, prettyPrec p aop, prettyPrec p e]
-
+instance (Show l) => Pretty (Lambda l) where
   prettyPrec p (Lambda _ paramsP body) =
     prettyPrec p paramsP <+> text "->" <+> prettyPrec p body
-
+instance (Show l) => Pretty (MethodRef l) where
   prettyPrec p (MethodRef _ i1 i2) =
     prettyPrec p i1 <+> text "::" <+> prettyPrec p i2
 
-instance (Show l) => Pretty (LambdaParams l) where
+instance (Show l) => Pretty (LambdaSingleParam l) where
   prettyPrec p (LambdaSingleParam _ ident) = prettyPrec p ident
+instance (Show l) => Pretty (LambdaFormalParams l) where
   prettyPrec _ (LambdaFormalParams _ paramsP) = ppArgs paramsP
+instance (Show l) => Pretty (LambdaInferredParams l) where
   prettyPrec _ (LambdaInferredParams _ idents) = ppArgs idents
 
 instance (Show l) => Pretty (LambdaExpression l) where
   prettyPrec p (LambdaExpression _ expression) = prettyPrec p expression
+instance (Show l) => Pretty (LambdaBlock l) where
   prettyPrec p (LambdaBlock _ blockP) = prettyPrec p blockP
 
 instance Pretty Literal where
@@ -437,38 +597,42 @@ instance Pretty AssignOp where
     XorA    -> "^="
     OrA     -> "|="
 
-instance (Show l) => Pretty (Lhs l) where
+instance (Show l) => Pretty (NameLhs l) where
   prettyPrec p (NameLhs _ name) = prettyPrec p name
+instance (Show l) => Pretty (FieldLhs l) where
   prettyPrec p (FieldLhs _ fa) = prettyPrec p fa
+instance (Show l) => Pretty (ArrayLhs l) where
   prettyPrec p (ArrayLhs _ ain) = prettyPrec p ain
 
 instance (Show l) => Pretty (ArrayIndex l) where
   prettyPrec p (ArrayIndex _ ref e) = prettyPrec p ref <> hcat (map (brackets . prettyPrec p) e)
 
-instance (Show l) => Pretty (FieldAccess l) where
+instance (Show l) => Pretty (PrimaryFieldAccess l) where
   prettyPrec p (PrimaryFieldAccess _ e ident) =
     prettyPrec p e <> char '.' <> prettyPrec p ident
+instance (Show l) => Pretty (SuperFieldAccess l) where
   prettyPrec p (SuperFieldAccess _ ident) =
     text "super." <> prettyPrec p ident
+instance (Show l) => Pretty (ClassFieldAccess l) where
   prettyPrec p (ClassFieldAccess _ name ident) =
     prettyPrec p name <> text ".super." <> prettyPrec p ident
 
-instance (Show l) => Pretty (MethodInvocation l) where
+instance (Show l) => Pretty (MethodCall l) where
   prettyPrec p (MethodCall _ name args) =
     prettyPrec p name <> ppArgs args
-
+instance (Show l) => Pretty (PrimaryMethodCall l) where
   prettyPrec p (PrimaryMethodCall _ e tArgs ident args) =
     hcat [prettyPrec p e, char '.', ppTypeParams p tArgs,
            prettyPrec p ident, ppArgs args]
-
+instance (Show l) => Pretty (SuperMethodCall l) where
   prettyPrec p (SuperMethodCall _ tArgs ident args) =
     hcat [text "super.", ppTypeParams p tArgs,
            prettyPrec p ident, ppArgs args]
-
+instance (Show l) => Pretty (ClassMethodCall l) where
   prettyPrec p (ClassMethodCall _ name tArgs ident args) =
     hcat [prettyPrec p name, text ".super.", ppTypeParams p tArgs,
            prettyPrec p ident, ppArgs args]
-
+instance (Show l) => Pretty (TypeMethodCall l) where
   prettyPrec p (TypeMethodCall _ name tArgs ident args) =
     hcat [prettyPrec p name, char '.', ppTypeParams p tArgs,
            prettyPrec p ident, ppArgs args]
