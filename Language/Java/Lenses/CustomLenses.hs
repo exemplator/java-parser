@@ -1,4 +1,4 @@
-module Language.Java.Prisms.CustomLenses where
+module Language.Java.Lenses.CustomLenses where
 
 import           Control.Lens
 import           Language.Haskell.TH

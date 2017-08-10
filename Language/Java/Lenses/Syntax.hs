@@ -1,8 +1,8 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Language.Java.Prisms.Syntax where
+module Language.Java.Lenses.Syntax where
 
 
-import           Language.Java.Prisms.CustomLenses
+import           Language.Java.Lenses.CustomLenses
 import qualified Language.Java.Syntax              as S
 
 allLenses ''S.CompilationUnitNodesNode

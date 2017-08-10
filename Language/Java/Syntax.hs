@@ -136,8 +136,10 @@ module Language.Java.Syntax(
   SuperMethodCall (..),
   ClassMethodCall (..),
   TypeMethodCall (..),
-  ArrayInit (..)
-)where
+  ArrayInit (..),
+  module Language.Java.Syntax.Types,
+  module Language.Java.Syntax.Exp
+) where
 
 import           Data.Data
 import           GHC.Generics               (Generic)

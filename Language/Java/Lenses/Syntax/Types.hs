@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Language.Java.Prisms.Syntax.Types where
+module Language.Java.Lenses.Syntax.Types where
 
 import           Language.Java.Prisms.CustomLenses
 import           Language.Java.Syntax.Types
