@@ -5,7 +5,7 @@ module Language.Java.Lenses.Syntax where
 import           Language.Java.Lenses.CustomLenses
 import qualified Language.Java.Syntax              as S
 
-allLenses ''S.CompilationUnitNodesNode
+allLenses ''S.CompilationUnitNode
 allLenses ''S.ModuleSpecNode
 allLenses ''S.TypeDeclNode
 allLenses ''S.ClassDeclNode
@@ -43,7 +43,7 @@ allLenses ''S.EnumConstant
 allLenses ''S.InterfaceDecl
 allLenses ''S.InterfaceKind
 allLenses ''S.InterfaceBody
-allLenses ''S.Decl
+allLenses ''S.MemberDecl
 allLenses ''S.InitDecl
 allLenses ''S.FieldDecl
 allLenses ''S.MethodDecl
@@ -53,8 +53,6 @@ allLenses ''S.MemberInterfaceDecl
 allLenses ''S.VarDecl
 allLenses ''S.VarId
 allLenses ''S.VarDeclArray
-allLenses ''S.InitExp
-allLenses ''S.InitArray
 allLenses ''S.FormalParam
 allLenses ''S.MethodBody
 allLenses ''S.ConstructorBody
@@ -73,6 +71,7 @@ allLenses ''S.IfThenElse
 allLenses ''S.While
 allLenses ''S.BasicFor
 allLenses ''S.EnhancedFor
+allLenses ''S.Empty
 allLenses ''S.ExpStmt
 allLenses ''S.Assert
 allLenses ''S.Switch
@@ -89,11 +88,13 @@ allLenses ''S.TryResourceVar
 allLenses ''S.TryResourceFinalVar
 allLenses ''S.SwitchBlock
 allLenses ''S.SwitchCase
+allLenses ''S.SwitchDefault
 allLenses ''S.ForLocalVars
 allLenses ''S.ForInitExps
 allLenses ''S.ExceptionType
 allLenses ''S.Lit
 allLenses ''S.ClassLit
+allLenses ''S.This
 allLenses ''S.QualifiedThis
 allLenses ''S.InstanceCreation
 allLenses ''S.QualInstanceCreation

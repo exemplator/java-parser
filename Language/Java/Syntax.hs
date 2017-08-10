@@ -6,7 +6,7 @@
 {-# LANGUAGE TypeSynonymInstances  #-}
 
 module Language.Java.Syntax(
-  CompilationUnitNodesNode (..),
+  CompilationUnitNode (..),
   ModuleSpecNode (..),
   TypeDeclNode (..),
   ClassDeclNode (..),
@@ -32,8 +32,6 @@ module Language.Java.Syntax(
   ModuleRequires (..),
   ModuleExports (..),
   ImportDecl (..),
-  ClassTypeDecl (..),
-  InterfaceTypeDecl (..),
   ClassDecl (..),
   EnumDecl (..),
   Extends (..),
@@ -44,7 +42,6 @@ module Language.Java.Syntax(
   InterfaceDecl (..),
   InterfaceKind (..),
   InterfaceBody (..),
-  Decl (..),
   InitDecl (..),
   FieldDecl (..),
   MethodDecl (..),
@@ -54,8 +51,6 @@ module Language.Java.Syntax(
   VarDecl (..),
   VarId (..),
   VarDeclArray (..),
-  InitExp (..),
-  InitArray (..),
   FormalParam (..),
   MethodBody (..),
   ConstructorBody (..),
@@ -66,15 +61,12 @@ module Language.Java.Syntax(
   Annotation (..),
   ElementValue (..),
   Block (..),
-  BlockStmt (..),
-  LocalClass (..),
   LocalVars (..),
-  StmtBlock (..),
   IfThenElse (..),
   While (..),
   BasicFor (..),
   EnhancedFor (..),
-  ExpStmt (..),
+  Empty (..),
   Assert (..),
   Switch (..),
   Do (..),
@@ -95,6 +87,7 @@ module Language.Java.Syntax(
   ExceptionType (..),
   Lit (..),
   ClassLit (..),
+  This (..),
   QualifiedThis (..),
   InstanceCreation (..),
   QualInstanceCreation (..),
@@ -151,7 +144,7 @@ import           Language.Java.Syntax.Types
 -- Nodes
 
 -- | A compilation unit is the top level syntactic goal symbol of a Java program.
-data CompilationUnitNodesNode l
+data CompilationUnitNode l
   = CompilationUnitNode l (CompilationUnit l)
   | ModuleDeclarationNode l (ModuleDeclaration l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
@@ -170,8 +163,8 @@ data ModuleSpecNode l
 
 -- | A type declaration declares a class type or an interface type.
 data TypeDeclNode l
-    = ClassTypeDeclNode l (ClassTypeDecl l)
-    | InterfaceTypeDeclNode l (InterfaceTypeDecl l)
+    = ClassTypeDeclNode l (ClassDeclNode l)
+    | InterfaceTypeDeclNode l (InterfaceDecl l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A class declaration specifies a new named reference type.
@@ -212,8 +205,8 @@ data VarDeclIdNode l
 
 -- | Explicit initializer for a variable declaration.
 data VarInitNode l
-    = InitExpNode l (InitExp l)
-    | InitArrayNode l (InitArray l)
+    = InitExpNode l (ExpNode l)
+    | InitArrayNode l (ArrayInit l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | An explicit constructor invocation invokes another constructor of the
@@ -232,8 +225,8 @@ data ExplConstrInvNode l
 -- | A block statement is either a normal statement, a local
 --   class declaration or a local variable declaration.
 data BlockStmtNode l
-    = BlockStmtNode l (BlockStmt l)
-    | LocalClassNode l (LocalClass l)
+    = BlockStmtNode l (StmtNode l)
+    | LocalClassNode l (ClassDecl l)
     | LocalVarsNode l (LocalVars l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
@@ -241,7 +234,7 @@ data BlockStmtNode l
 -- | A Java statement.
 data StmtNode l
     -- | A statement can be a nested block.
-    = StmtBlockNode l (StmtBlock l)
+    = StmtBlockNode l (Block l)
     -- | The @if-then@ statement allows conditional execution of a statement.
     | IfThenElseNode l (IfThenElse l)
     -- | The @while@ statement executes an expression and a statement repeatedly until the value of the expression is false.
@@ -256,7 +249,7 @@ data StmtNode l
     -- | Certain kinds of expressions may be used as statements by following them with semicolons:
     --   assignments, pre- or post-inc- or decrementation, method invocation or class instance
     --   creation expressions.
-    | ExpStmtNode l (ExpStmt l)
+    | ExpStmtNode l (ExpNode l)
     -- | An assertion is a statement containing a boolean expression, where an error is reported if the expression
     --   evaluates to false.
     | AssertNode l (Assert l)
@@ -293,8 +286,8 @@ data TryResourceNode l
 -- | A label within a @switch@ statement.
 data SwitchLabelNode l
     -- | The expression contained in the @case@ must be a 'Lit' or an @enum@ constant.
-    = SwitchCaseNode l (SwitchCase l)
-    | DefaultNode l (SwitchDefault l)
+    = SwitchCaseNode l (ExpNode l)
+    | DefaultNode l
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Initialization code for a basic @for@ statement.
@@ -472,13 +465,6 @@ data ImportDecl l = ImportDecl
 -----------------------------------------------------------------------
 -- Declarations
 
-
--- | A type declaration declares a class type or an interface type.
-data ClassTypeDecl l = ClassTypeDecl { infoClassTypeDecl :: l, classDecl :: ClassDecl l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
-data InterfaceTypeDecl l = InterfaceTypeDecl { infoInterfaceTypeDecl :: l, interfaceDecl :: InterfaceDecl l}
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
-
 -- | A class declaration specifies a new named reference type.
 data ClassDecl l = ClassDecl
       { infoClassDecl      :: l
@@ -511,12 +497,12 @@ data Implements l = Implements { infoImplements :: l, implementsInterface :: Ref
 --   fields, classes, interfaces and methods.
 --   A class body may also contain instance initializers, static
 --   initializers, and declarations of constructors for the class.
-data ClassBody l = ClassBody { infoClassBody :: l, classDecls :: [Decl l] }
+data ClassBody l = ClassBody { infoClassBody :: l, classDecls :: [DeclNode l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 
 -- | The body of an enum type may contain enum constants.
-data EnumBody l = EnumBody { infoEnumBody :: l, enumConstans :: [EnumConstant l], enumDecls :: [Decl l] }
+data EnumBody l = EnumBody { infoEnumBody :: l, enumConstans :: [EnumConstant l], enumDecls :: [DeclNode l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 
@@ -554,8 +540,6 @@ data InterfaceBody l = InterfaceBody { infoInterfaceBody ::l, members :: [Member
 
 -- | A declaration is either a member declaration, or a declaration of an
 --   initializer, which may be static.
-data Decl l = MemberDecl { infoMemberDecl :: l, member :: MemberDeclNode l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
 data InitDecl l = InitDecl { infoInitDecl :: l, staticDecl :: Bool, statements :: Block l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
@@ -637,12 +621,6 @@ data VarId l = VarId { infoVarId :: l, varIdName :: Ident }
 data VarDeclArray l = VarDeclArray { infoVarDeclArray :: l, varIdDecl :: VarDeclIdNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
--- | Explicit initializer for a variable declaration.
-data InitExp l = InitExp { infoInitExp :: l, init :: ExpNode l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
-data InitArray l =  InitArray { infoInitArray :: l, varArrayInit :: ArrayInit l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
-
 -- | A formal parameter in method declaration. The last parameter
 --   for a given declaration may be marked as variable arity,
 --   indicated by the boolean argument.
@@ -669,7 +647,7 @@ data MethodBody l = MethodBody { infoMethodBody :: l, impl :: Maybe (Block l) }
 data ConstructorBody l = ConstructorBody
   { infoConstructorBody :: l
   , constructorInvoc    :: Maybe (ExplConstrInvNode l)
-  , constrBody          :: [BlockStmt l]
+  , constrBody          :: [StmtNode l]
   }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
@@ -750,15 +728,11 @@ data ElementValue l = EVVal { infoEVVal :: l, elementVarInit :: VarInitNode l }
 
 -- | A block is a sequence of statements, local class declarations
 --   and local variable declaration statements within braces.
-data Block l = Block { infoBlock :: l, blockStatements :: [BlockStmt l] }
+data Block l = Block { infoBlock :: l, blockStatements :: [StmtNode l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A block statement is either a normal statement, a local
 --   class declaration or a local variable declaration.
-data BlockStmt l = BlockStmt { infoBlockStmt :: l, statement :: StmtNode l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
-data LocalClass l =  LocalClass { infoLocalClass :: l, blockLocalClassDecl :: ClassDecl l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
 data LocalVars l = LocalVars
       { infoLocalVars    :: l
       , locaVarModifiers :: [Modifier l]
@@ -767,10 +741,6 @@ data LocalVars l = LocalVars
       }
       deriving (Eq,Show,Read,Typeable,Generic,Data)
 
-
--- | A statement can be a nested block.
-data StmtBlock l = StmtBlock { infoStmtBlock :: l, block :: Block l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | The @if-then@ statement allows conditional execution of a statement.
 data IfThenElse l =  IfThenElse { infoIfThenElse :: l, ifExp :: ExpNode l, thenExp :: StmtNode l, elseExp :: Maybe (StmtNode l) }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
@@ -799,11 +769,6 @@ data EnhancedFor l = EnhancedFor
       deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | An empty statement does nothing.
 newtype Empty l = Empty { infoEmpty :: l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | Certain kinds of expressions may be used as statements by following them with semicolons:
-    --   assignments, pre- or post-inc- or decrementation, method invocation or class instance
-    --   creation expressions.
-data ExpStmt l = ExpStmt { infoExpStmt :: l, exp :: ExpNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | An assertion is a statement containing a boolean expression, where an error is reported if the expression
     --   evaluates to false.
@@ -870,14 +835,12 @@ data TryResourceFinalVar l = TryResourceFinalVar
     deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A block of code labelled with a @case@ or @default@ within a @switch@ statement.
-data SwitchBlock l = SwitchBlock { infoSwitchBlock :: l, switchLabel :: SwitchLabelNode l, switchStmts :: [BlockStmt l] }
+data SwitchBlock l = SwitchBlock { infoSwitchBlock :: l, switchLabel :: SwitchLabelNode l, switchStmts :: [StmtNode l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
     -- | The expression contained in the @case@ must be a 'Lit' or an @enum@ constant.
 data SwitchCase l = SwitchCase { infoSwitchCase :: l, switchExp :: ExpNode l}
       deriving (Eq,Show,Read,Typeable,Generic,Data)
-newtype SwitchDefault l = SwitchDefault { infoDefault :: l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Initialization code for a basic @for@ statement.
 data ForLocalVars l = ForLocalVars

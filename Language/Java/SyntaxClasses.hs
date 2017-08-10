@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 module Language.Java.SyntaxClasses where
 
@@ -6,7 +7,7 @@ import           Language.Java.Syntax
 
 -- | Provides functionality to access the body as a list of declarations of a class, enum and an interface.
 class HasBody a l where
-  getBody :: a -> [Decl l]
+  getBody :: a -> [DeclNode l]
 
 -- | Get type of TypeDeclNode
 instance HasType (TypeDeclNode l) where
@@ -46,7 +47,7 @@ instance CollectTypes (ClassDeclNode l) where
 instance CollectTypes (MemberDeclNode l) where
   collectTypes (FieldDeclNode _ ctd) = collectTypes ctd
   collectTypes (MethodDeclNode _ ctd) = collectTypes ctd
-  collectTypes (ConstructorDeclNode _ ctd) = collectTypes ctd
+  collectTypes (ConstructorDeclNode _ ctd) = []
   collectTypes (MemberClassDeclNode _ ctd) = collectTypes ctd
   collectTypes (MemberClassDeclNode _ ctd) = collectTypes ctd
   collectTypes (MemberInterfaceDeclNode _ ctd) = collectTypes ctd
@@ -67,23 +68,15 @@ getTypeFromPackage :: Package -> Type
 getTypeFromPackage pkg = RefType $ ClassRefType $ WithPackage pkg WildcardName
 
 -- TODO ClassTypeDecl InterfaceTypeDecl
--- | Get type of TypeDecl
-instance HasType (ClassTypeDecl l) where
-  getType (ClassTypeDecl _ ctd) = getType ctd
-instance HasType (ClassTypeDecl l) where
-  getType (InterfaceTypeDecl _ itd) = getType itd
 
-
--- | Get the body of TypeDecl
-instance HasBody (ClassTypeDecl l) l where
-  getBody (ClassTypeDecl _ classDeclB) = getBody classDeclB
-instance HasBody (InterfaceTypeDecl l) where
-  getBody (InterfaceTypeDecl _ iterDecl) = getBody iterDecl
-
+instance HasType (ClassDecl l) where
+  getType (ClassDecl _ _ i _ _ _ _) = withoutPackageIdentToType i
+instance HasType (EnumDecl l) where
+  getType (EnumDecl _ _ i _ _) = withoutPackageIdentToType i
 -- | Get the body of ClassDecl
 instance HasBody (ClassDecl l) l where
   getBody (ClassDecl _ _ _ _ _ _ classBodyB) = getBody classBodyB
-instance HasBody (EnumDecl l) where
+instance HasBody (EnumDecl l) l where
   getBody (EnumDecl _ _ _ _ enumBodyB) = getBody enumBodyB
 
 instance CollectTypes (ClassDecl l) where
@@ -127,7 +120,7 @@ instance HasBody (InterfaceDecl l) l where
 
 -- | Get the body of ClassDecl
 instance HasBody (InterfaceBody l) l where
-  getBody (InterfaceBody l memDecls) = map (MemberDecl l) memDecls
+  getBody (InterfaceBody l memDecls) = map (MemberDeclNode l) memDecls
 
 
 -- | Get type of MemberDecl if it is a MethodDecl (our solution to handeling the Maybe)
@@ -136,6 +129,6 @@ instance CollectTypes (FieldDecl l) where
 instance CollectTypes (MethodDecl l) where
   collectTypes (MethodDecl _ _ _ _ name _ _ _ _) =  [withoutPackageIdentToType name]
 instance CollectTypes (MemberClassDecl l) where
-  collectTypes (MemberClassDecl _ cd) =  [getType cd]
+  collectTypes (MemberClassDecl _ cd) = [getType cd]
 instance CollectTypes (MemberInterfaceDecl l) where
   collectTypes (MemberInterfaceDecl _ idecl) =  [getType idecl]
