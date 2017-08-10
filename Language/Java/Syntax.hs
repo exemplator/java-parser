@@ -97,14 +97,6 @@ module Language.Java.Syntax(
   MethodInv (..),
   ArrayAccess (..),
   ExpName (..),
-  PostIncrement (..),
-  PostDecrement (..),
-  PreIncrement (..),
-  PreDecrement (..),
-  PrePlus (..),
-  PreMinus (..),
-  PreBitCompl (..),
-  PreNot (..),
   Cast (..),
   BinOp (..),
   InstanceOf (..),
@@ -130,6 +122,7 @@ module Language.Java.Syntax(
   ClassMethodCall (..),
   TypeMethodCall (..),
   ArrayInit (..),
+  Argument ,
   module Language.Java.Syntax.Types,
   module Language.Java.Syntax.Exp
 ) where
@@ -334,21 +327,21 @@ data ExpNode l
     -- | An expression name, e.g. a variable.
     | ExpNameNode l (ExpName l)
     -- | Post-incrementation expression, i.e. an expression followed by @++@.
-    | PostIncrementNode l (PostIncrement l)
+    | PostIncrementNode l (ExpNode l)
     -- | Post-decrementation expression, i.e. an expression followed by @--@.
-    | PostDecrementNode l (PostDecrement l)
+    | PostDecrementNode l (ExpNode l)
     -- | Pre-incrementation expression, i.e. an expression preceded by @++@.
-    | PreIncrementNode l (PreIncrement l)
+    | PreIncrementNode l (ExpNode l)
     -- | Pre-decrementation expression, i.e. an expression preceded by @--@.
-    | PreDecrementNode l (PreDecrement l)
+    | PreDecrementNode l (ExpNode l)
     -- | Unary plus, the promotion of the value of the expression to a primitive numeric type.
-    | PrePlusNode l (PrePlus l)
+    | PrePlusNode l (ExpNode l)
     -- | Unary minus, the promotion of the negation of the value of the expression to a primitive numeric type.
-    | PreMinusNode l (PreMinus l)
+    | PreMinusNode l (ExpNode l)
     -- | Unary bitwise complementation: note that, in all cases, @~x@ equals @(-x)-1@.
-    | PreBitComplNode l (PreBitCompl l)
+    | PreBitComplNode l (ExpNode l)
     -- | Logical complementation of boolean values.
-    | PreNotNode l (PreNot l)
+    | PreNotNode l (ExpNode l)
     -- | A cast expression converts, at run time, a value of one numeric type to a similar value of another
     --   numeric type; or confirms, at compile time, that the type of an expression is boolean; or checks,
     --   at run time, that a reference value refers to an object whose class is compatible with a specified
@@ -933,30 +926,6 @@ data ArrayAccess l = ArrayAccess { infoArrayAccess :: l, arrayAccessIndex :: Arr
 {-    | ArrayAccess ExpNode ExpNode -- Should this be made into a datatype, for consistency and use with Lhs? -}
     -- | An expression name, e.g. a variable.
 data ExpName l = ExpName { infoExpName :: l, expName :: Name }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | Post-incrementation expression, i.e. an expression followed by @++@.
-data PostIncrement l = PostIncrement { infoPostIncrement :: l, postIncExp :: ExpNode l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | Post-decrementation expression, i.e. an expression followed by @--@.
-data PostDecrement l = PostDecrement { infoPostDecrement :: l, postDecExp :: ExpNode l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | Pre-incrementation expression, i.e. an expression preceded by @++@.
-data PreIncrement l = PreIncrement { infoPreIncrement :: l, preIncExp :: ExpNode l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | Pre-decrementation expression, i.e. an expression preceded by @--@.
-data PreDecrement l = PreDecrement { infoPreDecrement :: l, preDecExp :: ExpNode l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | Unary plus, the promotion of the value of the expression to a primitive numeric type.
-data PrePlus l = PrePlus  { infoPrePlus :: l, plusArg :: ExpNode l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | Unary minus, the promotion of the negation of the value of the expression to a primitive numeric type.
-data PreMinus l = PreMinus { infoPreMinus :: l, minusArg :: ExpNode l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | Unary bitwise complementation: note that, in all cases, @~x@ equals @(-x)-1@.
-data PreBitCompl l = PreBitCompl { infoPreBitCompl :: l, bitComplArg :: ExpNode l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | Logical complementation of boolean values.
-data PreNot l = PreNot { infoPreNot :: l, notArg :: ExpNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | A cast expression converts, at run time, a value of one numeric type to a similar value of another
     --   numeric type; or confirms, at compile time, that the type of an expression is boolean; or checks,
