@@ -119,7 +119,7 @@ instance (Show l) => Pretty (ExpNode l) where
   prettyPrec p (QualInstanceCreationNode _ x) = prettyPrec p x
   prettyPrec p (ArrayCreateNode _ x) = prettyPrec p x
   prettyPrec p (ArrayCreateInitNode _ x) = prettyPrec p x
-  prettyPrec p (FieldAccessNode _ x) = prettyPrec p x
+  prettyPrec p (FieldAccessNode _ x) = parenPrec p 1 $ prettyPrec 1 x
   prettyPrec p (MethodInvNode _ x) = prettyPrec p x
   prettyPrec p (ArrayAccessNode _ x) = prettyPrec p x
   prettyPrec p (ExpNameNode _ x) = prettyPrec p x
@@ -273,8 +273,6 @@ instance (Show l) => Pretty (ConstructorDecl l) where
          ] $$ prettyPrec p body
 instance (Show l) => Pretty (MemberClassDecl l) where
   prettyPrec p (MemberClassDecl _ cd) = prettyPrec p cd
-instance (Show l) => Pretty (MemberInterfaceDecl l) where
-  prettyPrec p (MemberInterfaceDecl _ idecl) = prettyPrec p idecl
 
 instance (Show l) => Pretty (VarDecl l) where
   prettyPrec p (VarDecl _ vdId Nothing) = prettyPrec p vdId
@@ -462,8 +460,6 @@ instance (Show l) => Pretty (ArrayCreateInit l) where
     text "new"
       <+> hcat (prettyPrec p t : replicate k (text "[]"))
       <+> prettyPrec p ini
-instance (Show l) => Pretty (FieldAccess l) where
-  prettyPrec p (FieldAccess _ fa) = parenPrec p 1 $ prettyPrec 1 fa
 instance (Show l) => Pretty (MethodInv l) where
   prettyPrec p (MethodInv _ mi) = parenPrec p 1 $ prettyPrec 1 mi
 instance (Show l) => Pretty (ArrayAccess l) where
@@ -501,11 +497,6 @@ instance (Show l) => Pretty (LambdaFormalParams l) where
   prettyPrec _ (LambdaFormalParams _ paramsP) = ppArgs paramsP
 instance (Show l) => Pretty (LambdaInferredParams l) where
   prettyPrec _ (LambdaInferredParams _ idents) = ppArgs idents
-
-instance (Show l) => Pretty (LambdaExpression l) where
-  prettyPrec p (LambdaExpression _ expression) = prettyPrec p expression
-instance (Show l) => Pretty (LambdaBlock l) where
-  prettyPrec p (LambdaBlock _ blockP) = prettyPrec p blockP
 
 instance Pretty Literal where
   prettyPrec _ (Int i) = text (show i)
@@ -556,10 +547,6 @@ instance Pretty AssignOp where
 
 instance (Show l) => Pretty (NameLhs l) where
   prettyPrec p (NameLhs _ name) = prettyPrec p name
-instance (Show l) => Pretty (FieldLhs l) where
-  prettyPrec p (FieldLhs _ fa) = prettyPrec p fa
-instance (Show l) => Pretty (ArrayLhs l) where
-  prettyPrec p (ArrayLhs _ ain) = prettyPrec p ain
 
 instance (Show l) => Pretty (ArrayIndex l) where
   prettyPrec p (ArrayIndex _ ref e) = prettyPrec p ref <> hcat (map (brackets . prettyPrec p) e)

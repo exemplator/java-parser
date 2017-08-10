@@ -47,7 +47,6 @@ module Language.Java.Syntax(
   MethodDecl (..),
   ConstructorDecl (..),
   MemberClassDecl (..),
-  MemberInterfaceDecl (..),
   VarDecl (..),
   VarId (..),
   VarDeclArray (..),
@@ -93,7 +92,6 @@ module Language.Java.Syntax(
   QualInstanceCreation (..),
   ArrayCreate (..),
   ArrayCreateInit (..),
-  FieldAccess (..),
   MethodInv (..),
   ArrayAccess (..),
   ExpName (..),
@@ -105,8 +103,6 @@ module Language.Java.Syntax(
   Lambda (..),
   MethodRef (..),
   NameLhs (..),
-  FieldLhs (..),
-  ArrayLhs (..),
   ArrayIndex (..),
   PrimaryFieldAccess (..),
   SuperFieldAccess (..),
@@ -114,8 +110,6 @@ module Language.Java.Syntax(
   LambdaSingleParam (..),
   LambdaFormalParams (..),
   LambdaInferredParams (..),
-  LambdaExpression (..),
-  LambdaBlock (..),
   MethodCall (..),
   PrimaryMethodCall (..),
   SuperMethodCall (..),
@@ -186,7 +180,7 @@ data MemberDeclNode l
     -- | A member class is a class whose declaration is directly enclosed in another class or interface declaration.
     | MemberClassDeclNode l (MemberClassDecl l)
     -- | A member interface is an interface whose declaration is directly enclosed in another class or interface declaration.
-    | MemberInterfaceDeclNode l (MemberInterfaceDecl l)
+    | MemberInterfaceDeclNode l (InterfaceDecl l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | The name of a variable in a declaration, which may be an array.
@@ -318,7 +312,7 @@ data ExpNode l
     --   be given explicit lengths for any of its dimensions.
     | ArrayCreateInitNode l (ArrayCreateInit l)
     -- | A field access expression.
-    | FieldAccessNode l (FieldAccess l)
+    | FieldAccessNode l (FieldAccessNode l)
     -- | A method invocation expression.
     | MethodInvNode l (MethodInv l)
     -- | An array access expression refers to a variable that is a component of an array.
@@ -367,8 +361,8 @@ data ExpNode l
 --   a field access or an array access.
 data LhsNode l
     = NameLhsNode l (NameLhs l)         -- ^ Assign to a variable
-    | FieldLhsNode l (FieldLhs l)  -- ^ Assign through a field access
-    | ArrayLhsNode l (ArrayLhs l)   -- ^ Assign to an array
+    | FieldLhsNode l (FieldAccessNode l)  -- ^ Assign through a field access
+    | ArrayLhsNode l (ArrayIndex l)   -- ^ Assign to an array
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A field access expression may access a field of an object or array, a reference to which is the value
@@ -388,8 +382,8 @@ data LambdaParamsNode l
 
 -- | Lambda expression, starting from java 8
 data LambdaExpressionNode l
-    = LambdaExpressionNode l (LambdaExpression l)
-    | LambdaBlockNode l (LambdaBlock l)
+    = LambdaExpressionNode l (ExpNode l)
+    | LambdaBlockNode l (Block l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A method invocation expression is used to invoke a class or instance method.
@@ -495,7 +489,7 @@ data ClassBody l = ClassBody { infoClassBody :: l, classDecls :: [DeclNode l] }
 
 
 -- | The body of an enum type may contain enum constants.
-data EnumBody l = EnumBody { infoEnumBody :: l, enumConstans :: [EnumConstant l], enumDecls :: [DeclNode l] }
+data EnumBody l = EnumBody { infoEnumBody :: l, enumConstants :: [EnumConstant l], enumDecls :: [DeclNode l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 
@@ -595,13 +589,6 @@ data MemberClassDecl l = MemberClassDecl
       , memberClassDecl     :: ClassDecl l
       }
       deriving (Eq,Show,Read,Typeable,Generic,Data)
-
--- | A member interface is an interface whose declaration is directly enclosed in another class or interface declaration.
-data MemberInterfaceDecl l =  MemberInterfaceDecl
-      { infoMemberInterfaceDecl :: l
-      , memberInterfaceDecls    :: InterfaceDecl l
-      }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A declaration of a variable, which may be explicitly initialized.
 data VarDecl l = VarDecl { infoVarDecl :: l, varDeclName :: VarDeclIdNode l, varInit :: Maybe (VarInitNode l) }
@@ -914,9 +901,6 @@ data ArrayCreateInit l = ArrayCreateInit
   , arrayCreatInit      :: ArrayInit l
   }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | A field access expression.
-data FieldAccess l = FieldAccess { infoFieldAccess :: l, fieldAccess :: FieldAccess l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | A method invocation expression.
 data MethodInv l = MethodInv { infoMethodInv :: l, methodInvoc :: MethodInvocationNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
@@ -947,7 +931,7 @@ data Cond l = Cond { infoCond :: l, condition :: ExpNode l, conditionTrueExp :: 
 data Assign l = Assign { infoAssign :: l, assignTarget :: LhsNode l, assignOp :: AssignOp, assignSource :: ExpNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | Lambda expression
-data Lambda l = Lambda { infoLambda :: l, lambdaParams :: LambdaParamsNode l, lambdaExpression :: LambdaExpression l }
+data Lambda l = Lambda { infoLambda :: l, lambdaParams :: LambdaParamsNode l, lambdaExpression :: LambdaExpressionNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
     -- | Method reference
 data MethodRef l = MethodRef { infoMethodRef :: l, methodClass :: Name, methodName :: Ident }
@@ -955,12 +939,6 @@ data MethodRef l = MethodRef { infoMethodRef :: l, methodClass :: Name, methodNa
 
 -- | Assign to a variable
 data NameLhs l = NameLhs { infoNameLhs :: l, varLhsName :: Name }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
--- | Assign through a field access
-data FieldLhs l = FieldLhs { infoFieldLhs :: l, fieldLhsName :: FieldAccess l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
--- | Assign to an array
-data ArrayLhs l = ArrayLhs { infoArrayLhs :: l, arrayLhsIndex :: ArrayIndex l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Array access
@@ -992,13 +970,6 @@ data LambdaFormalParams l = LambdaFormalParams { infoLambdaFormalParams :: l, la
     deriving (Eq,Show,Read,Typeable,Generic,Data)
 data LambdaInferredParams l = LambdaInferredParams { infoLambdaInferredParams :: l, lambdaParamNames :: [Ident] }
     deriving (Eq,Show,Read,Typeable,Generic,Data)
-
--- | Lambda expression, starting from java 8
-data LambdaExpression l = LambdaExpression { infoLambdaExpression ::l, singleLambdaExp :: ExpNode l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
--- | Lambda block, starting from java 8
-data LambdaBlock l = LambdaBlock { infoLambdaBlock :: l, lambdaBlock :: Block l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 
     -- | Invoking a specific named method.
