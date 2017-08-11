@@ -128,7 +128,3 @@ instance CollectTypes (FieldDecl l) where
   collectTypes (FieldDecl _ _ t _) =  [t]
 instance CollectTypes (MethodDecl l) where
   collectTypes (MethodDecl _ _ _ _ name _ _ _ _) =  [withoutPackageIdentToType name]
-instance CollectTypes (MemberClassDecl l) where
-  collectTypes (MemberClassDecl _ cd) = [getType cd]
-instance CollectTypes (MemberInterfaceDecl l) where
-  collectTypes (MemberInterfaceDecl _ idecl) =  [getType idecl]

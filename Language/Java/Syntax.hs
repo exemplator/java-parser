@@ -811,10 +811,6 @@ data TryResourceFinalVar l = TryResourceFinalVar
 data SwitchBlock l = SwitchBlock { infoSwitchBlock :: l, switchLabel :: SwitchLabelNode l, switchStmts :: [StmtNode l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
-    -- | The expression contained in the @case@ must be a 'Lit' or an @enum@ constant.
-data SwitchCase l = SwitchCase { infoSwitchCase :: l, switchExp :: ExpNode l}
-      deriving (Eq,Show,Read,Typeable,Generic,Data)
-
 -- | Initialization code for a basic @for@ statement.
 data ForLocalVars l = ForLocalVars
       { infoForLocalVars :: l
