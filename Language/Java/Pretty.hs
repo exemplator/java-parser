@@ -271,8 +271,6 @@ instance (Show l) => Pretty (ConstructorDecl l) where
           , ppArgs fParams
           , ppThrows p throws
          ] $$ prettyPrec p body
-instance (Show l) => Pretty (MemberClassDecl l) where
-  prettyPrec p (MemberClassDecl _ cd) = prettyPrec p cd
 
 instance (Show l) => Pretty (VarDecl l) where
   prettyPrec p (VarDecl _ vdId Nothing) = prettyPrec p vdId

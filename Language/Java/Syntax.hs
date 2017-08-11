@@ -46,7 +46,6 @@ module Language.Java.Syntax(
   FieldDecl (..),
   MethodDecl (..),
   ConstructorDecl (..),
-  MemberClassDecl (..),
   VarDecl (..),
   VarId (..),
   VarDeclArray (..),
@@ -178,7 +177,7 @@ data MemberDeclNode l
     -- | A constructor is used in the creation of an object that is an instance of a class.
     | ConstructorDeclNode l (ConstructorDecl l)
     -- | A member class is a class whose declaration is directly enclosed in another class or interface declaration.
-    | MemberClassDeclNode l (MemberClassDecl l)
+    | MemberClassDeclNode l (ClassDecl l)
     -- | A member interface is an interface whose declaration is directly enclosed in another class or interface declaration.
     | MemberInterfaceDeclNode l (InterfaceDecl l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
@@ -581,12 +580,6 @@ data ConstructorDecl l = ConstructorDecl
       , constructorFormalParams :: [FormalParam l]
       , constructorExceptions   :: [ExceptionType l]
       , constructorBody         :: ConstructorBody l
-      }
-      deriving (Eq,Show,Read,Typeable,Generic,Data)
--- | A member class is a class whose declaration is directly enclosed in another class or interface declaration.
-data MemberClassDecl l = MemberClassDecl
-      { infoMemberClassDecl :: l
-      , memberClassDecl     :: ClassDecl l
       }
       deriving (Eq,Show,Read,Typeable,Generic,Data)
 
