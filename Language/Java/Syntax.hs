@@ -79,7 +79,6 @@ module Language.Java.Syntax(
   TryResourceVar (..),
   TryResourceFinalVar (..),
   SwitchBlock (..),
-  SwitchCase (..),
   ForLocalVars (..),
   ForInitExps (..),
   ExceptionType (..),
@@ -131,16 +130,16 @@ import           Language.Java.Syntax.Types
 
 -- | A compilation unit is the top level syntactic goal symbol of a Java program.
 data CompilationUnitNode l
-  = CompilationUnitNode l (CompilationUnit l)
-  | ModuleDeclarationNode l (ModuleDeclaration l)
+  = CompilationUnitNode (CompilationUnit l)
+  | ModuleDeclarationNode (ModuleDeclaration l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | specifies the module declarations
 data ModuleSpecNode l
   -- | requires the module to work
-  = ModuleRequiresNode l (ModuleRequires l)
+  = ModuleRequiresNode (ModuleRequires l)
   -- | exports the package
-  | ModuleExportsNode l (ModuleExports l)
+  | ModuleExportsNode (ModuleExports l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -----------------------------------------------------------------------
@@ -149,21 +148,21 @@ data ModuleSpecNode l
 
 -- | A type declaration declares a class type or an interface type.
 data TypeDeclNode l
-    = ClassTypeDeclNode l (ClassDeclNode l)
-    | InterfaceTypeDeclNode l (InterfaceDecl l)
+    = ClassTypeDeclNode (ClassDeclNode l)
+    | InterfaceTypeDeclNode (InterfaceDecl l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A class declaration specifies a new named reference type.
 data ClassDeclNode l
-    = ClassDeclNode l (ClassDecl l)
-    | EnumDeclNode l (EnumDecl l)
+    = ClassDeclNode (ClassDecl l)
+    | EnumDeclNode (EnumDecl l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A declaration is either a member declaration, or a declaration of an
 --   initializer, which may be static.
 data DeclNode l
-    = MemberDeclNode l (MemberDeclNode l)
-    | InitDeclNode l (InitDecl l)
+    = MemberDeclNode (MemberDeclNode l)
+    | InitDeclNode (InitDecl l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A class or interface member can be an inner class or interface, a field or
@@ -171,28 +170,28 @@ data DeclNode l
 --   constants (not fields), abstract methods, and no constructors.
 data MemberDeclNode l
     -- | The variables of a class type are introduced by field declarations.
-    = FieldDeclNode l (FieldDecl l)
+    = FieldDeclNode (FieldDecl l)
     -- | A method declares executable code that can be invoked, passing a fixed number of values as arguments.
-    | MethodDeclNode l (MethodDecl l)
+    | MethodDeclNode (MethodDecl l)
     -- | A constructor is used in the creation of an object that is an instance of a class.
-    | ConstructorDeclNode l (ConstructorDecl l)
+    | ConstructorDeclNode (ConstructorDecl l)
     -- | A member class is a class whose declaration is directly enclosed in another class or interface declaration.
-    | MemberClassDeclNode l (ClassDecl l)
+    | MemberClassDeclNode (ClassDecl l)
     -- | A member interface is an interface whose declaration is directly enclosed in another class or interface declaration.
-    | MemberInterfaceDeclNode l (InterfaceDecl l)
+    | MemberInterfaceDeclNode (InterfaceDecl l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | The name of a variable in a declaration, which may be an array.
 data VarDeclIdNode l
-    = VarIdNode l (VarId l)
-    | VarDeclArrayNode l (VarDeclArray l)
+    = VarIdNode (VarId l)
+    | VarDeclArrayNode (VarDeclArray l)
     -- ^ Multi-dimensional arrays are represented by nested applications of 'VarDeclArray'.
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Explicit initializer for a variable declaration.
 data VarInitNode l
-    = InitExpNode l (ExpNode l)
-    | InitArrayNode l (ArrayInit l)
+    = InitExpNode (ExpNode l)
+    | InitArrayNode (ArrayInit l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | An explicit constructor invocation invokes another constructor of the
@@ -200,9 +199,9 @@ data VarInitNode l
 --   be qualified to explicitly specify the newly created object's immediately
 --   enclosing instance.
 data ExplConstrInvNode l
-    = ThisInvokeNode l (ThisInvoke l)
-    | SuperInvokeNode l (SuperInvoke l)
-    | PrimarySuperInvokeNode l (PrimarySuperInvoke l)
+    = ThisInvokeNode (ThisInvoke l)
+    | SuperInvokeNode (SuperInvoke l)
+    | PrimarySuperInvokeNode (PrimarySuperInvoke l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -----------------------------------------------------------------------
@@ -211,192 +210,192 @@ data ExplConstrInvNode l
 -- | A block statement is either a normal statement, a local
 --   class declaration or a local variable declaration.
 data BlockStmtNode l
-    = BlockStmtNode l (StmtNode l)
-    | LocalClassNode l (ClassDecl l)
-    | LocalVarsNode l (LocalVars l)
+    = BlockStmtNode (StmtNode l)
+    | LocalClassNode (ClassDecl l)
+    | LocalVarsNode (LocalVars l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 
 -- | A Java statement.
 data StmtNode l
     -- | A statement can be a nested block.
-    = StmtBlockNode l (Block l)
+    = StmtBlockNode (Block l)
     -- | The @if-then@ statement allows conditional execution of a statement.
-    | IfThenElseNode l (IfThenElse l)
+    | IfThenElseNode (IfThenElse l)
     -- | The @while@ statement executes an expression and a statement repeatedly until the value of the expression is false.
-    | WhileNode l (While l)
+    | WhileNode (While l)
     -- | The basic @for@ statement executes some initialization code, then executes an expression, a statement, and some
     --   update code repeatedly until the value of the expression is false.
-    | BasicForNode l (BasicFor l)
+    | BasicForNode (BasicFor l)
     -- | The enhanced @for@ statement iterates over an array or a value of a class that implements the @iterator@ interface.
-    | EnhancedForNode l (EnhancedFor l)
+    | EnhancedForNode (EnhancedFor l)
     -- | An empty statement does nothing.
-    | EmptyNode l (Empty l)
+    | EmptyNode (Empty l)
     -- | Certain kinds of expressions may be used as statements by following them with semicolons:
     --   assignments, pre- or post-inc- or decrementation, method invocation or class instance
     --   creation expressions.
-    | ExpStmtNode l (ExpNode l)
+    | ExpStmtNode (ExpNode l)
     -- | An assertion is a statement containing a boolean expression, where an error is reported if the expression
     --   evaluates to false.
-    | AssertNode l (Assert l)
+    | AssertNode (Assert l)
     -- | The switch statement transfers control to one of several statements depending on the value of an expression.
-    | SwitchNode l (Switch l)
+    | SwitchNode (Switch l)
     -- | The @do@ statement executes a statement and an expression repeatedly until the value of the expression is false.
-    | DoNode l (Do l)
+    | DoNode (Do l)
     -- | A @break@ statement transfers control out of an enclosing statement.
-    | BreakNode l (Break l)
+    | BreakNode (Break l)
     -- | A @continue@ statement may occur only in a while, do, or for statement. Control passes to the loop-continuation
     --   point of that statement.
-    | ContinueNode l (Continue l)
+    | ContinueNode (Continue l)
     -- A @return@ statement returns control to the invoker of a method or constructor.
-    | ReturnNode l (Return l)
+    | ReturnNode (Return l)
     -- | A @synchronized@ statement acquires a mutual-exclusion lock on behalf of the executing thread, executes a block,
     --   then releases the lock. While the executing thread owns the lock, no other thread may acquire the lock.
-    | SynchronizedNode l (Synchronized l)
+    | SynchronizedNode (Synchronized l)
     -- | A @throw@ statement causes an exception to be thrown.
-    | ThrowNode l (Throw l)
+    | ThrowNode (Throw l)
     -- | A try statement executes a block and may catch a thrown exception
-    | TryNode l (Try l)
+    | TryNode (Try l)
     -- | Statements may have label prefixes.
-    | LabeledNode l (Labeled l)
+    | LabeledNode (Labeled l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Resource in a try-with-resources statement
 data TryResourceNode l
     -- | Newly declared variables
-    = TryResourceVarNode l (TryResourceVar l)
+    = TryResourceVarNode (TryResourceVar l)
     -- | Effectively final variable
-    | TryResourceFinalVarNode l (TryResourceFinalVar l)
+    | TryResourceFinalVarNode (TryResourceFinalVar l)
     deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A label within a @switch@ statement.
 data SwitchLabelNode l
     -- | The expression contained in the @case@ must be a 'Lit' or an @enum@ constant.
-    = SwitchCaseNode l (ExpNode l)
+    = SwitchCaseNode (ExpNode l)
     | DefaultNode l
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Initialization code for a basic @for@ statement.
 data ForInitNode l
-    = ForLocalVarsNode l (ForLocalVars l)
-    | ForInitExpsNode l (ForInitExps l)
+    = ForLocalVarsNode (ForLocalVars l)
+    | ForInitExpsNode (ForInitExps l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A Java expression.
 data ExpNode l
     -- | A literal denotes a fixed, unchanging value.
-    = LitNode l (Lit l)
+    = LitNode (Lit l)
     -- | A class literal, which is an expression consisting of the name of a class, interface, array,
     --   or primitive type, or the pseudo-type void (modelled by 'Nothing'), followed by a `.' and the token class.
-    | ClassLitNode l (ClassLit l)
+    | ClassLitNode (ClassLit l)
     -- | The keyword @this@ denotes a value that is a reference to the object for which the instance method
     --   was invoked, or to the object being constructed.
-    | ThisNode l (This l)
+    | ThisNode (This l)
     -- | Any lexically enclosing instance can be referred to by explicitly qualifying the keyword this.
     -- TODO: Fix Parser here
-    | QualifiedThisNode l (QualifiedThis l)
+    | QualifiedThisNode (QualifiedThis l)
     -- | A class instance creation expression is used to create new objects that are instances of classes.
     -- | The first argument is a list of non-wildcard type arguments to a generic constructor.
     --   What follows is the type to be instantiated, the list of arguments passed to the constructor, and
     --   optionally a class body that makes the constructor result in an object of an /anonymous/ class.
-    | InstanceCreationNode l (InstanceCreation l)
+    | InstanceCreationNode (InstanceCreation l)
     -- | A qualified class instance creation expression enables the creation of instances of inner member classes
     --   and their anonymous subclasses.
     {- TODO what is is the mysteryExp used for?-}
-    | QualInstanceCreationNode l (QualInstanceCreation l)
+    | QualInstanceCreationNode (QualInstanceCreation l)
     -- | An array instance creation expression is used to create new arrays. The last argument denotes the number
     --   of dimensions that have no explicit length given. These dimensions must be given last.
-    | ArrayCreateNode l (ArrayCreate l)
+    | ArrayCreateNode (ArrayCreate l)
     -- | An array instance creation expression may come with an explicit initializer. Such expressions may not
     --   be given explicit lengths for any of its dimensions.
-    | ArrayCreateInitNode l (ArrayCreateInit l)
+    | ArrayCreateInitNode (ArrayCreateInit l)
     -- | A field access expression.
-    | FieldAccessNode l (FieldAccessNode l)
+    | FieldAccessNode (FieldAccessNode l)
     -- | A method invocation expression.
-    | MethodInvNode l (MethodInv l)
+    | MethodInvNode (MethodInv l)
     -- | An array access expression refers to a variable that is a component of an array.
-    | ArrayAccessNode l (ArrayAccess l)
+    | ArrayAccessNode (ArrayAccess l)
 {-    | ArrayAccess ExpNode ExpNode -- Should this be made into a datatype, for consistency and use with Lhs? -}
     -- | An expression name, e.g. a variable.
-    | ExpNameNode l (ExpName l)
+    | ExpNameNode (ExpName l)
     -- | Post-incrementation expression, i.e. an expression followed by @++@.
-    | PostIncrementNode l (ExpNode l)
+    | PostIncrementNode (ExpNode l)
     -- | Post-decrementation expression, i.e. an expression followed by @--@.
-    | PostDecrementNode l (ExpNode l)
+    | PostDecrementNode (ExpNode l)
     -- | Pre-incrementation expression, i.e. an expression preceded by @++@.
-    | PreIncrementNode l (ExpNode l)
+    | PreIncrementNode (ExpNode l)
     -- | Pre-decrementation expression, i.e. an expression preceded by @--@.
-    | PreDecrementNode l (ExpNode l)
+    | PreDecrementNode (ExpNode l)
     -- | Unary plus, the promotion of the value of the expression to a primitive numeric type.
-    | PrePlusNode l (ExpNode l)
+    | PrePlusNode (ExpNode l)
     -- | Unary minus, the promotion of the negation of the value of the expression to a primitive numeric type.
-    | PreMinusNode l (ExpNode l)
+    | PreMinusNode (ExpNode l)
     -- | Unary bitwise complementation: note that, in all cases, @~x@ equals @(-x)-1@.
-    | PreBitComplNode l (ExpNode l)
+    | PreBitComplNode (ExpNode l)
     -- | Logical complementation of boolean values.
-    | PreNotNode l (ExpNode l)
+    | PreNotNode (ExpNode l)
     -- | A cast expression converts, at run time, a value of one numeric type to a similar value of another
     --   numeric type; or confirms, at compile time, that the type of an expression is boolean; or checks,
     --   at run time, that a reference value refers to an object whose class is compatible with a specified
     --   reference type.
-    | CastNode l (Cast l)
+    | CastNode (Cast l)
     -- | The application of a binary operator to two operand expressions.
-    | BinOpNode l (BinOp l)
+    | BinOpNode (BinOp l)
     -- | Testing whether the result of an expression is an instance of some reference type.
-    | InstanceOfNode l (InstanceOf l)
+    | InstanceOfNode (InstanceOf l)
     -- | The conditional operator @? :@ uses the boolean value of one expression to decide which of two other
     --   expressions should be evaluated.
-    | CondNode l (Cond l)
+    | CondNode (Cond l)
     -- | Assignment of the result of an expression to a variable.
-    | AssignNode l (Assign l)
+    | AssignNode (Assign l)
     -- | Lambda expression
-    | LambdaNode l (Lambda l)
+    | LambdaNode (Lambda l)
     -- | Method reference
-    | MethodRefNode l (MethodRef l)
+    | MethodRefNode (MethodRef l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | The left-hand side of an assignment expression. This operand may be a named variable, such as a local
 --   variable or a field of the current object or class, or it may be a computed variable, as can result from
 --   a field access or an array access.
 data LhsNode l
-    = NameLhsNode l (NameLhs l)         -- ^ Assign to a variable
-    | FieldLhsNode l (FieldAccessNode l)  -- ^ Assign through a field access
-    | ArrayLhsNode l (ArrayIndex l)   -- ^ Assign to an array
+    = NameLhsNode (NameLhs l)         -- ^ Assign to a variable
+    | FieldLhsNode (FieldAccessNode l)  -- ^ Assign through a field access
+    | ArrayLhsNode (ArrayIndex l)   -- ^ Assign to an array
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A field access expression may access a field of an object or array, a reference to which is the value
 --   of either an expression or the special keyword super.
 data FieldAccessNode l
-    = PrimaryFieldAccessNode l (PrimaryFieldAccess l) -- ^ Accessing a field of an object or array computed from an expression.
-    | SuperFieldAccessNode l (SuperFieldAccess l) -- ^ Accessing a field of the superclass.
-    | ClassFieldAccessNode l (ClassFieldAccess l) -- ^ Accessing a (static) field of a named class.
+    = PrimaryFieldAccessNode (PrimaryFieldAccess l) -- ^ Accessing a field of an object or array computed from an expression.
+    | SuperFieldAccessNode (SuperFieldAccess l) -- ^ Accessing a field of the superclass.
+    | ClassFieldAccessNode (ClassFieldAccess l) -- ^ Accessing a (static) field of a named class.
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- ¦ A lambda parameter can be a single parameter, or mulitple formal or mulitple inferred parameters
 data LambdaParamsNode l
-  = LambdaSingleParamNode l (LambdaSingleParam l)
-  | LambdaFormalParamsNode l (LambdaFormalParams l)
-  | LambdaInferredParamsNode l (LambdaInferredParams l)
+  = LambdaSingleParamNode (LambdaSingleParam l)
+  | LambdaFormalParamsNode (LambdaFormalParams l)
+  | LambdaInferredParamsNode (LambdaInferredParams l)
     deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Lambda expression, starting from java 8
 data LambdaExpressionNode l
-    = LambdaExpressionNode l (ExpNode l)
-    | LambdaBlockNode l (Block l)
+    = LambdaExpressionNode (ExpNode l)
+    | LambdaBlockNode (Block l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A method invocation expression is used to invoke a class or instance method.
 data MethodInvocationNode l
     -- | Invoking a specific named method.
-    = MethodCallNode l (MethodCall l)
+    = MethodCallNode (MethodCall l)
     -- | Invoking a method of a class computed from a primary expression, giving arguments for any generic type parameters.
-    | PrimaryMethodCallNode l (PrimaryMethodCall l)
+    | PrimaryMethodCallNode (PrimaryMethodCall l)
     -- | Invoking a method of the super class, giving arguments for any generic type parameters.
-    | SuperMethodCallNode l (SuperMethodCall l)
+    | SuperMethodCallNode (SuperMethodCall l)
     -- | Invoking a method of the superclass of a named class, giving arguments for any generic type parameters.
-    | ClassMethodCallNode l (ClassMethodCall l)
+    | ClassMethodCallNode (ClassMethodCall l)
     -- | Invoking a method of a named type, giving arguments for any generic type parameters.
-    | TypeMethodCallNode l (TypeMethodCall l)
+    | TypeMethodCallNode (TypeMethodCall l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 
@@ -606,10 +605,6 @@ data FormalParam l = FormalParam
   }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
--- | Gets type of FormalParam
-instance HasType (FormalParam l) where
-  getType (FormalParam _ _ t _ _) =  t
-
 -- | A method body is either a block of code that implements the method or simply a
 --   semicolon, indicating the lack of an implementation (modelled by 'Nothing').
 data MethodBody l = MethodBody { infoMethodBody :: l, impl :: Maybe (Block l) }
@@ -620,7 +615,7 @@ data MethodBody l = MethodBody { infoMethodBody :: l, impl :: Maybe (Block l) }
 data ConstructorBody l = ConstructorBody
   { infoConstructorBody :: l
   , constructorInvoc    :: Maybe (ExplConstrInvNode l)
-  , constrBody          :: [StmtNode l]
+  , constrBody          :: [BlockStmtNode l]
   }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
@@ -701,7 +696,7 @@ data ElementValue l = EVVal { infoEVVal :: l, elementVarInit :: VarInitNode l }
 
 -- | A block is a sequence of statements, local class declarations
 --   and local variable declaration statements within braces.
-data Block l = Block { infoBlock :: l, blockStatements :: [StmtNode l] }
+data Block l = Block { infoBlock :: l, blockStatements :: [BlockStmtNode l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A block statement is either a normal statement, a local

@@ -90,6 +90,9 @@ instance HasType (Extends l) where
 instance HasType (Implements l) where
   getType = getType . implementsInterface
 
+-- | Gets type of FormalParam
+instance HasType (FormalParam l) where
+  getType (FormalParam _ _ t _ _) =  t
 
 -- | Get the body of ClassBody
 instance HasBody (ClassBody l) l where
@@ -128,3 +131,197 @@ instance CollectTypes (FieldDecl l) where
   collectTypes (FieldDecl _ _ t _) =  [t]
 instance CollectTypes (MethodDecl l) where
   collectTypes (MethodDecl _ _ _ _ name _ _ _ _) =  [withoutPackageIdentToType name]
+
+--- HasNodes
+
+class HasNode el no where
+  toNode :: (el l) -> (no l)
+
+-----------------------------------------------------------------------
+-- Nodes
+
+instance HasNode CompilationUnit CompilationUnitNode where
+  toNode = CompilationUnitNode
+instance HasNode ModuleDeclaration CompilationUnitNode where
+  toNode = ModuleDeclarationNode
+
+instance HasNode ModuleRequires ModuleSpecNode where
+  toNode = ModuleRequiresNode
+instance HasNode ModuleExports ModuleSpecNode where
+  toNode = ModuleRequiresNode
+
+instance HasNode ClassDeclNode TypeDeclNode where
+  toNode = ClassTypeDeclNode
+instance HasNode InterfaceDecl TypeDeclNode where
+  toNode = InterfaceTypeDeclNode
+
+instance HasNode ClassDecl ClassDeclNode where
+  toNode = ClassDeclNode
+instance HasNode EnumDecl ClassDeclNode where
+  toNode = ClassDeclNode
+
+instance HasNode MemberDeclNode DeclNode where
+  toNode = MemberDeclNode
+instance HasNode InitDecl DeclNode where
+  toNode = InitDeclNode
+
+instance HasNode FieldDecl MemberDeclNode where
+  toNode = FieldDeclNode
+instance HasNode MethodDecl MemberDeclNode where
+  toNode = MethodDeclNode
+instance HasNode ConstructorDecl MemberDeclNode where
+  toNode = ConstructorDeclNode
+instance HasNode ClassDecl MemberDeclNode where
+  toNode = MemberClassDeclNode
+instance HasNode InterfaceDecl MemberDeclNode where
+  toNode = MemberInterfaceDeclNode
+
+instance HasNode VarId VarDeclIdNode where
+  toNode = VarIdNode
+instance HasNode VarDeclArray VarDeclIdNode where
+  toNode = VarDeclArrayNode
+instance HasNode ExpNode VarInitNode where
+  toNode = InitExpNode
+instance HasNode ArrayInit VarInitNode where
+  toNode = InitArrayNode
+
+instance HasNode ThisInvoke ExplConstrInvNode where
+  toNode = ThisInvokeNode
+instance HasNode SuperInvoke ExplConstrInvNode where
+  toNode = SuperInvokeNode
+instance HasNode ExpNode ExplConstrInvNode where
+  toNode = PrimarySuperInvoke
+
+instance HasNode StmtNode BlockStmtNode where
+  toNode = BlockStmtNode
+instance HasNode ClassDecl BlockStmtNode where
+  toNode = LocalClassNode
+instance HasNode LocalVars BlockStmtNode where
+  toNode = LocalVarsNode
+
+instance HasNode Block StmtNode where
+  toNode = StmtBlockNode
+instance HasNode IfThenElse StmtNode where
+  toNode = IfThenElseNode
+instance HasNode While StmtNode where
+  toNode = WhileNode
+instance HasNode BasicFor StmtNode where
+  toNode = BasicForNode
+instance HasNode EnhancedFor StmtNode where
+  toNode = EnhancedForNode
+instance HasNode Empty StmtNode where
+  toNode = EmptyNode
+instance HasNode ExpNode StmtNode where
+  toNode = ExpStmtNode
+instance HasNode Assert StmtNode where
+  toNode = AssertNode
+instance HasNode Switch StmtNode where
+  toNode = SwitchNode
+instance HasNode Do StmtNode where
+  toNode = DoNode
+instance HasNode Break StmtNode where
+  toNode = BreakNode
+instance HasNode Continue StmtNode where
+  toNode = ContinueNode
+instance HasNode Return StmtNode where
+  toNode = ReturnNode
+instance HasNode Synchronized StmtNode where
+  toNode = SynchronizedNode
+instance HasNode Throw StmtNode where
+  toNode = ThrowNode
+instance HasNode Try StmtNode where
+  toNode = TryNode
+instance HasNode Labeled StmtNode where
+  toNode = LabeledNode
+
+instance HasNode TryResourceVar TryResourceNode where
+  toNode = TryResourceVarNode
+instance HasNode TryResourceFinalVar TryResourceNode where
+  toNode = TryResourceFinalVarNode
+
+instance HasNode ExpNode SwitchLabelNode where
+  toNode = SwitchCaseNode
+
+instance HasNode ForLocalVars ForInitNode where
+  toNode = ForLocalVarsNode
+instance HasNode ForInitExps ForInitNode where
+  toNode = ForInitExpsNode
+
+instance HasNode Lit ExpNode where
+  toNode = LitNode
+instance HasNode ClassLit ExpNode where
+  toNode = ClassLitNode
+instance HasNode This ExpNode where
+  toNode = ThisNode
+instance HasNode QualifiedThis ExpNode where
+  toNode = QualifiedThisNode
+instance HasNode InstanceCreation ExpNode where
+  toNode = InstanceCreationNode
+instance HasNode QualInstanceCreation ExpNode where
+  toNode = QualInstanceCreationNode
+instance HasNode ArrayCreate ExpNode where
+  toNode = ArrayCreateNode
+instance HasNode ArrayCreateInit ExpNode where
+  toNode = ArrayCreateInitNode
+instance HasNode FieldAccessNode ExpNode where
+  toNode = FieldAccessNode
+instance HasNode MethodInv ExpNode where
+  toNode = MethodInvNode
+instance HasNode ArrayAccess ExpNode where
+  toNode = ArrayAccessNode
+instance HasNode ExpName ExpNode where
+  toNode = ExpNameNode
+instance HasNode ExpNode ExpNode where
+  toNode = PreNotNode
+instance HasNode Cast ExpNode where
+  toNode = CastNode
+instance HasNode BinOp ExpNode where
+  toNode = BinOpNode
+instance HasNode InstanceOf ExpNode where
+  toNode = InstanceOfNode
+instance HasNode Cond ExpNode where
+  toNode = CondNode
+instance HasNode Assign ExpNode where
+  toNode = AssignNode
+instance HasNode Lambda ExpNode where
+  toNode = LambdaNode
+instance HasNode MethodRef ExpNode where
+  toNode = MethodRefNode
+
+instance HasNode NameLhs LhsNode where
+  toNode = NameLhsNode
+instance HasNode FieldAccessNode LhsNode where
+  toNode = FieldLhsNode
+instance HasNode ArrayIndex LhsNode where
+  toNode = ArrayLhsNode
+
+instance HasNode PrimaryFieldAccess FieldAccessNode where
+  toNode = PrimaryFieldAccessNode
+instance HasNode SuperFieldAccess FieldAccessNode where
+  toNode = SuperFieldAccessNode
+instance HasNode ClassFieldAccess FieldAccessNode where
+  toNode = ClassFieldAccessNode
+
+instance HasNode LambdaSingleParam LambdaParamsNode where
+  toNode = LambdaSingleParamNode
+instance HasNode LambdaFormalParams LambdaParamsNode where
+  toNode = LambdaFormalParamsNode
+instance HasNode LambdaInferredParams LambdaParamsNode where
+  toNode = LambdaInferredParamsNode
+
+instance HasNode ExpNode LambdaExpressionNode where
+  toNode = LambdaExpressionNode
+instance HasNode Block LambdaExpressionNode where
+  toNode = LambdaBlockNode
+
+instance HasNode MethodCall MethodInvocationNode where
+  toNode = MethodCallNode
+instance HasNode PrimaryMethodCall MethodInvocationNode where
+  toNode = PrimaryMethodCallNode
+instance HasNode SuperMethodCall MethodInvocationNode where
+  toNode = SuperMethodCallNode
+instance HasNode ClassMethodCall MethodInvocationNode where
+  toNode = ClassMethodCallNode
+instance HasNode TypeMethodCall MethodInvocationNode where
+  toNode = TypeMethodCallNode
+
