@@ -100,7 +100,7 @@ returnN' a = return $ toNode a
 wrap :: Applicative f HasNode a b => f a -> f b
 wrap a = toNode <$> a
 
-wrap :: Applicative f HasNode a b => f a -> f b
+wrap :: Applicative f HasNode a b => f (l -> a) -> f (l -> b)
 wrap a = (\a l -> toNode (a l)) <$> a
 
 wrapM :: Applicative f HasNode a b => f (Mod a) -> f (Mod b)
@@ -514,7 +514,7 @@ blockStmt = tP $
         return $ \l -> LocalVars m t vds) <|>
     wrap' stmt
 
-stmt :: (Parsable l) => P (l -> Stmt l)
+stmt :: (Parsable l) => P (l -> StmtNode l)
 stmt = ifStmt <|> whileStmt <|> forStmt <|> labeledStmtParser <|> stmtNoTrail
   where
     ifStmt = do
@@ -522,12 +522,12 @@ stmt = ifStmt <|> whileStmt <|> forStmt <|> labeledStmtParser <|> stmtNoTrail
         e  <- parens expParser
         th <- stmtNSI
         el <- optionMaybe $ tok KW_Else >> stmt
-        return $ \l -> IfThenElse l e th el
+        returnN $ \l -> IfThenElse l e th el
     whileStmt = do
         tok KW_While
         e   <- parens expParser
         s   <- stmt
-        return $ \l -> While l e s
+        returnN $ \l -> While l e s
     forStmt = do
         tok KW_For
         f <- parens $
@@ -545,14 +545,14 @@ stmt = ifStmt <|> whileStmt <|> forStmt <|> labeledStmtParser <|> stmtNoTrail
                 e  <- expParser
                 return $ \s l -> EnhancedFor l ms t i e s)
         s <- stmt
-        return $ f s
+        returnN $ f s
     labeledStmtParser = try $ do
         lbl <- ident
         colon
         s   <- stmt
-        return $ \l -> Labeled l lbl s
+        returnN $ \l -> Labeled l lbl s
 
-stmtNSI :: (Parsable l) => P (Stmt l)
+stmtNSI :: (Parsable l) => P (StmtNode l)
 stmtNSI = tP $ ifStmt <|> whileStmt <|> forStmt <|> labeledStmtParser <|> stmtNoTrail
   where
     ifStmt = do
@@ -560,12 +560,12 @@ stmtNSI = tP $ ifStmt <|> whileStmt <|> forStmt <|> labeledStmtParser <|> stmtNo
         e  <- parens expParser
         th <- stmtNSI
         el <- optionMaybe $ tok KW_Else >> stmtNSI
-        return $ \l -> IfThenElse l e th el
+        returnN $ \l -> IfThenElse l e th el
     whileStmt = do
         tok KW_While
         e <- parens expParser
         s <- stmtNSI
-        return $ \l -> While l e s
+        returnN $ \l -> While l e s
     forStmt = do
         tok KW_For
         f <- parens $ try ( do
@@ -583,12 +583,12 @@ stmtNSI = tP $ ifStmt <|> whileStmt <|> forStmt <|> labeledStmtParser <|> stmtNo
                 e  <- expParser
                 return $ \s l -> EnhancedFor l ms t i e s)
         s <- stmtNSI
-        return $ f s
+        returnN $ f s
     labeledStmtParser = try $ do
         i <- ident
         colon
         s <- stmtNSI
-        return $ \l -> Labeled i s
+        returnN $ \l -> Labeled i s
 
 stmtNoTrail :: (Parsable l) => P (Stmt l)
 stmtNoTrail =
@@ -662,13 +662,13 @@ stmtNoTrail =
 
 -- For loops
 
-forInitParser :: (Parsable l) => P (ForInit l)
+forInitParser :: (Parsable l) => P (ForInitNode l)
 forInitParser = try (do forLocalVars <- tP ForLocalVars
                         (m,t,vds) <- localVarDecl
                         return $ forLocalVars m t vds) <|>
     (tP ForInitExps <*> seplist1 stmtExp comma)
 
-forUp :: (Parsable l) => P [Exp l]
+forUp :: (Parsable l) => P [ExpNode l]
 forUp = seplist1 stmtExp comma
 
 -- Switches
@@ -683,7 +683,7 @@ switchStmt = do
     bss <- list blockStmt
     return $ switch lbl bss
 
-switchLabelParser :: (Parsable l) => P (SwitchLabel l)
+switchLabelParser :: (Parsable l) => P (SwitchLabelNode l)
 switchLabelParser = (tok KW_Default >> colon >> tP Default) <|>
     (do switch <- tP SwitchCase
         tok KW_Case
@@ -693,7 +693,7 @@ switchLabelParser = (tok KW_Default >> colon >> tP Default) <|>
 
 -- Try-catch clauses
 
-tryResources :: (Parsable l) => P [TryResource l]
+tryResources :: (Parsable l) => P [TryResourceNode l]
 tryResources = seplist tryRes semiColon
     where
       tryRes = try (do
@@ -715,7 +715,7 @@ catch = do
 ----------------------------------------------------------------------------
 -- Expressions
 
-stmtExp :: (Parsable l) => P (Exp l)
+stmtExp :: (Parsable l) => P (ExpNode l)
 stmtExp = try preIncDec
     <|> try postIncDec
     <|> try assignment
@@ -725,19 +725,19 @@ stmtExp = try preIncDec
     <|> try methodRef
     <|> instanceCreation
 
-preIncDec :: (Parsable l) => P (Exp l)
+preIncDec :: (Parsable l) => P (ExpNode l)
 preIncDec = do
     op <- preIncDecOp
     e <- unaryExp
     return $ op e
 
-postIncDec :: (Parsable l) => P (Exp l)
+postIncDec :: (Parsable l) => P (ExpNode l)
 postIncDec = do
     e <- postfixExpNES
     ops <- list1 postfixOp
     return $ foldl (\a s -> s a) e ops
 
-assignment :: (Parsable l) => P (Exp l)
+assignment :: (Parsable l) => P (Assign l)
 assignment = do
     assign <- tP Assign
     lh <- lhs
@@ -745,26 +745,26 @@ assignment = do
     e  <- assignExp
     return $ assign lh op e
 
-lhs :: (Parsable l) => P (Lhs l)
+lhs :: (Parsable l) => P (LhsNode l)
 lhs = try (FieldLhs <$$> fieldAccessParser)
     <|> try (ArrayLhs <$$> arrayAccess)
     <|> NameLhs <$$> name
 
 
 
-expParser :: (Parsable l) => P (Exp l)
+expParser :: (Parsable l) => P (ExpNode l)
 expParser = assignExp
 
-assignExp :: (Parsable l) => P (Exp l)
+assignExp :: (Parsable l) => P (ExpNode l)
 assignExp = try methodRef <|> try lambdaExp <|> try assignment <|> condExp
 
-condExp :: (Parsable l) => P (Exp l)
+condExp :: (Parsable l) => P (ExpNode l)
 condExp = do
     ie <- infixExp
     ces <- list condExpSuffix
     return $ foldl (\a s -> s a) ie ces
 
-condExpSuffix :: (Parsable l) => P (Exp l -> Exp l)
+condExpSuffix :: (Parsable l) => P (ExpNode l -> ExpNode l)
 condExpSuffix = do
     cond <- tP Cond
     tok Op_Query
@@ -773,18 +773,18 @@ condExpSuffix = do
     el <- condExp
     return $ \ce -> cond ce th el
 
-infixExp :: (Parsable l) => P (Exp l)
+infixExp :: (Parsable l) => P (ExpNode l)
 infixExp = infixExpWithOperators infixOperators
 
 -- See Note [Parsing operators]
-infixExpWithOperators :: (Parsable l) => [P Op] -> P (Exp l)
+infixExpWithOperators :: (Parsable l) => [P Op] -> P (ExpNode l)
 infixExpWithOperators [] = unaryExp
 infixExpWithOperators (op : ops) = do
     ue <- infixExpWithOperators ops
     ies <- list (infixExpSuffix op ops)
     return $ foldl (\a s -> s a) ue ies
 
-infixExpSuffix :: (Parsable l) => P Op -> [P Op] -> P (Exp l -> Exp l)
+infixExpSuffix :: (Parsable l) => P Op -> [P Op] -> P (ExpNode l -> ExpNode l)
 infixExpSuffix infixOp ops =
     (do binOpP <- tP BinOp
         op <- infixOp
@@ -797,7 +797,7 @@ infixExpSuffix infixOp ops =
         t  <- refType
         return $ \e1 -> insOf e1 t)
 
-unaryExp :: (Parsable l) => P (Exp l)
+unaryExp :: (Parsable l) => P (ExpNode l)
 unaryExp = try preIncDec <|>
     try (do
         op <- prefixOp
@@ -810,25 +810,25 @@ unaryExp = try preIncDec <|>
         return $ cast t e) <|>
     postfixExp
 
-postfixExpNES :: (Parsable l) => P (Exp l)
+postfixExpNES :: (Parsable l) => P (ExpNode l)
 postfixExpNES = primaryParser
 
-postfixExp :: (Parsable l) => P (Exp l)
+postfixExp :: (Parsable l) => P (ExpNode l)
 postfixExp = do
     pe <- postfixExpNES
     ops <- list postfixOp
     return $ foldl (\a s -> s a) pe ops
 
 
-primaryParser :: (Parsable l) => P (Exp l)
+primaryParser :: (Parsable l) => P (ExpNode l)
 primaryParser = primaryNPS |>> primarySuffix
 
-primaryNPS :: (Parsable l) => P (Exp l)
+primaryNPS :: (Parsable l) => P (ExpNode l)
 primaryNPS = try arrayCreation <|> primaryNoNewArrayNPS
 
 -- primaryNoNewArray = startSuff primaryNoNewArrayNPS primarySuffix
 
-primaryNoNewArrayNPS :: (Parsable l) => P (Exp l)
+primaryNoNewArrayNPS :: (Parsable l) => P (ExpNode l)
 primaryNoNewArrayNPS =
     Lit <$$> literalParser <|>
     const <$> tP This <*> tok KW_This <|>
@@ -850,14 +850,14 @@ primaryNoNewArrayNPS =
     try (ExpName <$$> name) <|>
     ArrayAccess <$$> arrayAccessNPS
 
-primarySuffix :: (Parsable l) => P (Exp l -> Exp l)
+primarySuffix :: (Parsable l) => P (ExpNode l -> ExpNode l)
 primarySuffix = try instanceCreationSuffix <|>
     try ((.) <$> tP ArrayAccess <*> arrayAccessSuffix) <|>
     try ((.) <$> tP MethodInv <*> methodInvocationSuffix) <|>
     (.) <$> tP FieldAccess <*> fieldAccessSuffix
 
 
-instanceCreationNPS :: (Parsable l) => P (Exp l)
+instanceCreationNPS :: (Parsable l) => P (ExpNode l)
 instanceCreationNPS =
     do instCr <- tP InstanceCreation
        tok KW_New
@@ -873,7 +873,7 @@ typeDeclSpecifier =
        return $ TypeDeclSpecifier ct
 
 
-instanceCreationSuffix :: (Parsable l) => P (Exp l -> Exp l)
+instanceCreationSuffix :: (Parsable l) => P (ExpNode l -> ExpNode l)
 instanceCreationSuffix =
      do qualCre <- tP QualInstanceCreation
         period >> tok KW_New
@@ -883,7 +883,7 @@ instanceCreationSuffix =
         mcb <- opt classBodyParser
         return $ \p -> qualCre p tas i as mcb
 
-instanceCreation :: (Parsable l) => P (Exp l)
+instanceCreation :: (Parsable l) => P (ExpNode l)
 instanceCreation = try instanceCreationNPS <|> do
     p <- primaryNPS
     ss <- list primarySuffix
@@ -893,17 +893,17 @@ instanceCreation = try instanceCreationNPS <|> do
      _ -> fail ""
 
 
-lambdaParamsParser :: (Parsable l) => P (LambdaParams l)
+lambdaParamsParser :: (Parsable l) => P (LambdaParamsNode l)
 lambdaParamsParser = try (LambdaSingleParam <$$> ident)
                <|> try (parens $ LambdaFormalParams <$$> seplist formalParam comma)
                <|> parens (LambdaInferredParams <$$> seplist ident comma)
 
-lambdaExp :: (Parsable l) => P (Exp l)
+lambdaExp :: (Parsable l) => P (ExpNode l)
 lambdaExp = Lambda <$$> (lambdaParamsParser <* tok LambdaArrow)
             <*> ((LambdaBlock <$$> try blockParser)
                  <|> (LambdaExpression <$$> expParser))
 
-methodRef :: (Parsable l) => P (Exp l)
+methodRef :: (Parsable l) => P (ExpNode l)
 methodRef = MethodRef <$$> (name <*  tok MethodRefSep)
             <*> ident
 
@@ -924,7 +924,7 @@ instanceCreation =
         return $ QualInstanceCreation p tas i as mcb)
 -}
 
-fieldAccessNPS :: (Parsable l) => P (FieldAccess l)
+fieldAccessNPS :: (Parsable l) => P (FieldAccessNode l)
 fieldAccessNPS =
     (do sFieldAcc <- tP SuperFieldAccess
         tok KW_Super >> period
@@ -936,14 +936,14 @@ fieldAccessNPS =
         i <- ident
         return $ clFieldAcc n i)
 
-fieldAccessSuffix :: (Parsable l) => P (Exp l -> FieldAccess l)
+fieldAccessSuffix :: (Parsable l) => P (ExpNode l -> FieldAccessNode l)
 fieldAccessSuffix = do
     primFAcc <- tP PrimaryFieldAccess
     period
     i <- ident
     return $ \p -> primFAcc p i
 
-fieldAccessParser :: (Parsable l) => P (FieldAccess l)
+fieldAccessParser :: (Parsable l) => P (FieldAccessNode l)
 fieldAccessParser = try fieldAccessNPS <|> do
     p <- primaryNPS
     ss <- list primarySuffix
@@ -977,7 +977,7 @@ fieldAccessParser =
         return $ PrimaryFieldAccess p i)
 -}
 
-methodInvocationNPS :: (Parsable l) => P (MethodInvocation l)
+methodInvocationNPS :: (Parsable l) => P (MethodInvocationNode l)
 methodInvocationNPS =
     (do sMCall <- tP SuperMethodCall
         tok KW_Super >> period
@@ -1000,7 +1000,7 @@ methodInvocationNPS =
                 return $ \na -> mc na rts i as)
         return $ f n)
 
-methodInvocationSuffix :: (Parsable l) => P (Exp l -> MethodInvocation l)
+methodInvocationSuffix :: (Parsable l) => P (ExpNode l -> MethodInvocationNode l)
 methodInvocationSuffix = do
         primMethCall <- tP PrimaryMethodCall
         period
@@ -1009,7 +1009,7 @@ methodInvocationSuffix = do
         as  <- args
         return $ \p -> primMethCall p [] i as
 
-methodInvocationExp :: (Parsable l) => P (Exp l)
+methodInvocationExp :: (Parsable l) => P (ExpNode l)
 methodInvocationExp = try (do
     p <- primaryNPS
     ss <- list primarySuffix
@@ -1059,7 +1059,7 @@ arrayAccessNPS = do
     e <- list1 $ brackets expParser
     return $ arrInd (exName n) e
 
-arrayAccessSuffix :: (Parsable l) => P (Exp l -> ArrayIndex l)
+arrayAccessSuffix :: (Parsable l) => P (ExpNode l -> ArrayIndex l)
 arrayAccessSuffix = do
     arrInd <- tP ArrayIndex
     e <- list1 $ brackets expParser
@@ -1085,7 +1085,7 @@ arrayRef :: P Exp
 arrayRef = ExpName <$> name <|> primaryNoNewArray
 -}
 
-arrayCreation :: (Parsable l) => P (Exp l)
+arrayCreation :: (Parsable l) => P (ExpNode l)
 arrayCreation = do
     tok KW_New
     t <- nonArrayType
@@ -1115,7 +1115,7 @@ literalParser =
 
 -- Operators
 
-preIncDecOp, prefixOp, postfixOp :: (Parsable l) => P (Exp l -> Exp l)
+preIncDecOp, prefixOp, postfixOp :: (Parsable l) => P (ExpNode l -> ExpNode l)
 preIncDecOp =
     (tok Op_PPlus >> tP PreIncrement) <|>
     (tok Op_MMinus >> tP PreDecrement)
