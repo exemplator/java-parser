@@ -28,142 +28,142 @@ class Pretty a where
 -- Nodes
 
 instance (Show l) => Pretty (CompilationUnitNode l) where
-  prettyPrec p (CompilationUnitNode _ cu) = prettyPrec p cu
-  prettyPrec p (ModuleDeclarationNode _ md) = prettyPrec p md
+  prettyPrec p (CompilationUnitNode cu) = prettyPrec p cu
+  prettyPrec p (ModuleDeclarationNode md) = prettyPrec p md
 
 instance (Show l) => Pretty (ModuleSpecNode l) where
-  prettyPrec p (ModuleRequiresNode _ mr) = prettyPrec p mr
-  prettyPrec p (ModuleExportsNode _ me) = prettyPrec p me
+  prettyPrec p (ModuleRequiresNode mr) = prettyPrec p mr
+  prettyPrec p (ModuleExportsNode me) = prettyPrec p me
 
 -----------------------------------------------------------------------
 -- Declarations
 
 instance (Show l) => Pretty (TypeDeclNode l) where
-  prettyPrec p (ClassTypeDeclNode _ x) = prettyPrec p x
-  prettyPrec p (InterfaceTypeDeclNode _ x) = prettyPrec p x
+  prettyPrec p (ClassTypeDeclNode x) = prettyPrec p x
+  prettyPrec p (InterfaceTypeDeclNode x) = prettyPrec p x
 
 instance (Show l) => Pretty (ClassDeclNode l) where
-  prettyPrec p (ClassDeclNode _ x) = prettyPrec p x
-  prettyPrec p (EnumDeclNode _ x) = prettyPrec p x
+  prettyPrec p (ClassDeclNode x) = prettyPrec p x
+  prettyPrec p (EnumDeclNode x) = prettyPrec p x
 
 instance (Show l) => Pretty (DeclNode l) where
-  prettyPrec p (MemberDeclNode _ mr) = prettyPrec p mr
-  prettyPrec p (InitDeclNode _ me) = prettyPrec p me
+  prettyPrec p (MemberDeclNode mr) = prettyPrec p mr
+  prettyPrec p (InitDeclNode me) = prettyPrec p me
 
 instance (Show l) => Pretty (MemberDeclNode l) where
-  prettyPrec p (FieldDeclNode _ mr) = prettyPrec p mr
-  prettyPrec p (MethodDeclNode _ me) = prettyPrec p me
-  prettyPrec p (ConstructorDeclNode _ me) = prettyPrec p me
-  prettyPrec p (MemberClassDeclNode _ me) = prettyPrec p me
-  prettyPrec p (MemberInterfaceDeclNode _ me) = prettyPrec p me
+  prettyPrec p (FieldDeclNode mr) = prettyPrec p mr
+  prettyPrec p (MethodDeclNode me) = prettyPrec p me
+  prettyPrec p (ConstructorDeclNode me) = prettyPrec p me
+  prettyPrec p (MemberClassDeclNode me) = prettyPrec p me
+  prettyPrec p (MemberInterfaceDeclNode me) = prettyPrec p me
 
 instance (Show l) => Pretty (VarDeclIdNode l) where
-  prettyPrec p (VarIdNode _ mr) = prettyPrec p mr
-  prettyPrec p (VarDeclArrayNode _ me) = prettyPrec p me
+  prettyPrec p (VarIdNode mr) = prettyPrec p mr
+  prettyPrec p (VarDeclArrayNode me) = prettyPrec p me
 
 instance (Show l) => Pretty (VarInitNode l) where
-  prettyPrec p (InitExpNode _ mr) = prettyPrec p mr
-  prettyPrec p (InitArrayNode _ (ArrayInit _ ai)) =
+  prettyPrec p (InitExpNode mr) = prettyPrec p mr
+  prettyPrec p (InitArrayNode (ArrayInit _ ai)) =
     text "{" <+> hsep (punctuate comma (map (prettyPrec p) ai)) <+> text "}"
 
 instance (Show l) => Pretty (ExplConstrInvNode l) where
-  prettyPrec p (ThisInvokeNode _ mr) = prettyPrec p mr
-  prettyPrec p (SuperInvokeNode _ me) = prettyPrec p me
-  prettyPrec p (PrimarySuperInvokeNode _ me) = prettyPrec p me
+  prettyPrec p (ThisInvokeNode mr) = prettyPrec p mr
+  prettyPrec p (SuperInvokeNode me) = prettyPrec p me
+  prettyPrec p (PrimarySuperInvokeNode me) = prettyPrec p me
 
 -----------------------------------------------------------------------
 -- Statements
 
 instance (Show l) => Pretty (BlockStmtNode l) where
-  prettyPrec p (BlockStmtNode _ mr) = prettyPrec p mr
-  prettyPrec p (LocalClassNode _ me) = prettyPrec p me
-  prettyPrec p (LocalVarsNode _ me) = prettyPrec p me
+  prettyPrec p (BlockStmtNode mr) = prettyPrec p mr
+  prettyPrec p (LocalClassNode me) = prettyPrec p me
+  prettyPrec p (LocalVarsNode me) = prettyPrec p me
 
 instance (Show l) => Pretty (StmtNode l) where
-  prettyPrec p (StmtBlockNode _ mr) = prettyPrec p mr
-  prettyPrec p (IfThenElseNode _ me) = prettyPrec p me
-  prettyPrec p (WhileNode _ me) = prettyPrec p me
-  prettyPrec p (BasicForNode _ me) = prettyPrec p me
-  prettyPrec p (EnhancedForNode _ me) = prettyPrec p me
-  prettyPrec p (EmptyNode _ me) = prettyPrec p me
-  prettyPrec p (AssertNode _ me) = prettyPrec p me
-  prettyPrec p (SwitchNode _ me) = prettyPrec p me
-  prettyPrec p (DoNode _ me) = prettyPrec p me
-  prettyPrec p (BreakNode _ me) = prettyPrec p me
-  prettyPrec p (ContinueNode _ me) = prettyPrec p me
-  prettyPrec p (ReturnNode _ me) = prettyPrec p me
-  prettyPrec p (SynchronizedNode _ me) = prettyPrec p me
-  prettyPrec p (ThrowNode _ me) = prettyPrec p me
-  prettyPrec p (TryNode _ me) = prettyPrec p me
-  prettyPrec p (LabeledNode _ me) = prettyPrec p me
-  prettyPrec p (ExpStmtNode _ exp) = prettyPrec p exp <> semi
+  prettyPrec p (StmtBlockNode mr) = prettyPrec p mr
+  prettyPrec p (IfThenElseNode me) = prettyPrec p me
+  prettyPrec p (WhileNode me) = prettyPrec p me
+  prettyPrec p (BasicForNode me) = prettyPrec p me
+  prettyPrec p (EnhancedForNode me) = prettyPrec p me
+  prettyPrec p (EmptyNode me) = prettyPrec p me
+  prettyPrec p (AssertNode me) = prettyPrec p me
+  prettyPrec p (SwitchNode me) = prettyPrec p me
+  prettyPrec p (DoNode me) = prettyPrec p me
+  prettyPrec p (BreakNode me) = prettyPrec p me
+  prettyPrec p (ContinueNode me) = prettyPrec p me
+  prettyPrec p (ReturnNode me) = prettyPrec p me
+  prettyPrec p (SynchronizedNode me) = prettyPrec p me
+  prettyPrec p (ThrowNode me) = prettyPrec p me
+  prettyPrec p (TryNode me) = prettyPrec p me
+  prettyPrec p (LabeledNode me) = prettyPrec p me
+  prettyPrec p (ExpStmtNode exp) = prettyPrec p exp <> semi
 
 instance (Show l) => Pretty (TryResourceNode l) where
-  prettyPrec p (TryResourceVarNode _ mr) = prettyPrec p mr
-  prettyPrec p (TryResourceFinalVarNode _ me) = prettyPrec p me
+  prettyPrec p (TryResourceVarNode mr) = prettyPrec p mr
+  prettyPrec p (TryResourceFinalVarNode me) = prettyPrec p me
 
 instance (Show l) => Pretty (SwitchLabelNode l) where
-  prettyPrec p (SwitchCaseNode _ e) = text "case" <+> prettyPrec p e <> colon
+  prettyPrec p (SwitchCaseNode e) = text "case" <+> prettyPrec p e <> colon
   prettyPrec p (DefaultNode _) = text "default:"
 
 instance (Show l) => Pretty (ForInitNode l) where
-  prettyPrec p (ForLocalVarsNode _ mr) = prettyPrec p mr
-  prettyPrec p (ForInitExpsNode _ me) = prettyPrec p me
+  prettyPrec p (ForLocalVarsNode mr) = prettyPrec p mr
+  prettyPrec p (ForInitExpsNode me) = prettyPrec p me
 
 instance (Show l) => Pretty (ExpNode l) where
-  prettyPrec p (LitNode _ mr) = prettyPrec p mr
-  prettyPrec p (ClassLitNode _ me) = prettyPrec p me
-  prettyPrec p (ThisNode _ x) = prettyPrec p x
-  prettyPrec p (QualifiedThisNode _ x) = prettyPrec p x
-  prettyPrec p (InstanceCreationNode _ x) = prettyPrec p x
-  prettyPrec p (QualInstanceCreationNode _ x) = prettyPrec p x
-  prettyPrec p (ArrayCreateNode _ x) = prettyPrec p x
-  prettyPrec p (ArrayCreateInitNode _ x) = prettyPrec p x
-  prettyPrec p (FieldAccessNode _ x) = parenPrec p 1 $ prettyPrec 1 x
-  prettyPrec p (MethodInvNode _ x) = prettyPrec p x
-  prettyPrec p (ArrayAccessNode _ x) = prettyPrec p x
-  prettyPrec p (ExpNameNode _ x) = prettyPrec p x
-  prettyPrec p (PostIncrementNode _ e) = parenPrec p 1 $ prettyPrec 2 e <> text "++"
-  prettyPrec p (PostDecrementNode _ e) = parenPrec p 1 $ prettyPrec 2 e <> text "--"
-  prettyPrec p (PreIncrementNode _ e) = parenPrec p 1 $ text "++" <> prettyPrec 2 e
-  prettyPrec p (PreDecrementNode _ e) = parenPrec p 1 $ text "--" <> prettyPrec 2 e
-  prettyPrec p (PrePlusNode _ e) = parenPrec p 2 $ char '+' <> prettyPrec 2 e
-  prettyPrec p (PreMinusNode _ e) = parenPrec p 2 $ char '-' <> prettyPrec 2 e
-  prettyPrec p (PreBitComplNode _ e) = parenPrec p 2 $ char '~' <> prettyPrec 2 e
-  prettyPrec p (PreNotNode _ e) = parenPrec p 2 $ char '!' <> prettyPrec 2 e
-  prettyPrec p (CastNode _ x) = prettyPrec p x
-  prettyPrec p (BinOpNode _ x) = prettyPrec p x
-  prettyPrec p (InstanceOfNode _ x) = prettyPrec p x
-  prettyPrec p (CondNode _ x) = prettyPrec p x
-  prettyPrec p (AssignNode _ x) = prettyPrec p x
-  prettyPrec p (LambdaNode _ x) = prettyPrec p x
-  prettyPrec p (MethodRefNode _ x) = prettyPrec p x
+  prettyPrec p (LitNode mr) = prettyPrec p mr
+  prettyPrec p (ClassLitNode me) = prettyPrec p me
+  prettyPrec p (ThisNode x) = prettyPrec p x
+  prettyPrec p (QualifiedThisNode x) = prettyPrec p x
+  prettyPrec p (InstanceCreationNode x) = prettyPrec p x
+  prettyPrec p (QualInstanceCreationNode x) = prettyPrec p x
+  prettyPrec p (ArrayCreateNode x) = prettyPrec p x
+  prettyPrec p (ArrayCreateInitNode x) = prettyPrec p x
+  prettyPrec p (FieldAccessNode x) = parenPrec p 1 $ prettyPrec 1 x
+  prettyPrec p (MethodInvNode x) = prettyPrec p x
+  prettyPrec p (ArrayAccessNode x) = prettyPrec p x
+  prettyPrec p (ExpNameNode x) = prettyPrec p x
+  prettyPrec p (PostIncrementNode e) = parenPrec p 1 $ prettyPrec 2 e <> text "++"
+  prettyPrec p (PostDecrementNode e) = parenPrec p 1 $ prettyPrec 2 e <> text "--"
+  prettyPrec p (PreIncrementNode e) = parenPrec p 1 $ text "++" <> prettyPrec 2 e
+  prettyPrec p (PreDecrementNode e) = parenPrec p 1 $ text "--" <> prettyPrec 2 e
+  prettyPrec p (PrePlusNode e) = parenPrec p 2 $ char '+' <> prettyPrec 2 e
+  prettyPrec p (PreMinusNode e) = parenPrec p 2 $ char '-' <> prettyPrec 2 e
+  prettyPrec p (PreBitComplNode e) = parenPrec p 2 $ char '~' <> prettyPrec 2 e
+  prettyPrec p (PreNotNode e) = parenPrec p 2 $ char '!' <> prettyPrec 2 e
+  prettyPrec p (CastNode x) = prettyPrec p x
+  prettyPrec p (BinOpNode x) = prettyPrec p x
+  prettyPrec p (InstanceOfNode x) = prettyPrec p x
+  prettyPrec p (CondNode x) = prettyPrec p x
+  prettyPrec p (AssignNode x) = prettyPrec p x
+  prettyPrec p (LambdaNode x) = prettyPrec p x
+  prettyPrec p (MethodRefNode x) = prettyPrec p x
 
 instance (Show l) => Pretty (LhsNode l) where
-  prettyPrec p (NameLhsNode _ mr) = prettyPrec p mr
-  prettyPrec p (FieldLhsNode _ me) = prettyPrec p me
-  prettyPrec p (ArrayLhsNode _ me) = prettyPrec p me
+  prettyPrec p (NameLhsNode mr) = prettyPrec p mr
+  prettyPrec p (FieldLhsNode me) = prettyPrec p me
+  prettyPrec p (ArrayLhsNode me) = prettyPrec p me
 
 instance (Show l) => Pretty (FieldAccessNode l) where
-  prettyPrec p (PrimaryFieldAccessNode _ mr) = prettyPrec p mr
-  prettyPrec p (SuperFieldAccessNode _ me) = prettyPrec p me
-  prettyPrec p (ClassFieldAccessNode _ me) = prettyPrec p me
+  prettyPrec p (PrimaryFieldAccessNode mr) = prettyPrec p mr
+  prettyPrec p (SuperFieldAccessNode me) = prettyPrec p me
+  prettyPrec p (ClassFieldAccessNode me) = prettyPrec p me
 
 instance (Show l) => Pretty (LambdaParamsNode l) where
-  prettyPrec p (LambdaSingleParamNode _ mr) = prettyPrec p mr
-  prettyPrec p (LambdaFormalParamsNode _ me) = prettyPrec p me
-  prettyPrec p (LambdaInferredParamsNode _ me) = prettyPrec p me
+  prettyPrec p (LambdaSingleParamNode mr) = prettyPrec p mr
+  prettyPrec p (LambdaFormalParamsNode me) = prettyPrec p me
+  prettyPrec p (LambdaInferredParamsNode me) = prettyPrec p me
 
 instance (Show l) => Pretty (LambdaExpressionNode l) where
-  prettyPrec p (LambdaExpressionNode _ mr) = prettyPrec p mr
-  prettyPrec p (LambdaBlockNode _ me) = prettyPrec p me
+  prettyPrec p (LambdaExpressionNode mr) = prettyPrec p mr
+  prettyPrec p (LambdaBlockNode me) = prettyPrec p me
 
 instance (Show l) => Pretty (MethodInvocationNode l) where
-  prettyPrec p (MethodCallNode _ mr) = prettyPrec p mr
-  prettyPrec p (PrimaryMethodCallNode _ me) = prettyPrec p me
-  prettyPrec p (SuperMethodCallNode _ me) = prettyPrec p me
-  prettyPrec p (ClassMethodCallNode _ me) = prettyPrec p me
-  prettyPrec p (TypeMethodCallNode _ me) = prettyPrec p me
+  prettyPrec p (MethodCallNode mr) = prettyPrec p mr
+  prettyPrec p (PrimaryMethodCallNode me) = prettyPrec p me
+  prettyPrec p (SuperMethodCallNode me) = prettyPrec p me
+  prettyPrec p (ClassMethodCallNode me) = prettyPrec p me
+  prettyPrec p (TypeMethodCallNode me) = prettyPrec p me
 
 -----------------------------------------------------------------------
 -- Packages
@@ -687,7 +687,7 @@ instance Pretty Ident where
 -----------------------------------------------------------------------
 -- Help functionality
 prettyNestedStmt :: (Show l) => Int -> StmtNode l -> Doc
-prettyNestedStmt prio p@(StmtBlockNode _ _) = prettyPrec prio p
+prettyNestedStmt prio p@(StmtBlockNode _) = prettyPrec prio p
 prettyNestedStmt prio p = nest 2 (prettyPrec prio p)
 
 maybePP :: Pretty a => Int -> Maybe a -> Doc

@@ -11,46 +11,46 @@ class HasBody a l where
 
 -- | Get type of TypeDeclNode
 instance HasType (TypeDeclNode l) where
-  getType (ClassTypeDeclNode _ ctd) = getType ctd
-  getType (InterfaceTypeDeclNode _ itd) = getType itd
+  getType (ClassTypeDeclNode ctd) = getType ctd
+  getType (InterfaceTypeDeclNode itd) = getType itd
 
 instance CollectTypes (TypeDeclNode l) where
-  collectTypes (ClassTypeDeclNode _ ctd) = collectTypes ctd
-  collectTypes (InterfaceTypeDeclNode _ itd) = collectTypes itd
+  collectTypes (ClassTypeDeclNode ctd) = collectTypes ctd
+  collectTypes (InterfaceTypeDeclNode itd) = collectTypes itd
 
 -- | Get the body of TypeDecl
 instance HasBody (TypeDeclNode l) l where
-  getBody (ClassTypeDeclNode _ classDeclB) = getBody classDeclB
-  getBody (InterfaceTypeDeclNode _ iterDecl) = getBody iterDecl
+  getBody (ClassTypeDeclNode classDeclB) = getBody classDeclB
+  getBody (InterfaceTypeDeclNode iterDecl) = getBody iterDecl
 
 -- | Get type of ClassDecl
 instance HasType (ClassDeclNode l) where
-  getType (ClassDeclNode _ ctd) = getType ctd
-  getType (EnumDeclNode _ itd) = getType itd
-  --getType (ClassDeclNode _ _ i _ _ _ _) = withoutPackageIdentToType i
-  --getType (EnumDeclNode _ _ i _ _) = withoutPackageIdentToType i
+  getType (ClassDeclNode ctd) = getType ctd
+  getType (EnumDeclNode itd) = getType itd
+  --getType (ClassDeclNode _ i _ _ _ _) = withoutPackageIdentToType i
+  --getType (EnumDeclNode _ i _ _) = withoutPackageIdentToType i
 
 -- | Get the body of ClassDecl
 instance HasBody (ClassDeclNode l) l where
-  getBody (ClassDeclNode _ ctd) = getBody ctd
-  getBody (EnumDeclNode _ itd) = getBody itd
-  --getBody (ClassDeclNode _ _ _ _ _ _ classBodyB) = getBody classBodyB
-  --getBody (EnumDeclNode _ _ _ _ enumBodyB) = getBody enumBodyB
+  getBody (ClassDeclNode ctd) = getBody ctd
+  getBody (EnumDeclNode itd) = getBody itd
+  --getBody (ClassDeclNode _ _ _ _ _ classBodyB) = getBody classBodyB
+  --getBody (EnumDeclNode _ _ _ enumBodyB) = getBody enumBodyB
 
 instance CollectTypes (ClassDeclNode l) where
-  collectTypes (ClassDeclNode _ ctd) = collectTypes ctd
-  collectTypes (EnumDeclNode _ itd) = collectTypes itd
-  --collectTypes (ClassDeclNode _ _ i _ _ types _) = withoutPackageIdentToType i : collectTypes types
-  --collectTypes (EnumDeclNode _ _ i types _) = withoutPackageIdentToType i : collectTypes types
+  collectTypes (ClassDeclNode ctd) = collectTypes ctd
+  collectTypes (EnumDeclNode itd) = collectTypes itd
+  --collectTypes (ClassDeclNode _ i _ _ types _) = withoutPackageIdentToType i : collectTypes types
+  --collectTypes (EnumDeclNode _ i types _) = withoutPackageIdentToType i : collectTypes types
 
 -- | Get type of MemberDecl if it is a MethodDecl (our solution to handeling the Maybe)
 instance CollectTypes (MemberDeclNode l) where
-  collectTypes (FieldDeclNode _ ctd) = collectTypes ctd
-  collectTypes (MethodDeclNode _ ctd) = collectTypes ctd
-  collectTypes (ConstructorDeclNode _ ctd) = []
-  collectTypes (MemberClassDeclNode _ ctd) = collectTypes ctd
-  collectTypes (MemberClassDeclNode _ ctd) = collectTypes ctd
-  collectTypes (MemberInterfaceDeclNode _ ctd) = collectTypes ctd
+  collectTypes (FieldDeclNode ctd) = collectTypes ctd
+  collectTypes (MethodDeclNode ctd) = collectTypes ctd
+  collectTypes (ConstructorDeclNode ctd) = []
+  collectTypes (MemberClassDeclNode ctd) = collectTypes ctd
+  collectTypes (MemberClassDeclNode ctd) = collectTypes ctd
+  collectTypes (MemberInterfaceDeclNode ctd) = collectTypes ctd
 
 instance Eq l => Ord (MemberDeclNode l) where
   compare = compare `on` memToInt
@@ -123,7 +123,7 @@ instance HasBody (InterfaceDecl l) l where
 
 -- | Get the body of ClassDecl
 instance HasBody (InterfaceBody l) l where
-  getBody (InterfaceBody l memDecls) = map (MemberDeclNode l) memDecls
+  getBody (InterfaceBody l memDecls) = map MemberDeclNode memDecls
 
 
 -- | Get type of MemberDecl if it is a MethodDecl (our solution to handeling the Maybe)
@@ -148,7 +148,7 @@ instance HasNode ModuleDeclaration CompilationUnitNode where
 instance HasNode ModuleRequires ModuleSpecNode where
   toNode = ModuleRequiresNode
 instance HasNode ModuleExports ModuleSpecNode where
-  toNode = ModuleRequiresNode
+  toNode = ModuleExportsNode
 
 instance HasNode ClassDeclNode TypeDeclNode where
   toNode = ClassTypeDeclNode
@@ -158,7 +158,7 @@ instance HasNode InterfaceDecl TypeDeclNode where
 instance HasNode ClassDecl ClassDeclNode where
   toNode = ClassDeclNode
 instance HasNode EnumDecl ClassDeclNode where
-  toNode = ClassDeclNode
+  toNode = EnumDeclNode
 
 instance HasNode MemberDeclNode DeclNode where
   toNode = MemberDeclNode
@@ -189,8 +189,8 @@ instance HasNode ThisInvoke ExplConstrInvNode where
   toNode = ThisInvokeNode
 instance HasNode SuperInvoke ExplConstrInvNode where
   toNode = SuperInvokeNode
-instance HasNode ExpNode ExplConstrInvNode where
-  toNode = PrimarySuperInvoke
+instance HasNode PrimarySuperInvoke ExplConstrInvNode where
+  toNode = PrimarySuperInvokeNode
 
 instance HasNode StmtNode BlockStmtNode where
   toNode = BlockStmtNode
