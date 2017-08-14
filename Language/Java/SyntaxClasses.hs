@@ -185,7 +185,7 @@ instance HasNode InterfaceDecl MemberDeclNode where
 
 instance HasNode VarId VarDeclIdNode where
   toNode = VarIdNode
-instance HasNode VarDeclArray VarDeclIdNode where
+instance HasNode VarDeclIdNode VarDeclIdNode where
   toNode = VarDeclArrayNode
 instance HasNode ExpNode VarInitNode where
   toNode = InitExpNode
@@ -205,6 +205,9 @@ instance HasNode ClassDecl BlockStmtNode where
   toNode = LocalClassNode
 instance HasNode LocalVars BlockStmtNode where
   toNode = LocalVarsNode
+
+instance HasNode Annotation Modifier where
+  toNode = Annotation
 
 instance HasNode Block StmtNode where
   toNode = StmtBlockNode

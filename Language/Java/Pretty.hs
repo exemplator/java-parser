@@ -59,7 +59,7 @@ instance (Show l) => Pretty (MemberDeclNode l) where
 
 instance (Show l) => Pretty (VarDeclIdNode l) where
   prettyPrec p (VarIdNode mr) = prettyPrec p mr
-  prettyPrec p (VarDeclArrayNode me) = prettyPrec p me
+  prettyPrec p (VarDeclArrayNode me) = prettyPrec p me <> text "[]"
 
 instance (Show l) => Pretty (VarInitNode l) where
   prettyPrec p (InitExpNode mr) = prettyPrec p mr
@@ -279,8 +279,6 @@ instance (Show l) => Pretty (VarDecl l) where
 
 instance Pretty (VarId l) where
   prettyPrec p (VarId _ ident) = prettyPrec p ident
-instance (Show l) => Pretty (VarDeclArray l) where
-  prettyPrec p (VarDeclArray _ vId) = prettyPrec p vId <> text "[]"
 
 instance (Show l) => Pretty (FormalParam l) where
   prettyPrec p (FormalParam _ mods t b vId) =
@@ -308,7 +306,7 @@ instance (Show l) => Pretty (PrimarySuperInvoke l) where
       ppTypeParams p rts <+> text "super" <> ppArgs args <> semi
 
 instance (Show l) => Pretty (Modifier l) where
-  prettyPrec p (Annotation _ ann) = prettyPrec p ann $+$ nest (-1) ( text "")
+  prettyPrec p (Annotation ann) = prettyPrec p ann $+$ nest (-1) ( text "")
   prettyPrec _ modifier = text . map toLower $ show modifier
 
 instance (Show l) => Pretty (Annotation l) where

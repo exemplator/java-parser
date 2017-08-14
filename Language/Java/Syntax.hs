@@ -48,7 +48,6 @@ module Language.Java.Syntax(
   ConstructorDecl (..),
   VarDecl (..),
   VarId (..),
-  VarDeclArray (..),
   FormalParam (..),
   MethodBody (..),
   ConstructorBody (..),
@@ -184,8 +183,7 @@ data MemberDeclNode l
 -- | The name of a variable in a declaration, which may be an array.
 data VarDeclIdNode l
     = VarIdNode (VarId l)
-    | VarDeclArrayNode (VarDeclArray l)
-    -- ^ Multi-dimensional arrays are represented by nested applications of 'VarDeclArray'.
+    | VarDeclArrayNode (VarDeclIdNode l) -- ^ Multi-dimensional arrays are represented by nested applications of 'VarDeclArray'.
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Explicit initializer for a variable declaration.
@@ -589,9 +587,6 @@ data VarDecl l = VarDecl { infoVarDecl :: l, varDeclName :: VarDeclIdNode l, var
 -- | The name of a variable in a declaration, which may be an array.
 data VarId l = VarId { infoVarId :: l, varIdName :: Ident }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
--- | Multi-dimensional arrays are represented by nested applications of 'VarDeclArray'.
-data VarDeclArray l = VarDeclArray { infoVarDeclArray :: l, varIdDecl :: VarDeclIdNode l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A formal parameter in method declaration. The last parameter
 --   for a given declaration may be marked as variable arity,
@@ -658,7 +653,7 @@ data Modifier l
     | Transient l
     | Volatile l
     | Native l
-    | Annotation l (Annotation l)
+    | Annotation (Annotation l)
     | Synchronized_ l
     | DefaultModifier l
   deriving (Eq,Read,Typeable,Generic,Data)
@@ -674,7 +669,7 @@ instance (Show l) => Show (Modifier l) where
    show (Transient _) = "transient"
    show (Volatile _) = "volatile"
    show (Native _) = "native"
-   show (Annotation _ a) = show a
+   show (Annotation a) = show a
    show (Synchronized_ _) = "synchronized"
    show (DefaultModifier _) = "default"
 
@@ -803,7 +798,7 @@ data TryResourceFinalVar l = TryResourceFinalVar
     deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A block of code labelled with a @case@ or @default@ within a @switch@ statement.
-data SwitchBlock l = SwitchBlock { infoSwitchBlock :: l, switchLabel :: SwitchLabelNode l, switchStmts :: [StmtNode l] }
+data SwitchBlock l = SwitchBlock { infoSwitchBlock :: l, switchLabel :: SwitchLabelNode l, switchStmts :: [SwitchBlock l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Initialization code for a basic @for@ statement.
