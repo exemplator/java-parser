@@ -201,7 +201,7 @@ instance HasNode PrimarySuperInvoke ExplConstrInvNode where
 
 instance HasNode StmtNode BlockStmtNode where
   toNode = BlockStmtNode
-instance HasNode ClassDecl BlockStmtNode where
+instance HasNode ClassDeclNode BlockStmtNode where
   toNode = LocalClassNode
 instance HasNode LocalVars BlockStmtNode where
   toNode = LocalVarsNode
@@ -275,9 +275,9 @@ instance HasNode ArrayCreateInit ExpNode where
   toNode = ArrayCreateInitNode
 instance HasNode FieldAccessNode ExpNode where
   toNode = FieldAccessNode
-instance HasNode MethodInv ExpNode where
+instance HasNode MethodInvocationNode ExpNode where
   toNode = MethodInvNode
-instance HasNode ArrayAccess ExpNode where
+instance HasNode ArrayIndex ExpNode where
   toNode = ArrayAccessNode
 instance HasNode ExpName ExpNode where
   toNode = ExpNameNode

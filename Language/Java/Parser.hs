@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeApplications      #-}
 module Language.Java.Parser (
     P,
     Parsable(..),
@@ -55,6 +56,7 @@ import           Prelude                     hiding ((>>), (>>=))
 import qualified Prelude                     as P ((>>), (>>=))
 
 import           Control.Applicative         ((<$), (<$>), (<*), (<*>))
+import           Control.Monad               (foldM)
 
 type P = Parsec [L Token] ()
 
@@ -108,6 +110,9 @@ wrapL a = (\a l -> toNode (a l)) <$> a
 
 wrapM :: (Applicative f, HasNode a b) => f (Mod l (a l)) -> f (Mod l (b l))
 wrapM a = (\a ms l -> toNode (a ms l)) <$> a
+
+wrapE :: (Applicative f, HasNode a b) => f (Exp l (a l)) -> f (Exp l (b l))
+wrapE a = (\a e l -> toNode (a e l)) <$> a
 
 ----------------------------------------------------------------------------
 -- Top-level parsing
@@ -345,7 +350,7 @@ explConstrInv = tP $ endSemi $
 -- TODO: This should be parsed like class bodies, and post-checked.
 --       That would give far better error messages.
 interfaceBodyDecl :: (Parsable l) => P (Maybe (MemberDeclNode l))
-interfaceBodyDecl = semiColon >> return Nothing <|>
+interfaceBodyDecl = (semiColon >> return Nothing) <|>
     tP $ do
         ms  <- list modifier
         imd <- interfaceMemberDecl
@@ -366,7 +371,7 @@ absMethodDecl = do
     fps <- formalParams
     thr <- lopt throws
     def <- opt defaultValue
-    body <- try (wrap methodBodyParser) <|> (wrapP $ semiColon >> return (flip MethodBody Nothing))
+    body <- try (methodBodyParser) <|> (wrapP $ semiColon >> return (flip MethodBody Nothing))
     return $ \ms l -> MethodDecl l ms tps rt idt fps thr def body
 
 throws :: (Parsable l) => P [ExceptionType l]
@@ -453,7 +458,7 @@ varDeclId :: (Parsable l) => P (VarDeclIdNode l)
 varDeclId = do
     varId <- wrapP $ VarId <$$> ident
     brkts <- list arrBrackets
-    foldM (\f _ -> (VarDeclArrayNode .) <$> f) varId brkts
+    return $ foldl (\f _ -> VarDeclArrayNode . f) varId brkts
 
 arrBrackets :: P ()
 arrBrackets = brackets $ return ()
@@ -487,14 +492,14 @@ blockStmt = tP $
     try ( do
         ms  <- list modifier
         cd  <- classDeclParser
-        returnN cd ms) <|>
+        returnN $ cd ms) <|>
     try ( do
         (m,t,vds) <- endSemi localVarDecl
         returnN $ \l -> LocalVars l m t vds) <|>
-    wrap stmt
+    (wrap stmt)
 
 stmt :: (Parsable l) => P (StmtNode l)
-stmt = tP $ ifStmt <|> whileStmt <|> forStmt <|> labeledStmtParser <|> stmtNoTrail
+stmt = tP (ifStmt <|> whileStmt <|> forStmt <|> labeledStmtParser) <|> stmtNoTrail
   where
     ifStmt = do
         tok KW_If
@@ -669,7 +674,7 @@ tryResources = seplist tryRes semiColon
             ty <- refType
             vars <- varDecls
             return $ \l -> TryResourceVar l mods ty vars
-        ) <|> (wrap $ TryResourceFinalVar <$$> ident)
+        ) <|> (wrapL $ TryResourceFinalVar <$$> ident)
 
 catch :: (Parsable l) => P (Catch l)
 catch = tP $ do
@@ -711,9 +716,9 @@ assignment = tP $ do
     return $ \l -> Assign l lh op e
 
 lhs :: (Parsable l) => P (LhsNode l)
-lhs = tP $ try (wrapL $ FieldLhs <$$> fieldAccessParser)
-    <|> try (wrap $ ArrayLhs <$$> arrayAccess)
-    <|> wrapL $ NameLhs <$$> name
+lhs = try (wrap fieldAccessParser)
+    <|> try (wrap arrayAccess)
+    <|> (wrapP $ NameLhs <$$> name)
 
 
 
@@ -726,16 +731,16 @@ assignExp = try methodRef <|> try lambdaExp <|> try(wrap assignment) <|> condExp
 condExp :: (Parsable l) => P (ExpNode l)
 condExp = do
     ie <- infixExp
-    ces <- list condExpSuffix
+    ces <- list $ wrapE condExpSuffix
     return $ foldl (\a s -> s a) ie ces
 
-condExpSuffix :: (Parsable l) => P (ExpNode l -> l -> ExpNode l)
+condExpSuffix :: (Parsable l) => P (Exp l (Cond l))
 condExpSuffix =  do
     tok Op_Query
     th <- expParser
     colon
     el <- condExp
-    return $ \ce l -> toNode $ Cond l ce th el
+    return $ \ce l -> Cond l ce th el
 
 infixExp :: (Parsable l) => P (ExpNode l)
 infixExp = infixExpWithOperators infixOperators
@@ -748,16 +753,15 @@ infixExpWithOperators (op : ops) = do
     ies <- list (infixExpSuffix op ops)
     return $ foldl (\a s -> s a) ue ies
 
-infixExpSuffix :: (Parsable l) => P Op -> [P Op] -> P (ExpNode l -> l -> ExpNode l)
+infixExpSuffix :: (Parsable l) => P Op -> [P Op] -> P (Exp l (ExpNode l))
 infixExpSuffix infixOp ops =
-    (do op <- infixOp
+    (wrapE $ do
+        op <- infixOp
         e2 <- infixExpWithOperators ops
-        return $ \e1 l -> toNode $ BinOp l e1 op e2) <|>
+        return $ \e1 l -> BinOp l e1 op e2) <|>
 
     -- FIXME 'instanceof' should have the same precedence as relational operators
-    (do tok KW_Instanceof
-        t  <- refType
-        return $ \e1 l -> toNode $ InstanceOf l e1 t)
+    (wrapE $ tok KW_Instanceof >> (\t e1 l -> InstanceOf l e1 t) <$> refType)
 
 unaryExp :: (Parsable l) => P (ExpNode l)
 unaryExp = try preIncDec <|>
@@ -782,7 +786,7 @@ postfixExp = do
 
 
 primaryParser :: (Parsable l) => P (ExpNode l)
-primaryParser = primaryNPS |>> primarySuffix
+primaryParser = tP $ primaryNPS |>> primarySuffix
 
 primaryNPS :: (Parsable l) => P (ExpNode l)
 primaryNPS = try arrayCreation <|> primaryNoNewArrayNPS
@@ -791,29 +795,29 @@ primaryNPS = try arrayCreation <|> primaryNoNewArrayNPS
 
 primaryNoNewArrayNPS :: (Parsable l) => P (ExpNode l)
 primaryNoNewArrayNPS =
-    Lit <$$> literalParser <|>
-    const <$> tP This <*> tok KW_This <|>
+    (wrapP $ Lit <$$> literalParser) <|>
+    (wrapP $ This <$ tok KW_This) <|>
     parens expParser <|>
     -- TODO: These two following should probably be merged more
     try (tP $  do
         rt <- resultType
         period >> tok KW_Class
-        return $ \l -> ClassLit l rt) <|>
+        returnN $ \l -> ClassLit l rt) <|>
     try (tP $ do
         t <- ttype
         period >> tok KW_This
-        return $ \l -> QualifiedThis l t) <|>
-    try instanceCreationNPS <|>
-    try (MethodInv <$$> methodInvocationNPS) <|>
-    try (FieldAccess <$$> fieldAccessNPS) <|>
-    try (ExpName <$$> name) <|>
-    ArrayAccess <$$> arrayAccessNPS
+        returnN $ \l -> QualifiedThis l t) <|>
+    try (wrap instanceCreationNPS) <|>
+    try (wrap methodInvocationNPS) <|>
+    try (wrap fieldAccessNPS) <|>
+    try (wrapP $ ExpName <$$> name) <|>
+    wrap arrayAccessNPS
 
-primarySuffix :: (Parsable l) => P (ExpNode l -> ExpNode l)
-primarySuffix = try instanceCreationSuffix <|>
-    try (wrapP $ ArrayAccess <$$> arrayAccessSuffix) <|>
-    try (wrapP $ MethodInv <$$> methodInvocationSuffix) <|>
-    wrapP $ FieldAccess <$$> fieldAccessSuffix
+primarySuffix :: (Parsable l) => P (Exp l (ExpNode l))
+primarySuffix = try (wrapE instanceCreationSuffix) <|>
+    try (wrapE arrayAccessSuffix) <|>
+    try ((wrapE . wrapE) methodInvocationSuffix) <|>
+    ((wrapE . wrapE) fieldAccessSuffix)
 
 
 instanceCreationNPS :: (Parsable l) => P (InstanceCreation l)
@@ -829,19 +833,19 @@ typeDeclSpecifier :: P TypeDeclSpecifier
 typeDeclSpecifier = TypeDeclSpecifier <$> classType
 
 
-instanceCreationSuffix :: (Parsable l) => P (ExpNode l -> l -> ExpNode l)
+instanceCreationSuffix :: (Parsable l) => P (Exp l (QualInstanceCreation l))
 instanceCreationSuffix =
     do  period >> tok KW_New
         tas <- lopt typeArgsParser
         i   <- ident
         as  <- args
         mcb <- opt classBodyParser
-        return $ \p l -> toNode $ QualInstanceCreation l p tas i as mcb
+        return $ \p l -> QualInstanceCreation l p tas i as mcb
 
 instanceCreation :: (Parsable l) => P (ExpNode l)
-instanceCreation = try instanceCreationNPS <|> do
+instanceCreation = try (wrap instanceCreationNPS) <|> do
     p <- primaryNPS
-    ss <- list primarySuffix
+    ss <- (list . tP) (flip <$> primarySuffix)
     let icp = foldl (\a s -> s a) p ss
     case icp of
      QualInstanceCreationNode {} -> wrap $ return icp
@@ -849,14 +853,19 @@ instanceCreation = try instanceCreationNPS <|> do
 
 
 lambdaParamsParser :: (Parsable l) => P (LambdaParamsNode l)
-lambdaParamsParser = tP $ try (wrapL $ LambdaSingleParam <$$> ident)
-               <|> try (parens $ wrapL $ LambdaFormalParams <$$> seplist formalParam comma)
-               <|> parens $ wrapL $ LambdaInferredParams <$$> seplist ident comma
+lambdaParamsParser = tP (try (wrapL $ LambdaSingleParam <$$> ident)
+               <|> try ( (parens . wrapL) $ LambdaFormalParams <$$> seplist formalParam comma)
+               <|> (parens . wrapL) $ LambdaInferredParams <$$> seplist ident comma)
+               where
+                sglP,lfp,lifp :: P (l -> LambdaParamsNode l)
+                sglP = wrapL $ LambdaSingleParam <$$> ident
+                lfp = (parens . wrapL) $ LambdaFormalParams <$$> seplist formalParam comma
+                lifp = (parens . wrapL) $ LambdaInferredParams <$$> seplist ident comma
 
 lambdaExp :: (Parsable l) => P (ExpNode l)
 lambdaExp = wrapP $ Lambda <$$> (lambdaParamsParser <* tok LambdaArrow)
-            <**> ((wrapP $ LambdaBlock <$$> try blockParser)
-                 <|> (wrapP $ LambdaExpression <$$> expParser))
+            <**> (((try . wrap) blockParser)
+                 <|> (wrap expParser))
 
 methodRef :: (Parsable l) => P (ExpNode l)
 methodRef = tP $ do
@@ -892,16 +901,16 @@ fieldAccessNPS = tP $
         i <- ident
         returnN $ \l -> ClassFieldAccess l n i)
 
-fieldAccessSuffix :: (Parsable l) => P (ExpNode l -> l -> FieldAccessNode l)
+fieldAccessSuffix :: (Parsable l) => P (Exp l (PrimaryFieldAccess l))
 fieldAccessSuffix = do
     period
     i <- ident
-    return $ \p l -> toNode $ PrimaryFieldAccess l p i
+    return $ \p l -> PrimaryFieldAccess l p i
 
 fieldAccessParser :: (Parsable l) => P (FieldAccessNode l)
 fieldAccessParser = try fieldAccessNPS <|> do
     p <- primaryNPS
-    ss <- list primarySuffix
+    ss <- (list . tP) (flip <$> primarySuffix)
     let fap = foldl (\a s -> s a) p ss
     case fap of
      FieldAccessNode fa -> return fa
@@ -941,33 +950,34 @@ methodInvocationNPS = tP $
         returnN $ \l -> SuperMethodCall l rts i as) <|>
     (do n <- name
         f <- (do as <- args
-                 return $ \na l -> MethodCall l na as) <|>
+                 return $ \na l -> toNode $ MethodCall l na as) <|>
              (period >> do
                 msp <- opt (tok KW_Super >> period)
-                rts <- lopt refTypeArgs
+                rts <- (map snd) <$> lopt refTypeArgs
                 i   <- ident
                 as  <- args
-                let mc = maybe (toNode TypeMethodCall) (const $ toNode ClassMethodCall) msp
-                return $ \na l-> mc l na rts i as)
+                let typeM = \na l -> toNode $ TypeMethodCall l na rts i as
+                let classM = const $ \na l -> toNode $ ClassMethodCall l na rts i as
+                return $ maybe typeM classM msp)
         return $ f n)
 
-methodInvocationSuffix :: (Parsable l) => P (ExpNode l -> l -> MethodInvocationNode l)
+methodInvocationSuffix :: (Parsable l) => P (Exp l (PrimaryMethodCall l))
 methodInvocationSuffix = do
         period
         _ <- lopt refTypeArgs
         i   <- ident
         as  <- args
-        return $ \p l -> toNode $ PrimaryMethodCall l p [] i as
+        return $ \p l -> PrimaryMethodCall l p [] i as
 
 methodInvocationExp :: (Parsable l) => P (ExpNode l)
 methodInvocationExp = try (do
     p <- primaryNPS
-    ss <- list primarySuffix
+    ss <- (list . tP) (flip <$> primarySuffix)
     let mip = foldl (\a s -> s a) p ss
     case mip of
      MethodInvNode _ -> return mip
      _ -> fail "") <|>
-     (wrap $ tP $ MethodInv <$> methodInvocationNPS)
+     (wrap methodInvocationNPS)
 
 {-
 methodInvocation :: P MethodInvocation
@@ -1007,7 +1017,7 @@ arrayAccessNPS = tP $ do
     e <- list1 $ brackets expParser
     return $ \l -> ArrayIndex l n e
 
-arrayAccessSuffix :: (Parsable l) => P (ExpNode l -> l -> ArrayIndex l)
+arrayAccessSuffix :: (Parsable l) => P (Exp l (ArrayIndex l))
 arrayAccessSuffix = do
     e <- list1 $ brackets expParser
     return $ \ref l -> ArrayIndex l ref e
@@ -1015,7 +1025,7 @@ arrayAccessSuffix = do
 arrayAccess :: (Parsable l) => P (ArrayIndex l)
 arrayAccess = try arrayAccessNPS <|> do
     p <- primaryNoNewArrayNPS
-    ss <- list primarySuffix
+    ss <- (list . tP) (flip <$> primarySuffix)
     let aap = foldl (\a s -> s a) p ss
     case aap of
      ArrayAccessNode ain -> return ain
@@ -1307,10 +1317,10 @@ sepListEndOptBy p end sep =
         <|> ((:[]) <$> end)
 
 
-startSuff, (|>>) :: P a -> P (a -> a) -> P a
+startSuff, (|>>) :: Parsable l => P a -> P (a -> l -> a) -> P a
 startSuff start suffix = do
     x <- start
-    ss <- list suffix
+    ss <- (list . tP) (flip <$> suffix)
     return $ foldl (\a s -> s a) x ss
 
 (|>>) = startSuff
@@ -1331,6 +1341,7 @@ pos2sourcePos :: (Int, Int) -> SourcePos
 pos2sourcePos (l,c) = newPos "" l c
 
 type Mod l a = [Modifier l] -> l -> a
+type Exp l a = ExpNode l -> l -> a
 
 parens, braces, brackets, angles :: P a -> P a
 parens   = between (tok OpenParen)  (tok CloseParen)

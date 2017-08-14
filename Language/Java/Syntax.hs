@@ -89,8 +89,6 @@ module Language.Java.Syntax(
   QualInstanceCreation (..),
   ArrayCreate (..),
   ArrayCreateInit (..),
-  MethodInv (..),
-  ArrayAccess (..),
   ExpName (..),
   Cast (..),
   BinOp (..),
@@ -209,7 +207,7 @@ data ExplConstrInvNode l
 --   class declaration or a local variable declaration.
 data BlockStmtNode l
     = BlockStmtNode (StmtNode l)
-    | LocalClassNode (ClassDecl l)
+    | LocalClassNode (ClassDeclNode l)
     | LocalVarsNode (LocalVars l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
@@ -310,9 +308,9 @@ data ExpNode l
     -- | A field access expression.
     | FieldAccessNode (FieldAccessNode l)
     -- | A method invocation expression.
-    | MethodInvNode (MethodInv l)
+    | MethodInvNode (MethodInvocationNode l)
     -- | An array access expression refers to a variable that is a component of an array.
-    | ArrayAccessNode (ArrayAccess l)
+    | ArrayAccessNode (ArrayIndex l)
 {-    | ArrayAccess ExpNode ExpNode -- Should this be made into a datatype, for consistency and use with Lhs? -}
     -- | An expression name, e.g. a variable.
     | ExpNameNode (ExpName l)
@@ -798,7 +796,7 @@ data TryResourceFinalVar l = TryResourceFinalVar
     deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | A block of code labelled with a @case@ or @default@ within a @switch@ statement.
-data SwitchBlock l = SwitchBlock { infoSwitchBlock :: l, switchLabel :: SwitchLabelNode l, switchStmts :: [SwitchBlock l] }
+data SwitchBlock l = SwitchBlock { infoSwitchBlock :: l, switchLabel :: SwitchLabelNode l, switchStmts :: [BlockStmtNode l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -- | Initialization code for a basic @for@ statement.
@@ -879,12 +877,6 @@ data ArrayCreateInit l = ArrayCreateInit
   , arrayInitDimensions :: Int
   , arrayCreatInit      :: ArrayInit l
   }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | A method invocation expression.
-data MethodInv l = MethodInv { infoMethodInv :: l, methodInvoc :: MethodInvocationNode l }
-  deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | An array access expression refers to a variable that is a component of an array.
-data ArrayAccess l = ArrayAccess { infoArrayAccess :: l, arrayAccessIndex :: ArrayIndex l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 {-    | ArrayAccess ExpNode ExpNode -- Should this be made into a datatype, for consistency and use with Lhs? -}
     -- | An expression name, e.g. a variable.

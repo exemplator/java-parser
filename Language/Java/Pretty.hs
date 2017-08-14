@@ -120,8 +120,8 @@ instance (Show l) => Pretty (ExpNode l) where
   prettyPrec p (ArrayCreateNode x) = prettyPrec p x
   prettyPrec p (ArrayCreateInitNode x) = prettyPrec p x
   prettyPrec p (FieldAccessNode x) = parenPrec p 1 $ prettyPrec 1 x
-  prettyPrec p (MethodInvNode x) = prettyPrec p x
-  prettyPrec p (ArrayAccessNode x) = prettyPrec p x
+  prettyPrec p (MethodInvNode x) = parenPrec p 1 $ prettyPrec 1 x
+  prettyPrec p (ArrayAccessNode x) = parenPrec p 1 $ prettyPrec 1 x
   prettyPrec p (ExpNameNode x) = prettyPrec p x
   prettyPrec p (PostIncrementNode e) = parenPrec p 1 $ prettyPrec 2 e <> text "++"
   prettyPrec p (PostDecrementNode e) = parenPrec p 1 $ prettyPrec 2 e <> text "--"
@@ -456,10 +456,6 @@ instance (Show l) => Pretty (ArrayCreateInit l) where
     text "new"
       <+> hcat (prettyPrec p t : replicate k (text "[]"))
       <+> prettyPrec p ini
-instance (Show l) => Pretty (MethodInv l) where
-  prettyPrec p (MethodInv _ mi) = parenPrec p 1 $ prettyPrec 1 mi
-instance (Show l) => Pretty (ArrayAccess l) where
-  prettyPrec p (ArrayAccess _ ain) = parenPrec p 1 $ prettyPrec 1 ain
 instance (Show l) => Pretty (ExpName l) where
   prettyPrec p (ExpName _ name) = prettyPrec p name
 instance (Show l) => Pretty (Cast l) where
