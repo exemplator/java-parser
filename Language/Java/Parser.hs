@@ -352,10 +352,10 @@ explConstrInv = tP $ endSemi $
 --       That would give far better error messages.
 interfaceBodyDecl :: (Parsable l) => P (Maybe (MemberDeclNode l))
 interfaceBodyDecl = (semiColon >> return Nothing) <|>
-    tP $ do
+    tP (do
         ms  <- list modifier
         imd <- interfaceMemberDecl
-        return $ \l -> (Just . toNode) (imd ms l)
+        return $ \l -> Just (imd ms l))
 
 interfaceMemberDecl :: (Parsable l) => P (Mod l (MemberDeclNode l))
 interfaceMemberDecl =
@@ -675,7 +675,7 @@ tryResources = seplist tryRes semiColon
             mods <- list modifier
             ty <- refType
             vars <- varDecls
-            return $ \l -> TryResourceVar l mods ty vars
+            returnN $ \l -> TryResourceVar l mods ty vars
         ) <|> (wrapL $ TryResourceFinalVar <$$> ident)
 
 catch :: (Parsable l) => P (Catch l)
@@ -855,14 +855,9 @@ instanceCreation = try (wrap instanceCreationNPS) <|> do
 
 
 lambdaParamsParser :: (Parsable l) => P (LambdaParamsNode l)
-lambdaParamsParser = tP (try (wrapL $ LambdaSingleParam <$$> ident)
+lambdaParamsParser = tP ( try (wrapL $ LambdaSingleParam <$$> ident)
                <|> try ( (parens . wrapL) $ LambdaFormalParams <$$> seplist formalParam comma)
-               <|> (parens . wrapL) $ LambdaInferredParams <$$> seplist ident comma)
-               where
-                sglP,lfp,lifp :: P (l -> LambdaParamsNode l)
-                sglP = wrapL $ LambdaSingleParam <$$> ident
-                lfp = (parens . wrapL) $ LambdaFormalParams <$$> seplist formalParam comma
-                lifp = (parens . wrapL) $ LambdaInferredParams <$$> seplist ident comma
+               <|> (parens . wrapL) (LambdaInferredParams <$$> seplist ident comma ))
 
 lambdaExp :: (Parsable l) => P (ExpNode l)
 lambdaExp = wrapP $ Lambda <$$> (lambdaParamsParser <* tok LambdaArrow)
