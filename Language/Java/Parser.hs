@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP                   #-}
+{-# LANGUAGE ExplicitForAll        #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
@@ -111,7 +112,7 @@ wrapL a = (\a l -> toNode (a l)) <$> a
 wrapM :: (Applicative f, HasNode a b) => f (Mod l (a l)) -> f (Mod l (b l))
 wrapM a = (\a ms l -> toNode (a ms l)) <$> a
 
-wrapE :: (Applicative f, HasNode a b) => f (Exp l (a l)) -> f (Exp l (b l))
+wrapE :: forall b a f l. (Applicative f, HasNode a b) => f (Exp l (a l)) -> f (Exp l (b l))
 wrapE a = (\a e l -> toNode (a e l)) <$> a
 
 ----------------------------------------------------------------------------
@@ -328,21 +329,21 @@ constrBodyParser = tP $ braces $ do
     bss <- list blockStmt
     return $ \l -> ConstructorBody l mec bss
 
-explConstrInv :: (Parsable l) => P (ExplConstrInvNode l)
+explConstrInv :: forall l. (Parsable l) => P (ExplConstrInvNode l)
 explConstrInv = tP $ endSemi $
     try ( do
-        tas <- (map snd) <$> lopt (refTypeArgs :: P [(l, RefType)])
+        tas <- (map snd) <$> lopt (refTypeArgs @l)
         tok KW_This
         as  <- args
         returnN $ \l -> ThisInvoke l tas as) <|>
     try ( do
-        tas <- (map snd) <$> lopt refTypeArgs
+        tas <- (map snd) <$> lopt (refTypeArgs @l)
         tok KW_Super
         as  <- args
         returnN $ \l -> SuperInvoke l tas as) <|>
     (do pri <- primaryParser
         period
-        tas <- (map snd) <$> lopt refTypeArgs
+        tas <- (map snd) <$> lopt (refTypeArgs @l)
         tok KW_Super
         as  <- args
         returnN $ \l -> PrimarySuperInvoke l pri tas as)
@@ -354,7 +355,7 @@ interfaceBodyDecl = (semiColon >> return Nothing) <|>
     tP $ do
         ms  <- list modifier
         imd <- interfaceMemberDecl
-        return $ \l -> Just $ imd ms l
+        return $ \l -> (Just . toNode) (imd ms l)
 
 interfaceMemberDecl :: (Parsable l) => P (Mod l (MemberDeclNode l))
 interfaceMemberDecl =
@@ -371,7 +372,7 @@ absMethodDecl = do
     fps <- formalParams
     thr <- lopt throws
     def <- opt defaultValue
-    body <- try (methodBodyParser) <|> (wrapP $ semiColon >> return (flip MethodBody Nothing))
+    body <- try (methodBodyParser) <|> (tP $ semiColon >> return (flip MethodBody Nothing))
     return $ \ms l -> MethodDecl l ms tps rt idt fps thr def body
 
 throws :: (Parsable l) => P [ExceptionType l]
@@ -456,9 +457,10 @@ varDecl = tP $ do
 
 varDeclId :: (Parsable l) => P (VarDeclIdNode l)
 varDeclId = do
-    varId <- wrapP $ VarId <$$> ident
+    initID <- (tP . return) (\l e -> toNode $ VarId l e)
+    idt <- ident
     brkts <- list arrBrackets
-    return $ foldl (\f _ -> VarDeclArrayNode . f) varId brkts
+    return $ foldl (\f _ -> VarDeclArrayNode . f) initID brkts idt
 
 arrBrackets :: P ()
 arrBrackets = brackets $ return ()
@@ -488,14 +490,14 @@ blockParser :: (Parsable l) => P (Block l)
 blockParser = tP $ braces $ (flip Block) <$> list blockStmt
 
 blockStmt :: (Parsable l) => P (BlockStmtNode l)
-blockStmt = tP $
-    try ( do
+blockStmt = 
+    tP ( try ( do
         ms  <- list modifier
         cd  <- classDeclParser
         returnN $ cd ms) <|>
     try ( do
         (m,t,vds) <- endSemi localVarDecl
-        returnN $ \l -> LocalVars l m t vds) <|>
+        returnN $ \l -> LocalVars l m t vds)) <|>
     (wrap stmt)
 
 stmt :: (Parsable l) => P (StmtNode l)
@@ -731,7 +733,7 @@ assignExp = try methodRef <|> try lambdaExp <|> try(wrap assignment) <|> condExp
 condExp :: (Parsable l) => P (ExpNode l)
 condExp = do
     ie <- infixExp
-    ces <- list $ wrapE condExpSuffix
+    ces <- (list . tP) ((\c l e -> toNode $ c e l) <$> condExpSuffix)
     return $ foldl (\a s -> s a) ie ces
 
 condExpSuffix :: (Parsable l) => P (Exp l (Cond l))
@@ -750,7 +752,7 @@ infixExpWithOperators :: (Parsable l) => [P Op] -> P (ExpNode l)
 infixExpWithOperators [] = unaryExp
 infixExpWithOperators (op : ops) = do
     ue <- infixExpWithOperators ops
-    ies <- list (infixExpSuffix op ops)
+    ies <- (list . tP) (flip <$> (infixExpSuffix op ops))
     return $ foldl (\a s -> s a) ue ies
 
 infixExpSuffix :: (Parsable l) => P Op -> [P Op] -> P (Exp l (ExpNode l))
@@ -786,7 +788,7 @@ postfixExp = do
 
 
 primaryParser :: (Parsable l) => P (ExpNode l)
-primaryParser = tP $ primaryNPS |>> primarySuffix
+primaryParser = primaryNPS |>> primarySuffix
 
 primaryNPS :: (Parsable l) => P (ExpNode l)
 primaryNPS = try arrayCreation <|> primaryNoNewArrayNPS
@@ -816,8 +818,8 @@ primaryNoNewArrayNPS =
 primarySuffix :: (Parsable l) => P (Exp l (ExpNode l))
 primarySuffix = try (wrapE instanceCreationSuffix) <|>
     try (wrapE arrayAccessSuffix) <|>
-    try ((wrapE . wrapE) methodInvocationSuffix) <|>
-    ((wrapE . wrapE) fieldAccessSuffix)
+    try ((wrapE . wrapE @MethodInvocationNode) methodInvocationSuffix) <|>
+    ((wrapE . wrapE @FieldAccessNode) fieldAccessSuffix)
 
 
 instanceCreationNPS :: (Parsable l) => P (InstanceCreation l)
@@ -941,10 +943,10 @@ fieldAccessParser =
         return $ PrimaryFieldAccess p i)
 -}
 
-methodInvocationNPS :: (Parsable l) => P (MethodInvocationNode l)
+methodInvocationNPS :: forall l. (Parsable l) => P (MethodInvocationNode l)
 methodInvocationNPS = tP $
     (do tok KW_Super >> period
-        rts <- (map snd) <$> lopt refTypeArgs
+        rts <- (map snd) <$> lopt (refTypeArgs @l)
         i   <- ident
         as  <- args
         returnN $ \l -> SuperMethodCall l rts i as) <|>
@@ -953,7 +955,7 @@ methodInvocationNPS = tP $
                  return $ \na l -> toNode $ MethodCall l na as) <|>
              (period >> do
                 msp <- opt (tok KW_Super >> period)
-                rts <- (map snd) <$> lopt refTypeArgs
+                rts <- (map snd) <$> lopt (refTypeArgs @l)
                 i   <- ident
                 as  <- args
                 let typeM = \na l -> toNode $ TypeMethodCall l na rts i as
@@ -961,10 +963,10 @@ methodInvocationNPS = tP $
                 return $ maybe typeM classM msp)
         return $ f n)
 
-methodInvocationSuffix :: (Parsable l) => P (Exp l (PrimaryMethodCall l))
+methodInvocationSuffix :: forall l. (Parsable l) => P (Exp l (PrimaryMethodCall l))
 methodInvocationSuffix = do
         period
-        _ <- lopt refTypeArgs
+        _ <- lopt (refTypeArgs @l)
         i   <- ident
         as  <- args
         return $ \p l -> PrimaryMethodCall l p [] i as
@@ -1249,7 +1251,7 @@ wildcardBound :: P WildcardBound
 wildcardBound = tok KW_Extends >> ExtendsBound <$> refType
     <|> tok KW_Super >> SuperBound <$> refType
 
-refTypeArgs :: (Parsable l) => P [(l, RefType)]
+refTypeArgs :: forall l. (Parsable l) => P [(l, RefType)]
 refTypeArgs = angles refTypeList
 
 ----------------------------------------------------------------------------
