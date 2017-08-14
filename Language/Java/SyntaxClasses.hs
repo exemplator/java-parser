@@ -1,5 +1,7 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE TypeOperators         #-}
 module Language.Java.SyntaxClasses where
 
 import           Data.Function        (on)
@@ -136,6 +138,11 @@ instance CollectTypes (MethodDecl l) where
 
 class HasNode el no where
   toNode :: (el l) -> (no l)
+
+--type Compose a b = forall c. a (b c)
+
+--instance (HasNode el no, Functor f) => HasNode (Compose f el) (Compose f no) where
+--  toNode = fmap toNode
 
 -----------------------------------------------------------------------
 -- Nodes
