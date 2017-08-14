@@ -176,7 +176,7 @@ data MemberDeclNode l
     -- | A constructor is used in the creation of an object that is an instance of a class.
     | ConstructorDeclNode (ConstructorDecl l)
     -- | A member class is a class whose declaration is directly enclosed in another class or interface declaration.
-    | MemberClassDeclNode (ClassDecl l)
+    | MemberClassDeclNode (ClassDeclNode l)
     -- | A member interface is an interface whose declaration is directly enclosed in another class or interface declaration.
     | MemberInterfaceDeclNode (InterfaceDecl l)
   deriving (Eq,Show,Read,Typeable,Generic,Data)

@@ -178,7 +178,7 @@ instance HasNode MethodDecl MemberDeclNode where
   toNode = MethodDeclNode
 instance HasNode ConstructorDecl MemberDeclNode where
   toNode = ConstructorDeclNode
-instance HasNode ClassDecl MemberDeclNode where
+instance HasNode ClassDeclNode MemberDeclNode where
   toNode = MemberClassDeclNode
 instance HasNode InterfaceDecl MemberDeclNode where
   toNode = MemberInterfaceDeclNode
