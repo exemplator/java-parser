@@ -15,7 +15,7 @@ Cabal-Version:          >= 1.8
 Extra-Source-Files:
     tests/java/good/*.java
     tests/java/bad/*.java
-    Language/Java/Lexer.x
+    src/Language/Java/Lexer.x
 
 source-repository head
   type:                 git

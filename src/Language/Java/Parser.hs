@@ -8,7 +8,7 @@ module Language.Java.Parser (
     P, ParseError,
     Parsable(..),
 
-    parseCompilationUnit, parser, parserS,
+    parseCompilationUnit, parser, parserS, unsafeParser,
 
     compilationUnitNode, compilationUnit, packageDeclParser, importDecl, typeDeclParser,
 
@@ -57,6 +57,7 @@ import qualified Prelude                     as P ((>>), (>>=))
 
 import           Control.Applicative         ((<$), (<$>), (<*), (<*>))
 import           Control.Monad               (foldM)
+import           Debug.Trace
 
 type P = Parsec [L Token] ()
 
@@ -125,9 +126,14 @@ parserS :: P (a Segment) -> String -> Either ParseError (a Segment)
 parserS = parser
 
 parser :: P a -> String -> Either ParseError a
-parser p = runParser p () "" . lexer
+parser p = runParser peof () "" . lexer
+    where
+        peof = do
+            pResult <- p
+            eof
+            return pResult
 
-unsafeParser :: P a -> String -> a
+unsafeParser :: P (a Segment) -> String -> (a Segment)
 unsafeParser p s = let (Right x) = parser p s in x
 
 ----------------------------------------------------------------------------
@@ -151,6 +157,7 @@ moduleDeclaration = tP $ do
     (Ident "module") <- ident
     modulePackageP <- fullQualiPkg
     moduleSpecsP <- braces $ list moduleSpecParser
+    eof
     return $ \l -> ModuleDeclaration l modulePackageP moduleSpecsP
 
 packageDeclParser :: (Parsable l) => P (PackageDecl l)
@@ -493,13 +500,13 @@ blockParser = tP $ braces $ (flip Block) <$> list blockStmt
 
 blockStmt :: (Parsable l) => P (BlockStmtNode l)
 blockStmt = 
-    tP ( try ( do
+    tP ((try ( do
         ms  <- list modifier
         cd  <- classDeclParser
-        returnN $ cd ms) <|>
-    try ( do
-        (m,t,vds) <- endSemi localVarDecl
-        returnN $ \l -> LocalVars l m t vds)) <|>
+        returnN $ cd ms)) <|>
+        (try (do
+            (m,t,vds) <- endSemi localVarDecl
+            returnN $ \l -> LocalVars l m t vds))) <|>
     (wrap stmt)
 
 stmt :: (Parsable l) => P (StmtNode l)
@@ -724,13 +731,11 @@ lhs = try (wrap fieldAccessParser)
     <|> try (wrap arrayAccess)
     <|> (wrapP $ NameLhs <$$> name)
 
-
-
 expParser :: (Parsable l) => P (ExpNode l)
 expParser = assignExp
 
 assignExp :: (Parsable l) => P (ExpNode l)
-assignExp = try methodRef <|> try lambdaExp <|> try(wrap assignment) <|> condExp
+assignExp = try methodRef <|> try lambdaExp <|> condExp <|> try(wrap assignment)
 
 condExp :: (Parsable l) => P (ExpNode l)
 condExp = do
@@ -868,7 +873,7 @@ lambdaExp = wrapP $ Lambda <$$> (lambdaParamsParser <* tok LambdaArrow)
 
 methodRef :: (Parsable l) => P (ExpNode l)
 methodRef = tP $ do
-                n <- name
+                n <- (try name) <|> ((tok KW_This) >> (return $ Name [Ident "this"]))
                 tok MethodRefSep
                 i <- ident
                 returnN $ \l -> MethodRef l n i

@@ -303,7 +303,7 @@ data ExpNode l
     | ArrayCreateInitNode (ArrayCreateInit l)
     -- | A field access expression.
     | FieldAccessNode (FieldAccessNode l)
-    -- | A method invocation expression.
+    -- | A method invocation expression, eventually followed by another ExpNode (field access or method incoation)
     | MethodInvNode (MethodInvocationNode l)
     -- | An array access expression refers to a variable that is a component of an array.
     | ArrayAccessNode (ArrayIndex l)
