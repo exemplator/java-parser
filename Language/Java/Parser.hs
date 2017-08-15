@@ -5,7 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeApplications      #-}
 module Language.Java.Parser (
-    P,
+    P, ParseError,
     Parsable(..),
 
     parseCompilationUnit, parser, parserS,
@@ -127,12 +127,15 @@ parserS = parser
 parser :: P a -> String -> Either ParseError a
 parser p = runParser p () "" . lexer
 
+unsafeParser :: P a -> String -> a
+unsafeParser p s = let (Right x) = parser p s in x
+
 ----------------------------------------------------------------------------
 -- Packages and compilation units
 
 compilationUnitNode :: Parsable l => P (CompilationUnitNode l)
-compilationUnitNode = try (wrap compilationUnit)
-        <|> wrap moduleDeclaration
+compilationUnitNode = try (wrap moduleDeclaration)
+        <|> wrap compilationUnit
 
 compilationUnit :: Parsable l => P (CompilationUnit l)
 compilationUnit = tP $ do
@@ -399,7 +402,7 @@ formalParam = tP $ do
     typ <- ttype
     var <- bopt ellipsis
     vid <- varDeclId
-    return $ \l -> FormalParam l ms typ var (toNode vid)
+    return $ \l -> FormalParam l ms typ var vid
 
 ellipsis :: P ()
 ellipsis = period >> period >> period
@@ -450,7 +453,7 @@ varDecls = seplist1 varDecl comma
 
 varDecl :: (Parsable l) => P (VarDecl l)
 varDecl = tP $ do
-    vid <- wrap varDeclId
+    vid <- varDeclId
     mvi <- opt $ tok Op_Equal >> varInitParser
     return $ \l -> VarDecl l vid mvi
 
@@ -692,7 +695,7 @@ stmtExp = try preIncDec
     <|> try postIncDec
     <|> try (wrap assignment)
     -- There are sharing gains to be made by unifying these two
-    <|> try (wrap methodInvocationExp)
+    <|> try (methodInvocationExp)
     <|> try lambdaExp
     <|> try methodRef
     <|> instanceCreation
@@ -849,7 +852,7 @@ instanceCreation = try (wrap instanceCreationNPS) <|> do
     ss <- (list . tP) (flip <$> primarySuffix)
     let icp = foldl (\a s -> s a) p ss
     case icp of
-     QualInstanceCreationNode {} -> wrap $ return icp
+     QualInstanceCreationNode {} -> return icp
      _ -> fail ""
 
 

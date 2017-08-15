@@ -306,8 +306,6 @@ instance HasNode ArrayIndex ExpNode where
   toNode = ArrayAccessNode
 instance HasNode ExpName ExpNode where
   toNode = ExpNameNode
-instance HasNode ExpNode ExpNode where
-  toNode = PreNotNode
 instance HasNode Cast ExpNode where
   toNode = CastNode
 instance HasNode BinOp ExpNode where
