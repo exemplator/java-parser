@@ -10,7 +10,7 @@ module Language.Java.Parser (
 
     parseCompilationUnit, parser,
 
-    compilationUnit, packageDeclParser, importDecl, typeDeclParser,
+    compilationUnitNode, compilationUnit, packageDeclParser, importDecl, typeDeclParser,
 
     classDeclParser, interfaceDeclParser,
 
@@ -118,15 +118,12 @@ wrapE a = (\a e l -> toNode (a e l)) <$> a
 ----------------------------------------------------------------------------
 -- Top-level parsing
 
-parseCompilationUnit :: String -> Either ParseError (CompilationUnit Segment)
+parseCompilationUnit :: String -> Either ParseError (CompilationUnitNode Segment)
 parseCompilationUnit inp =
-    runParser compilationUnit () "" (lexer inp)
+    runParser compilationUnitNode () "" (lexer inp)
 
 parser :: P a -> String -> Either ParseError a
 parser p = runParser p () "" . lexer
-
---class Parse a where
---  parse :: String -> a
 
 ----------------------------------------------------------------------------
 -- Packages and compilation units

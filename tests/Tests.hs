@@ -16,56 +16,14 @@ import           Control.Applicative
 import           Control.Monad
 import           Data.List              (isSuffixOf)
 
+import           Arbitrary
 import qualified Control.Exception      as E
 import           Language.Java.Parser
 import           Language.Java.Position
 import           Language.Java.Pretty
 import           Language.Java.Syntax
 
-instance Arbitrary (CompilationUnit Singleton) where
-    arbitrary = CompilationUnit <$> arbitrary <*> arbitrary <*> arbitrary <*> ((:[]) <$> arbitrary)
-instance Arbitrary (PackageDecl Singleton) where
-    arbitrary = PackageDecl <$> arbitrary <*> arbitrary
-instance Arbitrary (ImportDecl Singleton) where
-    arbitrary = ImportDecl <$> arbitrary <*> arbitrary <*> arbitrary
-instance Arbitrary (TypeDecl Singleton) where
-    arbitrary = ClassTypeDecl <$> arbitrary <*> arbitrary
-instance Arbitrary (ClassDecl Singleton) where
-    arbitrary = ClassDecl <$> arbitrary <*> pure [] <*> arbitrary <*> pure [] <*> pure Nothing <*> pure [] <*> arbitrary
-instance Arbitrary (ClassBody Singleton) where
-    arbitrary = ClassBody <$> arbitrary <*> pure []
-instance Arbitrary Name where
-    arbitrary = Name <$> (choose (1,3) >>= \len -> replicateM len arbitrary)
-instance Arbitrary Ident where
-    arbitrary = Ident . unkeyword <$> (choose (1,15) >>= \len -> replicateM len (elements (['a'..'z'] ++ ['A'..'Z'])))
-      where unkeyword k
-                | k `elem` ["if","do","then","else"] = "x" ++ k
-                | otherwise                          = k
 
-
-instance Arbitrary Package where
-    arbitrary = FullQualiPackage <$> ((:[]) <$> arbitrary)
-
-instance Arbitrary RefType where
-    arbitrary = ClassRefType <$> arbitrary
-
-instance Arbitrary ClassType where
-    arbitrary = WithPackage <$> arbitrary <*> arbitrary
-
-instance Arbitrary ClassName where
-    arbitrary = ClassName <$> ((:[]) <$> arbitrary)
-
-instance Arbitrary TypeArgument where
-    arbitrary = ActualType <$> arbitrary
-
-instance Arbitrary Singleton where
-    arbitrary = return Singleton
-
-data Singleton = Singleton
-    deriving (Show, Eq)
-
-instance Parsable Singleton where
-    toParser constr = return $ constr Singleton
 
 ----------------------------------------------------------
 testJavaDirectory :: FilePath
@@ -84,7 +42,7 @@ toTestCase expected jFile = testCase (takeBaseName jFile) doTest
                         Right (Left perr)           -> assertBool ("failure parse error: " ++ show perr) (not expected)
                         Right (Right p)             -> assertBool ("success: " ++ show p) expected
 
-        parseOne = parserSeg compilationUnit <$> readFile jFile
+        parseOne = parserSeg compilationUnitNode <$> readFile jFile
 
 getAllJavaPaths path = map (path </>) . filter isJavaFile <$> getDirectoryContents path
 
@@ -123,7 +81,7 @@ main = do
           ]
         ]
     where
-        expParser' :: P (Exp Singleton)
+        expParser' :: P (ExpNode Singleton)
         expParser' = expParser
 
 testRoundTrip p testName str = testCase testName $
