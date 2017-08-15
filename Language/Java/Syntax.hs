@@ -131,10 +131,8 @@ data CompilationUnitNode l
 
 -- | specifies the module declarations
 data ModuleSpecNode l
-  -- | requires the module to work
-  = ModuleRequiresNode (ModuleRequires l)
-  -- | exports the package
-  | ModuleExportsNode (ModuleExports l)
+  = ModuleRequiresNode (ModuleRequires l) -- ^ requires the module to work
+  | ModuleExportsNode (ModuleExports l) -- ^ exports the package
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 -----------------------------------------------------------------------
@@ -423,7 +421,7 @@ data ModuleRequires l = ModuleRequires
   }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
-  -- | exports the package
+-- | Exports the package
 data ModuleExports l = ModuleExports
   { infoModuleExports :: l
   , exportsPackage    :: Package
@@ -700,14 +698,14 @@ data LocalVars l = LocalVars
       }
       deriving (Eq,Show,Read,Typeable,Generic,Data)
 
-    -- | The @if-then@ statement allows conditional execution of a statement.
+-- | The @if-then@ statement allows conditional execution of a statement.
 data IfThenElse l =  IfThenElse { infoIfThenElse :: l, ifExp :: ExpNode l, thenExp :: StmtNode l, elseExp :: Maybe (StmtNode l) }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | The @while@ statement executes an expression and a statement repeatedly until the value of the expression is false.
+-- | The @while@ statement executes an expression and a statement repeatedly until the value of the expression is false.
 data While l = While { infoWhile :: l, whileVondition :: ExpNode l, whileBody :: StmtNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | The basic @for@ statement executes some initialization code, then executes an expression, a statement, and some
-    --   update code repeatedly until the value of the expression is false.
+-- | The basic @for@ statement executes some initialization code, then executes an expression, a statement, and some
+--   update code repeatedly until the value of the expression is false.
 data BasicFor l = BasicFor
       { infoBasicFor :: l
       , forInit      :: Maybe (ForInitNode l)
@@ -716,7 +714,7 @@ data BasicFor l = BasicFor
       , basicForBody :: StmtNode l
       }
       deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | The enhanced @for@ statement iterates over an array or a value of a class that implements the @iterator@ interface.
+-- | The enhanced @for@ statement iterates over an array or a value of a class that implements the @iterator@ interface.
 data EnhancedFor l = EnhancedFor
       { infoEnhancedFor  :: l
       , loopVarModifiers :: [Modifier l] -- ^ example: for (final Int x : set) {..}
@@ -726,40 +724,40 @@ data EnhancedFor l = EnhancedFor
       , enhancedForBody  :: StmtNode l
       }
       deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | An empty statement does nothing.
+-- | An empty statement does nothing.
 newtype Empty l = Empty { infoEmpty :: l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | An assertion is a statement containing a boolean expression, where an error is reported if the expression
-    --   evaluates to false.
+-- | An assertion is a statement containing a boolean expression, where an error is reported if the expression
+--   evaluates to false.
 data Assert l = Assert { infoAssert :: l, booleanExp :: ExpNode l, valueExp :: Maybe (ExpNode l) }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | The switch statement transfers control to one of several statements depending on the value of an expression.
+-- | The switch statement transfers control to one of several statements depending on the value of an expression.
 data Switch l = Switch { infoSwitch :: l, switchValue :: ExpNode l, switchBlocks :: [SwitchBlock l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | The @do@ statement executes a statement and an expression repeatedly until the value of the expression is false.
+-- | The @do@ statement executes a statement and an expression repeatedly until the value of the expression is false.
 data Do l = Do { infoDo :: l, doBody :: StmtNode l, doCondition :: ExpNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | A @break@ statement transfers control out of an enclosing statement.
+-- | A @break@ statement transfers control out of an enclosing statement.
 data Break l = Break { infoBreak :: l, breakLabel :: Maybe Ident }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | A @continue@ statement may occur only in a while, do, or for statement. Control passes to the loop-continuation
-    --   point of that statement.
+-- | A @continue@ statement may occur only in a while, do, or for statement. Control passes to the loop-continuation
+--   point of that statement.
 data Continue l = Continue { infoContinue :: l, continueLabel :: Maybe Ident }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | A @return@ statement returns control to the invoker of a method or constructor.
+-- | A @return@ statement returns control to the invoker of a method or constructor.
 data Return l = Return { infoReturn :: l, returnExp :: Maybe (ExpNode l) }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | A @synchronized@ statement acquires a mutual-exclusion lock on behalf of the executing thread, executes a block,
-    --   then releases the lock. While the executing thread owns the lock, no other thread may acquire the lock.
+-- | A @synchronized@ statement acquires a mutual-exclusion lock on behalf of the executing thread, executes a block,
+--   then releases the lock. While the executing thread owns the lock, no other thread may acquire the lock.
 data Synchronized l = Synchronized { infoSynchronized :: l, synchronizeOn :: ExpNode l, synchronizeBloc :: Block l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | A @throw@ statement causes an exception to be thrown.
+-- | A @throw@ statement causes an exception to be thrown.
 data Throw l = Throw { infoThrow :: l, throwExp :: ExpNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | A try statement executes a block. If a value is thrown and the try statement has one or more catch clauses that
-    --   can catch it, then control will be transferred to the first such catch clause. If the try statement has a finally
-    --   clause, then another block of code is executed, no matter whether the try block completes normally or abruptly,
-    --   and no matter whether a catch clause is first given control.
+-- | A try statement executes a block. If a value is thrown and the try statement has one or more catch clauses that
+--   can catch it, then control will be transferred to the first such catch clause. If the try statement has a finally
+--   clause, then another block of code is executed, no matter whether the try block completes normally or abruptly,
+--   and no matter whether a catch clause is first given control.
 data Try l = Try
       { infoTry     :: l
       , tryResource :: [TryResourceNode l]
@@ -769,7 +767,7 @@ data Try l = Try
       }
       deriving (Eq,Show,Read,Typeable,Generic,Data)
 
-    -- | Statements may have label prefixes.
+-- | Statements may have label prefixes.
 data Labeled l = Labeled { infoLabeled :: l, label :: Ident, labeledStmt :: StmtNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
@@ -778,7 +776,7 @@ data Labeled l = Labeled { infoLabeled :: l, label :: Ident, labeledStmt :: Stmt
 data Catch l = Catch { infoCatch :: l, catchParam :: FormalParam l, catchBlock :: Block l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
-    -- | Newly declared variables
+-- | Newly declared variables
 data TryResourceVar l = TryResourceVar
     { infoTryResourceVar :: l
     , resourceModifiers  :: [Modifier l]
@@ -786,7 +784,7 @@ data TryResourceVar l = TryResourceVar
     , resourceVarDecl    :: [VarDecl l]
     }
     deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | Effectively final variable
+-- | Effectively final variable
 data TryResourceFinalVar l = TryResourceFinalVar
     { infoTryResourceFinalVar :: l
     , resourceFinalVarName    :: Ident
@@ -815,25 +813,25 @@ data ExceptionType l = ExceptionType { infoExceptionType :: l, expectionType :: 
 -- | Arguments to methods and constructors are expressions.
 type Argument = ExpNode
 
-    -- | A literal denotes a fixed, unchanging value.
+-- | A literal denotes a fixed, unchanging value.
 data Lit l = Lit { infoLit :: l, literal :: Literal }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | A class literal, which is an expression consisting of the name of a class, interface, array,
-    --   or primitive type, or the pseudo-type void (modelled by 'Nothing'), followed by a `.' and the token class.
+-- | A class literal, which is an expression consisting of the name of a class, interface, array,
+--   or primitive type, or the pseudo-type void (modelled by 'Nothing'), followed by a `.' and the token class.
 data ClassLit l = ClassLit { infoClassLit :: l, classLit :: Maybe Type }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | The keyword @this@ denotes a value that is a reference to the object for which the instance method
-    --   was invoked, or to the object being constructed.
+-- | The keyword @this@ denotes a value that is a reference to the object for which the instance method
+--   was invoked, or to the object being constructed.
 newtype This l = This { infoThis :: l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | Any lexically enclosing instance can be referred to by explicitly qualifying the keyword this.
-    -- TODO: Fix Parser here
+-- | Any lexically enclosing instance can be referred to by explicitly qualifying the keyword this.
+-- TODO: Fix Parser here
 data QualifiedThis l = QualifiedThis { infoQualifiedThis :: l, qualiType :: Type }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | A class instance creation expression is used to create new objects that are instances of classes.
-    -- | The first argument is a list of non-wildcard type arguments to a generic constructor.
-    --   What follows is the type to be instantiated, the list of arguments passed to the constructor, and
-    --   optionally a class body that makes the constructor result in an object of an /anonymous/ class.
+-- | A class instance creation expression is used to create new objects that are instances of classes.
+-- | The first argument is a list of non-wildcard type arguments to a generic constructor.
+--   What follows is the type to be instantiated, the list of arguments passed to the constructor, and
+--   optionally a class body that makes the constructor result in an object of an /anonymous/ class.
 data InstanceCreation l = InstanceCreation
       { infoInstanceCreation :: l
       , instanceTypeArgs     :: [TypeArgument]
@@ -842,9 +840,9 @@ data InstanceCreation l = InstanceCreation
       , anonymousClass       :: Maybe (ClassBody l)
       }
       deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | A qualified class instance creation expression enables the creation of instances of inner member classes
-    --   and their anonymous subclasses.
-    {- TODO what is is the mysteryExp used for?-}
+-- | A qualified class instance creation expression enables the creation of instances of inner member classes
+--   and their anonymous subclasses.
+{- TODO what is is the mysteryExp used for?-}
 data QualInstanceCreation l = QualInstanceCreation
       { infoQualInstanceCreation    :: l
       , mysteryExp                  :: ExpNode l
@@ -854,8 +852,8 @@ data QualInstanceCreation l = QualInstanceCreation
       , qualiInstanceAnonymousClass :: Maybe (ClassBody l)
       }
       deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | An array instance creation expression is used to create new arrays. The last argument denotes the number
-    --   of dimensions that have no explicit length given. These dimensions must be given last.
+-- | An array instance creation expression is used to create new arrays. The last argument denotes the number
+--   of dimensions that have no explicit length given. These dimensions must be given last.
 data ArrayCreate l = ArrayCreate
   { infoArrayCreate :: l
   , arrayType       :: Type
@@ -863,8 +861,8 @@ data ArrayCreate l = ArrayCreate
   , dimensions      :: Int
   }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | An array instance creation expression may come with an explicit initializer. Such expressions may not
-    --   be given explicit lengths for any of its dimensions.
+-- | An array instance creation expression may come with an explicit initializer. Such expressions may not
+--   be given explicit lengths for any of its dimensions.
 data ArrayCreateInit l = ArrayCreateInit
   { infoArrayCreateInit :: l
   , arrayInitType       :: Type
@@ -873,32 +871,32 @@ data ArrayCreateInit l = ArrayCreateInit
   }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 {-    | ArrayAccess ExpNode ExpNode -- Should this be made into a datatype, for consistency and use with Lhs? -}
-    -- | An expression name, e.g. a variable.
+-- | An expression name, e.g. a variable.
 data ExpName l = ExpName { infoExpName :: l, expName :: Name }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | A cast expression converts, at run time, a value of one numeric type to a similar value of another
-    --   numeric type; or confirms, at compile time, that the type of an expression is boolean; or checks,
-    --   at run time, that a reference value refers to an object whose class is compatible with a specified
-    --   reference type.
+-- | A cast expression converts, at run time, a value of one numeric type to a similar value of another
+--   numeric type; or confirms, at compile time, that the type of an expression is boolean; or checks,
+--   at run time, that a reference value refers to an object whose class is compatible with a specified
+--   reference type.
 data Cast l = Cast { infoCast :: l, castTarget :: Type, castArg :: ExpNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | The application of a binary operator to two operand expressions.
+-- | The application of a binary operator to two operand expressions.
 data BinOp l = BinOp { infoBinOp :: l, binArgLeft :: ExpNode l, binOp :: Op, binOpRight :: ExpNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | Testing whether the result of an expression is an instance of some reference type.
+-- | Testing whether the result of an expression is an instance of some reference type.
 data InstanceOf l = InstanceOf { infoInstanceOf :: l, instanceOfArg :: ExpNode l, instanceOfTarget :: RefType }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | The conditional operator @? :@ uses the boolean value of one expression to decide which of two other
-    --   expressions should be evaluated.
+-- | The conditional operator @? :@ uses the boolean value of one expression to decide which of two other
+--   expressions should be evaluated.
 data Cond l = Cond { infoCond :: l, condition :: ExpNode l, conditionTrueExp :: ExpNode l, conditionFalseExp :: ExpNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | Assignment of the result of an expression to a variable.
+-- | Assignment of the result of an expression to a variable.
 data Assign l = Assign { infoAssign :: l, assignTarget :: LhsNode l, assignOp :: AssignOp, assignSource :: ExpNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | Lambda expression
+-- | Lambda expression
 data Lambda l = Lambda { infoLambda :: l, lambdaParams :: LambdaParamsNode l, lambdaExpression :: LambdaExpressionNode l }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | Method reference
+-- | Method reference
 data MethodRef l = MethodRef { infoMethodRef :: l, methodClass :: Name, methodName :: Ident }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
@@ -937,10 +935,10 @@ data LambdaInferredParams l = LambdaInferredParams { infoLambdaInferredParams ::
     deriving (Eq,Show,Read,Typeable,Generic,Data)
 
 
-    -- | Invoking a specific named method.
+-- | Invoking a specific named method.
 data MethodCall l = MethodCall { infoMethodCall :: l, methodCallName :: Name, methodCallArgs :: [Argument l] }
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | Invoking a method of a class computed from a primary expression, giving arguments for any generic type parameters.
+-- | Invoking a method of a class computed from a primary expression, giving arguments for any generic type parameters.
 data PrimaryMethodCall l = PrimaryMethodCall
       { infoPrimaryMethodCall :: l
       , methodCallTargetObj   :: ExpNode l
@@ -949,7 +947,7 @@ data PrimaryMethodCall l = PrimaryMethodCall
       , primaryMethodCallArgs :: [Argument l]
       }
       deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | Invoking a method of the super class, giving arguments for any generic type parameters.
+-- | Invoking a method of the super class, giving arguments for any generic type parameters.
 data SuperMethodCall l = SuperMethodCall
       { infoSuperMethodCall :: l
       , superMethodTypeArgs :: [RefType]
@@ -957,7 +955,7 @@ data SuperMethodCall l = SuperMethodCall
       , superMethodArgs     :: [Argument l]
       }
       deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | Invoking a method of the superclass of a named class, giving arguments for any generic type parameters.
+-- | Invoking a method of the superclass of a named class, giving arguments for any generic type parameters.
 data ClassMethodCall l = ClassMethodCall
       { infoClassMethodCall :: l
       , methodClassTarget   :: Name
@@ -966,7 +964,7 @@ data ClassMethodCall l = ClassMethodCall
       , classMethodArgs     :: [Argument l]
       }
       deriving (Eq,Show,Read,Typeable,Generic,Data)
-    -- | Invoking a method of a named type, giving arguments for any generic type parameters.
+-- | Invoking a method of a named type, giving arguments for any generic type parameters.
 data TypeMethodCall l = TypeMethodCall
       { infoTypeMethodCall    :: l
       , typeMethodClassTarget :: Name
