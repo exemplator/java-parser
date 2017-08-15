@@ -3,4 +3,5 @@ dist/
 *.class
 doc/
 .DS_Store
-bench.html
+bench*.html
+*.prof
