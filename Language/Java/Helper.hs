@@ -3,7 +3,7 @@ module Language.Java.Helper
     , desugarAnnotation'
     ) where
 
-import           Language.Java.Syntax
+import           Language.Java.Java
 
 -----------------------------------------------------------------------
 -- Functions

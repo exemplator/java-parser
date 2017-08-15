@@ -111,9 +111,7 @@ module Language.Java.Syntax(
   ClassMethodCall (..),
   TypeMethodCall (..),
   ArrayInit (..),
-  Argument ,
-  module Language.Java.Syntax.Types,
-  module Language.Java.Syntax.Exp
+  Argument
 ) where
 
 import           Data.Data
@@ -813,10 +811,6 @@ data ForInitExps l = ForInitExps { infoForInitExps :: l, initExpr :: [ExpNode l]
 -- | An exception type has to be a class type or a type variable.
 data ExceptionType l = ExceptionType { infoExceptionType :: l, expectionType :: RefType } -- restricted to ClassType or TypeVariable
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-
--- | Gets type of ExceptionType
-instance HasType (ExceptionType l) where
-  getType (ExceptionType _ x) = RefType x
 
 -- | Arguments to methods and constructors are expressions.
 type Argument = ExpNode

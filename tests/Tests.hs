@@ -18,10 +18,10 @@ import           Data.List              (isSuffixOf)
 
 import           Arbitrary
 import qualified Control.Exception      as E
+import           Language.Java.Java
 import           Language.Java.Parser
 import           Language.Java.Position
 import           Language.Java.Pretty
-import           Language.Java.Syntax
 
 
 

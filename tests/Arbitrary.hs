@@ -2,8 +2,8 @@
 module Arbitrary where
 
 import           Control.Monad         (replicateM)
+import           Language.Java.Java
 import           Language.Java.Parser
-import           Language.Java.Syntax
 import           Test.Tasty.QuickCheck
 
 ----- Nodes

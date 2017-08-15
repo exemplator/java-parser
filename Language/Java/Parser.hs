@@ -44,8 +44,7 @@ module Language.Java.Parser (
 import           Language.Java.Lexer         (L (..), Token (..), lexer)
 import           Language.Java.Position
 import           Language.Java.Pretty        (pretty)
-import           Language.Java.Syntax
-import           Language.Java.SyntaxClasses
+import           Language.Java.Java
 
 import           Text.Parsec                 hiding (Empty)
 import           Text.Parsec.Pos

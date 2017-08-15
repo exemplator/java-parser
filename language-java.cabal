@@ -34,6 +34,7 @@ Library
 
   Exposed-modules:      Language.Java.Lexer,
                         Language.Java.Syntax,
+                        Language.Java.Java,
                         Language.Java.Parser,
                         Language.Java.Pretty,
                         Language.Java.Position,
@@ -41,7 +42,7 @@ Library
                         Language.Java.Lenses.Syntax,
                         Language.Java.Lenses.Syntax.Exp,
                         Language.Java.Lenses.Syntax.Types,
-                        Language.Java.Lenses.Lenses,
+                        Language.Java.Lenses.Java,
                         Language.Java.SyntaxClasses
   
   Other-modules:        Language.Java.Syntax.Types,
@@ -62,3 +63,5 @@ Test-Suite test-java-parse
                    , filepath
                    , directory
   ghc-options:       -Wall -fno-warn-orphans -fno-warn-missing-signatures
+
+  Other-modules:     Arbitrary

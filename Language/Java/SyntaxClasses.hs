@@ -2,10 +2,32 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 module Language.Java.SyntaxClasses where
 
-import           Data.Function        (on)
+import           Data.Function              (on)
 import           Language.Java.Syntax
+import           Language.Java.Syntax.Types
+
+class HasType a where
+  getType :: a -> Type
+
+instance HasType Type where
+  getType = id
+
+class CollectTypes a where
+  collectTypes :: a -> [Type]
+
+instance HasType a => CollectTypes [a] where
+  collectTypes refs = getType <$> refs
+
+instance HasType RefType where
+  getType = RefType
+
+instance HasType PrimType where
+  getType = PrimType
+
+
 
 -- | Provides functionality to access the body as a list of declarations of a class, enum and an interface.
 class HasBody a l where
@@ -133,6 +155,9 @@ instance CollectTypes (FieldDecl l) where
   collectTypes (FieldDecl _ _ t _) =  [t]
 instance CollectTypes (MethodDecl l) where
   collectTypes (MethodDecl _ _ _ _ name _ _ _ _) =  [withoutPackageIdentToType name]
+
+instance HasType (ExceptionType l) where
+  getType (ExceptionType _ x) = RefType x
 
 --- HasNodes
 

@@ -1,11 +1,11 @@
 module Language.Java.Pretty where
 
-import           Data.Char            (toLower)
+import           Data.Char          (toLower)
 import           Text.PrettyPrint
-import           Text.Printf          (printf)
+import           Text.Printf        (printf)
 
-import           Data.Maybe           (fromMaybe)
-import           Language.Java.Syntax
+import           Data.Maybe         (fromMaybe)
+import           Language.Java.Java
 
 
 prettyPrint :: Pretty a => a -> String
