@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeApplications      #-}
 module Main where
 
 import           Prelude                hiding (exp)
@@ -32,17 +33,17 @@ testJavaDirectory = "tests" </> "java"
 isJavaFile :: FilePath -> Bool
 isJavaFile f = ".java" `isSuffixOf` f
 
-parserSeg :: _ -> String -> Either _ (n Singleton)
+parserSeg :: P (a Singleton) -> String -> Either ParseError (a Singleton)
 parserSeg = parser
 
-toTestCase expected jFile = testCase (takeBaseName jFile) doTest
-  where doTest = do r <- E.try parseOne
+parseOne jFile = parserSeg compilationUnitNode <$> readFile jFile
+
+toTestSimpleCase expected jFile = testCase (takeBaseName jFile) doTest
+  where doTest = do r <- E.try (parseOne jFile)
                     case r of
                         Left (e :: E.SomeException) -> assertBool ("failure exception: " ++ show e) (not expected)
                         Right (Left perr)           -> assertBool ("failure parse error: " ++ show perr) (not expected)
                         Right (Right p)             -> assertBool ("success: " ++ show p) expected
-
-        parseOne = parserSeg compilationUnitNode <$> readFile jFile
 
 getAllJavaPaths path = map (path </>) . filter isJavaFile <$> getDirectoryContents path
 
@@ -54,16 +55,16 @@ main = do
     allBadJavas <- getAllJavaPaths (testJavaDirectory </> "bad")
 
     defaultMain $ testGroup "java"
-        [ testGroup "parsing unit good" (map (toTestCase True) allGoodJavas)
-        , testGroup "parsing unit bad" (map (toTestCase False) allBadJavas)
+        [ testGroup "(parse.show.parse) == parse" (map (doRoundTripReal) allGoodJavas)
+        , testGroup "parsing unit bad" (map (toTestSimpleCase False) allBadJavas)
         , testProperty "parsing.generating==id" (\(g :: CompilationUnit Singleton) ->
                                                         case parserSeg compilationUnit (show $ pretty g) of
                                                             Right g'  -> g == g'
                                                             Left perr -> error (show (pretty g) ++ show perr))
         , testGroup "generating.parsing==id"
-          [ testRoundTrip expParser' "ClassFieldAccess" "Object.super.x"
-          , testRoundTrip expParser' "QualInstanceCreation" "foo.new Bar()"
-          , testRoundTrip expParser' "MethodInvocation" "foo(1 + 2)"
+          [ testRoundTripGenerated expParser' "ClassFieldAccess" "Object.super.x"
+          , testRoundTripGenerated expParser' "QualInstanceCreation" "foo.new Bar()"
+          , testRoundTripGenerated expParser' "MethodInvocation" "foo(1 + 2)"
           ]
         , testGroup "operator parsing"
           [ testParseSame expParser' "precedence 1"
@@ -84,10 +85,26 @@ main = do
         expParser' :: P (ExpNode Singleton)
         expParser' = expParser
 
-testRoundTrip p testName str = testCase testName $
+testRoundTripGenerated p testName str = testCase testName $
   case parserSeg p str of
     Right syn -> assertEqual "" (prettyPrint syn) str
     Left perr -> error (str ++ show perr)
+
+doRoundTripReal jFile = testCase (takeBaseName jFile) doTest
+    where doTest = do   r <- E.try (testRoundTripReal <$> (readFile jFile))
+                        case r of
+                            Left (e :: E.SomeException) -> error ("failure exception: " ++ show e)
+                            Right (x)                   -> x
+
+-- | test euqality of ast because of whitespaces, optional parens etc.
+testRoundTripReal str =
+    case (,) <$> doRoundTrip <*> singleStep of
+        Right (ast1, ast2) -> assertEqual "" ast1 ast2
+        Left perr -> error (str ++ show perr)
+        where
+            doRoundTrip, singleStep :: Either ParseError (CompilationUnitNode Singleton)
+            doRoundTrip = (prettyPrint) <$> (parserSeg compilationUnitNode str) >>= (parserSeg compilationUnitNode)
+            singleStep = parserSeg compilationUnitNode str
 
 testParseSame p testName s1 s2 = testCase testName $
   case (parserSeg p s1, parserSeg p s2) of
