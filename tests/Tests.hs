@@ -2,7 +2,7 @@
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeApplications      #-}
-module Tests where
+module Main where
 
 import           Prelude                hiding (exp)
 

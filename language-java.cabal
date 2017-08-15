@@ -69,7 +69,12 @@ Test-Suite test-java-parse
 
 Benchmark bench-java-parse
   type:              exitcode-stdio-1.0
-  main-is:           bench-foo.hs
+  hs-source-dirs:    benchmark
+  main-is:           Bench.hs
   build-depends:     base
                    , criterion
+                   , deepseq
                    , language-java
+                   , filepath
+                   , directory
+  other-modules:   BenchClasses                 

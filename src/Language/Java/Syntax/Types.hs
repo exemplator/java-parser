@@ -94,6 +94,7 @@ newtype Name = Name [Ident]
 -- 2. Or if classes equal
 -- 3. Or if boxed primitives equal primitives
 newtype RelaxedType = RelaxedType Type
+  deriving (Show,Read,Typeable,Generic,Data)
 
 -- | Defines Equals for RelaxedType
 instance Eq RelaxedType where
