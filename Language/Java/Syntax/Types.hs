@@ -1,8 +1,6 @@
-{-# LANGUAGE DataKinds            #-}
-{-# LANGUAGE DeriveDataTypeable   #-}
-{-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DataKinds          #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric      #-}
 
 module Language.Java.Syntax.Types where
 
@@ -15,21 +13,6 @@ data Type
     | RefType RefType
   deriving (Eq,Show,Read,Typeable,Generic,Data)
 
-class HasType a where
-  getType :: a -> Type  
-
-instance HasType Type where
-  getType = id
-
---instance HasType a => CollectTypes a where
---  collectTypes x = [getType x]
-
-class CollectTypes a where
-  collectTypes :: a -> [Type]
-
-instance HasType a => CollectTypes [a] where
-  collectTypes refs = getType <$> refs
-
 -- | There are three kinds of reference types: class types, interface types, and array types.
 --   Reference types may be parameterized with type arguments.
 --   Type variables cannot be syntactically distinguished from class type identifiers,
@@ -39,9 +22,6 @@ data RefType
     {- | TypeVariable Ident -}
     | ArrayType Type
   deriving (Eq,Show,Read,Typeable,Generic,Data)
-
-instance HasType RefType where
-  getType = RefType
 
 -- | A ClassType can either be with an package or without.
 data ClassType
@@ -86,9 +66,6 @@ data PrimType
     | FloatT
     | DoubleT
   deriving (Eq,Show,Read,Typeable,Generic,Data,Enum,Bounded)
-
-instance HasType PrimType where
-  getType = PrimType
 
 -- | A class is generic if it declares one or more type variables. These type variables are known
 --   as the type parameters of the class.

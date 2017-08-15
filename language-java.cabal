@@ -34,18 +34,20 @@ Library
 
   Exposed-modules:      Language.Java.Lexer,
                         Language.Java.Syntax,
+                        Language.Java.Java,
                         Language.Java.Parser,
                         Language.Java.Pretty,
                         Language.Java.Position,
                         Language.Java.Helper,
-                        Language.Java.Prisms.Syntax,
-                        Language.Java.Prisms.Syntax.Exp,
-                        Language.Java.Prisms.Syntax.Types,
-                        Language.Java.Prisms.Prisms
+                        Language.Java.Lenses.Syntax,
+                        Language.Java.Lenses.Syntax.Exp,
+                        Language.Java.Lenses.Syntax.Types,
+                        Language.Java.Lenses.Java,
+                        Language.Java.SyntaxClasses
   
   Other-modules:        Language.Java.Syntax.Types,
                         Language.Java.Syntax.Exp,
-                        Language.Java.Prisms.CustomLenses
+                        Language.Java.Lenses.CustomLenses
 
 
 Test-Suite test-java-parse
@@ -61,3 +63,5 @@ Test-Suite test-java-parse
                    , filepath
                    , directory
   ghc-options:       -Wall -fno-warn-orphans -fno-warn-missing-signatures
+
+  Other-modules:     Arbitrary

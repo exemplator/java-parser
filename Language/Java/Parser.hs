@@ -1,12 +1,16 @@
-{-# LANGUAGE CPP                 #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE ExplicitForAll        #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeApplications      #-}
 module Language.Java.Parser (
     P,
     Parsable(..),
 
-    parseCompilationUnit, parser,
+    parseCompilationUnit, parser, parserS,
 
-    compilationUnit, packageDeclParser, importDecl, typeDeclParser,
+    compilationUnitNode, compilationUnit, packageDeclParser, importDecl, typeDeclParser,
 
     classDeclParser, interfaceDeclParser,
 
@@ -37,21 +41,22 @@ module Language.Java.Parser (
 
     ) where
 
-import           Language.Java.Lexer    (L (..), Token (..), lexer)
+import           Language.Java.Lexer         (L (..), Token (..), lexer)
 import           Language.Java.Position
-import           Language.Java.Pretty   (pretty)
-import           Language.Java.Syntax
+import           Language.Java.Pretty        (pretty)
+import           Language.Java.Java
 
-import           Text.Parsec            hiding (Empty)
+import           Text.Parsec                 hiding (Empty)
 import           Text.Parsec.Pos
 
-import           Data.Char              (toLower)
-import           Data.Maybe             (catMaybes, fromMaybe, isJust,
-                                         listToMaybe, maybe)
-import           Prelude                hiding ((>>), (>>=))
-import qualified Prelude                as P ((>>), (>>=))
+import           Data.Char                   (toLower)
+import           Data.Maybe                  (catMaybes, fromMaybe, isJust,
+                                              listToMaybe, maybe)
+import           Prelude                     hiding ((>>), (>>=))
+import qualified Prelude                     as P ((>>), (>>=))
 
-import           Control.Applicative    ((<$), (<$>), (<*), (<*>))
+import           Control.Applicative         ((<$), (<$>), (<*), (<*>))
+import           Control.Monad               (foldM)
 
 type P = Parsec [L Token] ()
 
@@ -67,90 +72,115 @@ infixr 2 >>, >>=
 -- Parsing class for type parameter
 
 class Parsable l where
-    toParser :: (l -> a) -> P a
+    toParser :: P (l -> a) -> P a
 
 instance Parsable Segment where
-    toParser constr = do
+    toParser pConstr = do
         start <- getPosition
-        result <- pure constr
+        result <- pConstr
         end <- getPosition
         let segmt = sourcePosToSegment start end
         return (result segmt)
 
-tP :: (Parsable l) => (l -> a) -> P a
+tP :: (Parsable l) => P (l -> a) -> P a
 tP = toParser
 
-(<$$>) :: (Parsable l) => (l -> a -> b) -> P a -> P b
-(<$$>) constr pa = tP constr <*> pa
+(<$$>) :: (Parsable l) => (l -> a -> b) -> P a -> P (l -> b)
+(<$$>) constr pa = (flip constr) <$> pa
 infixl 4 <$$>
+
+(<**>) :: (Parsable l) => P (l -> a -> b) -> P a -> P (l -> b)
+(<**>) pconstr pa = flip <$> pconstr <*> pa
+infixl 4 <**>
+
+returnN :: (Monad m, HasNode a b) => (l -> a l) -> m (l -> b l)
+returnN a = return $ \l -> toNode (a l)
+
+returnN' :: (Monad m, HasNode a b) => a l -> m (b l)
+returnN' a = return $ toNode a
+
+wrap :: (Applicative f, HasNode a b) => f (a l) -> f (b l)
+wrap = fmap toNode
+
+wrapP :: (Parsable l, HasNode a b) => P (l -> a l) -> P (b l)
+wrapP = tP . wrapL
+
+wrapL :: (Applicative f, HasNode a b) => f (l -> (a l)) -> f (l -> (b l))
+wrapL a = (\a l -> toNode (a l)) <$> a
+
+wrapM :: (Applicative f, HasNode a b) => f (Mod l (a l)) -> f (Mod l (b l))
+wrapM a = (\a ms l -> toNode (a ms l)) <$> a
+
+wrapE :: forall b a f l. (Applicative f, HasNode a b) => f (Exp l (a l)) -> f (Exp l (b l))
+wrapE a = (\a e l -> toNode (a e l)) <$> a
 
 ----------------------------------------------------------------------------
 -- Top-level parsing
 
-parseCompilationUnit :: String -> Either ParseError (CompilationUnit Segment)
+parseCompilationUnit :: String -> Either ParseError (CompilationUnitNode Segment)
 parseCompilationUnit inp =
-    runParser compilationUnit () "" (lexer inp)
+    runParser compilationUnitNode () "" (lexer inp)
+
+parserS :: P (a Segment) -> String -> Either ParseError (a Segment)
+parserS = parser
 
 parser :: P a -> String -> Either ParseError a
 parser p = runParser p () "" . lexer
 
---class Parse a where
---  parse :: String -> a
-
 ----------------------------------------------------------------------------
 -- Packages and compilation units
 
+compilationUnitNode :: Parsable l => P (CompilationUnitNode l)
+compilationUnitNode = try (wrap compilationUnit)
+        <|> wrap moduleDeclaration
+
 compilationUnit :: Parsable l => P (CompilationUnit l)
-compilationUnit = try (do
-        comp <- tP CompilationUnit
-        mpd <- opt packageDeclParser
-        ids <- list importDecl
-        tds <- list typeDeclParser
-        eof
-        return $ comp mpd ids (catMaybes tds))
-        <|> do
-            moduleDec <- tP ModuleDeclaration
-            -- only tokens in module descriptions!
-            (Ident "module") <- ident
-            modulePackageP <- fullQualiPkg
-            moduleSpecsP <- braces $ list moduleSpecParser
-            return $moduleDec modulePackageP moduleSpecsP
+compilationUnit = tP $ do
+    mpd <- opt packageDeclParser
+    ids <- list importDecl
+    tds <- list typeDeclParser
+    eof
+    return $ \l -> CompilationUnit l mpd ids (catMaybes tds)
+
+moduleDeclaration :: Parsable l => P (ModuleDeclaration l)
+moduleDeclaration = tP $ do
+    -- only tokens in module descriptions!
+    (Ident "module") <- ident
+    modulePackageP <- fullQualiPkg
+    moduleSpecsP <- braces $ list moduleSpecParser
+    return $ \l -> ModuleDeclaration l modulePackageP moduleSpecsP
 
 packageDeclParser :: (Parsable l) => P (PackageDecl l)
-packageDeclParser = do
-    pgkDec <- tP PackageDecl
+packageDeclParser = tP $ do
     tok KW_Package
     pkg <- fullQualiPkg
     semiColon
-    return $ pgkDec pkg
+    return $ flip PackageDecl pkg
 
-moduleSpecParser :: (Parsable l) => P (ModuleSpec l)
-moduleSpecParser = try (do
-        moduleRequires <- tP ModuleRequires
+moduleSpecParser :: (Parsable l) => P (ModuleSpecNode l)
+moduleSpecParser = tP $ try (do
         -- only tokens in module descriptions!
         (Ident "requires") <- ident
         reqMod <- fullQualiPkg
         semiColon
-        return $ moduleRequires reqMod)
+        returnN $ flip ModuleRequires reqMod)
     <|> do
-        moduleExports <- tP ModuleExports
         (Ident "exports") <- ident
         exportsPkg <- fullQualiPkg
         semiColon
-        return $ moduleExports exportsPkg
+        returnN $ flip ModuleExports exportsPkg
 
 importDecl :: (Parsable l) => P (ImportDecl l)
-importDecl = do
-    imp <- tP ImportDecl
+importDecl = tP $ do
     tok KW_Import
     st <- bopt $ tok KW_Static
     pkg  <- seplist1 ident period
     ds <- bopt $ period >> tok Op_Star
     let package = if ds then WildcardPackage pkg else FullQualiPackage pkg
     semiColon
-    return $ imp st package
+    return $ \l -> ImportDecl l st package
 
-typeDeclParser :: (Parsable l) => P (Maybe (TypeDecl l))
+typeDeclParser :: (Parsable l) => P (Maybe (TypeDeclNode l))
 typeDeclParser = Just <$> classOrInterfaceDecl <|>
             const Nothing <$> semiColon
 
@@ -159,228 +189,195 @@ typeDeclParser = Just <$> classOrInterfaceDecl <|>
 
 -- Class declarations
 
-classOrInterfaceDecl :: (Parsable l) => P (TypeDecl l)
-classOrInterfaceDecl = do
+classOrInterfaceDecl :: (Parsable l) => P (TypeDeclNode l)
+classOrInterfaceDecl = tP $ do
     ms <- list modifier
-    de <- (do cl <- tP ClassTypeDecl
-              cd <- classDeclParser
-              return $ \mst -> cl (cd mst)) <|>
-          (do ifT <- tP InterfaceTypeDecl
-              idecl <- annInterfaceDecl <|> interfaceDeclParser
-              return $ \mst -> ifT (idecl mst))
+    de <- (wrapM classDeclParser) <|>
+          wrapM annInterfaceDecl <|> wrapM interfaceDeclParser
     return $ de ms
 
-classDeclParser :: (Parsable l) => P (Mod l (ClassDecl l))
-classDeclParser = normalClassDecl <|> enumClassDecl
+classDeclParser :: (Parsable l) => P (Mod l (ClassDeclNode l))
+classDeclParser = wrapM normalClassDecl <|> wrapM enumClassDecl
 
 normalClassDecl :: (Parsable l) => P (Mod l (ClassDecl l))
 normalClassDecl = do
-    clDec <- tP ClassDecl
     tok KW_Class
     i   <- ident
     tps <- lopt typeParams
     mex <- opt extendsParser
     imp <- lopt implementsParsre
     bod <- classBodyParser
-    return $ \ms -> clDec ms i tps (fmap head mex) imp bod
+    return $ \ms l -> ClassDecl l ms i tps (fmap head mex) imp bod
 
 extendsParser :: (Parsable l) => P [Extends l]
-extendsParser = tok KW_Extends >> map <$> tP Extends <*> refTypeList
+extendsParser = tok KW_Extends >> (map (uncurry Extends)) <$> refTypeList
 
 implementsParsre :: (Parsable l) => P [Implements l]
-implementsParsre = tok KW_Implements >> map <$> tP Implements <*> refTypeList
+implementsParsre = tok KW_Implements >> (map (uncurry Implements)) <$> refTypeList
 
-enumClassDecl :: (Parsable l) => P (Mod l (ClassDecl l))
+enumClassDecl :: (Parsable l) => P (Mod l (EnumDecl l))
 enumClassDecl = do
-    enDec <- tP EnumDecl
     tok KW_Enum
     i   <- ident
     imp <- lopt implementsParsre
     bod <- enumBodyParser
-    return $ \ms -> enDec ms i imp bod
+    return $ \ms l -> EnumDecl l ms i imp bod
 
 classBodyParser :: (Parsable l) => P (ClassBody l)
-classBodyParser = toParser ClassBody <*> braces classBodyStatements
+classBodyParser = tP $ (flip ClassBody) <$> braces classBodyStatements
 
 enumBodyParser :: (Parsable l) => P (EnumBody l)
-enumBodyParser = braces $ do
-    enB <- tP EnumBody
+enumBodyParser = tP $ braces $ do
     ecs <- seplist enumConst comma
     optional comma
     eds <- lopt enumBodyDecls
-    return $ enB ecs eds
+    return $ \l -> EnumBody l ecs eds
 
 enumConst :: (Parsable l) => P (EnumConstant l)
-enumConst = do
-    enC <- tP EnumConstant
+enumConst = tP $ do
     idt  <- ident
     as  <- lopt args
     mcb <- opt classBodyParser
-    return $ enC idt as mcb
+    return $ \l -> EnumConstant l idt as mcb
 
-enumBodyDecls :: (Parsable l) => P [Decl l]
+enumBodyDecls :: (Parsable l) => P [DeclNode l]
 enumBodyDecls = semiColon >> classBodyStatements
 
-classBodyStatements :: (Parsable l) => P [Decl l]
+classBodyStatements :: (Parsable l) => P [DeclNode l]
 classBodyStatements = catMaybes <$> list classBodyStatement
 
 -- Interface declarations
 
 annInterfaceDecl :: (Parsable l) => P (Mod l (InterfaceDecl l))
 annInterfaceDecl = do
-    ifD <- tP InterfaceDecl
     tok KW_AnnInterface
     idt  <- ident
     tps <- lopt typeParams
     exs <- lopt extendsParser
     bod <- interfaceBodyParser
-    return $ \ms -> ifD InterfaceAnnotation ms idt tps exs bod
+    return $ \ms l -> InterfaceDecl l InterfaceAnnotation ms idt tps exs bod
 
 interfaceDeclParser :: (Parsable l) => P (Mod l (InterfaceDecl l))
 interfaceDeclParser = do
-    ifD <- tP InterfaceDecl
     tok KW_Interface
     idt  <- ident
     tps <- lopt typeParams
     exs <- lopt extendsParser
     bod <- interfaceBodyParser
-    return $ \ms -> ifD InterfaceNormal ms idt tps exs bod
+    return $ \ms l -> InterfaceDecl l InterfaceNormal ms idt tps exs bod
 
 interfaceBodyParser :: (Parsable l) => P (InterfaceBody l)
-interfaceBodyParser = (. catMaybes) <$> tP InterfaceBody <*>
-    braces (list interfaceBodyDecl)
+interfaceBodyParser = tP $ (\m l -> InterfaceBody l $ catMaybes m) <$> braces (list interfaceBodyDecl)
 
 -- Declarations
 
-classBodyStatement :: (Parsable l) => P (Maybe (Decl l))
-classBodyStatement =
+classBodyStatement :: (Parsable l) => P (Maybe (DeclNode l))
+classBodyStatement = tP $
     try (do
        _ <- list1 semiColon
-       return Nothing) <|>
+       return $ const Nothing) <|>
     try ( do
-       initDecl <- tP InitDecl
        mst <- bopt (tok KW_Static)
        blk <- blockParser
-       return $ Just $ initDecl mst blk) <|>
-    (do mDec <- tP MemberDecl
-        ms  <- list modifier
+       return $ \l ->  Just $ toNode $ InitDecl l mst blk) <|>
+    (do ms  <- list modifier
         dec <- memberDecl
-        return $ Just $ mDec (dec ms))
+        return $ \l -> Just $ toNode $ dec ms l)
 
-memberDecl :: (Parsable l) => P (Mod l (MemberDecl l))
+memberDecl :: (Parsable l) => P (Mod l (MemberDeclNode l))
 memberDecl =
-    try (do
-        mDec <- tP MemberClassDecl
-        cd <- classDeclParser
-        return $ \ ms -> mDec (cd ms))
-    <|>
-    try
-        (do mInDec <- tP MemberInterfaceDecl
-            idecl <- try annInterfaceDecl <|> try interfaceDeclParser
-            return $ mInDec . idecl) <|>
+    try (wrapM classDeclParser) <|>
+    try (wrapM $ annInterfaceDecl <|> try interfaceDeclParser) <|>
+    try (wrapM fieldDecl) <|>
+    try (wrapM methodDecl) <|>
+    wrapM constrDecl
 
-    try fieldDecl <|>
-    try methodDecl <|>
-    constrDecl
-
-fieldDecl :: (Parsable l) => P (Mod l (MemberDecl l))
+fieldDecl :: (Parsable l) => P (Mod l (FieldDecl l))
 fieldDecl = endSemi $ do
-    fDec <- tP FieldDecl
     typ <- ttype
     vds <- varDecls
-    return $ \ms -> fDec ms typ vds
+    return $ \ms l -> FieldDecl l ms typ vds
 
-methodDecl :: (Parsable l) => P (Mod l (MemberDecl l))
+methodDecl :: (Parsable l) => P (Mod l (MethodDecl l))
 methodDecl = do
-    mDec <- tP MethodDecl
     tps <- lopt typeParams
     rt  <- resultType
     idt  <- ident
     fps <- formalParams
     thr <- lopt throws
     bod <- methodBodyParser
-    return $ \ms -> mDec ms tps rt idt fps thr Nothing bod
+    return $ \ms l -> MethodDecl l ms tps rt idt fps thr Nothing bod
 
 methodBodyParser :: (Parsable l) => P (MethodBody l)
-methodBodyParser = MethodBody <$$>
+methodBodyParser = tP $ (flip MethodBody) <$>
     (const Nothing <$> semiColon <|> Just <$> blockParser)
 
 
-constrDecl :: (Parsable l) => P (Mod l (MemberDecl l))
+constrDecl :: (Parsable l) => P (Mod l (ConstructorDecl l))
 constrDecl = do
-    constDec <- tP ConstructorDecl
     tps <- lopt typeParams
     idt  <- ident
     fps <- formalParams
     thr <- lopt throws
     bod <- constrBodyParser
-    return $ \ms -> constDec ms tps idt fps thr bod
+    return $ \ms l -> ConstructorDecl l ms tps idt fps thr bod
 
 constrBodyParser :: (Parsable l) => P (ConstructorBody l)
-constrBodyParser = braces $ do
-    cstBod <- tP ConstructorBody
+constrBodyParser = tP $ braces $ do
     mec <- opt (try explConstrInv)
     bss <- list blockStmt
-    return $ cstBod mec bss
+    return $ \l -> ConstructorBody l mec bss
 
-explConstrInv :: (Parsable l) => P (ExplConstrInv l)
-explConstrInv = endSemi $
+explConstrInv :: forall l. (Parsable l) => P (ExplConstrInvNode l)
+explConstrInv = tP $ endSemi $
     try ( do
-        thisInv <- tP ThisInvoke
-        tas <- lopt refTypeArgs
+        tas <- (map snd) <$> lopt (refTypeArgs @l)
         tok KW_This
         as  <- args
-        return $ thisInv tas as) <|>
+        returnN $ \l -> ThisInvoke l tas as) <|>
     try ( do
-        sInv <- tP SuperInvoke
-        tas <- lopt refTypeArgs
+        tas <- (map snd) <$> lopt (refTypeArgs @l)
         tok KW_Super
         as  <- args
-        return $ sInv tas as) <|>
-    (do priInv <- tP PrimarySuperInvoke
-        pri <- primaryParser
+        returnN $ \l -> SuperInvoke l tas as) <|>
+    (do pri <- primaryParser
         period
-        tas <- lopt refTypeArgs
+        tas <- (map snd) <$> lopt (refTypeArgs @l)
         tok KW_Super
         as  <- args
-        return $ priInv pri tas as)
+        returnN $ \l -> PrimarySuperInvoke l pri tas as)
 
 -- TODO: This should be parsed like class bodies, and post-checked.
 --       That would give far better error messages.
-interfaceBodyDecl :: (Parsable l) => P (Maybe (MemberDecl l))
-interfaceBodyDecl = semiColon >> return Nothing <|>
-    do ms  <- list modifier
-       imd <- interfaceMemberDecl
-       return $ Just (imd ms)
+interfaceBodyDecl :: (Parsable l) => P (Maybe (MemberDeclNode l))
+interfaceBodyDecl = (semiColon >> return Nothing) <|>
+    tP (do
+        ms  <- list modifier
+        imd <- interfaceMemberDecl
+        return $ \l -> Just (imd ms l))
 
-interfaceMemberDecl :: (Parsable l) => P (Mod l (MemberDecl l))
+interfaceMemberDecl :: (Parsable l) => P (Mod l (MemberDeclNode l))
 interfaceMemberDecl =
-    (do mClDec <- tP MemberClassDecl
-        cd  <- classDeclParser
-        return $ \ms -> mClDec (cd ms)) <|>
-    (do miDec <- tP MemberInterfaceDecl
-        idt  <- try annInterfaceDecl <|> try interfaceDeclParser
-        return $ \ms -> miDec (idt ms)) <|>
-    try fieldDecl <|>
-    absMethodDecl
+    (wrapM classDeclParser) <|>
+    (wrapM (try annInterfaceDecl <|> try interfaceDeclParser)) <|>
+    try (wrapM fieldDecl) <|>
+    wrapM absMethodDecl
 
-absMethodDecl :: (Parsable l) => P (Mod l (MemberDecl l))
+absMethodDecl :: (Parsable l) => P (Mod l (MethodDecl l))
 absMethodDecl = do
-    meBod <- tP MethodBody
-    meDec <- tP MethodDecl
     tps <- lopt typeParams
     rt  <- resultType
     idt  <- ident
     fps <- formalParams
     thr <- lopt throws
     def <- opt defaultValue
-    body <- try methodBodyParser <|> semiColon >> return (meBod Nothing)
-    return $ \ms -> meDec ms tps rt idt fps thr def body
+    body <- try (methodBodyParser) <|> (tP $ semiColon >> return (flip MethodBody Nothing))
+    return $ \ms l -> MethodDecl l ms tps rt idt fps thr def body
 
 throws :: (Parsable l) => P [ExceptionType l]
-throws = (tok KW_Throws >> refTypeList) >>= mapM (\x -> tP ExceptionType <*> pure x)
+throws = (map $ uncurry ExceptionType) <$> (tok KW_Throws >> refTypeList)
 
-defaultValue :: (Parsable l) => P (Exp l)
+defaultValue :: (Parsable l) => P (ExpNode l)
 defaultValue = tok KW_Default >> expParser
 
 -- Formal parameters
@@ -397,13 +394,12 @@ formalParams = parens $ do
         validateFPs (FormalParam _ _ _ b _ :_) = not b
 
 formalParam :: (Parsable l) => P (FormalParam l)
-formalParam = do
-    fP <- tP FormalParam
+formalParam = tP $ do
     ms  <- list modifier
     typ <- ttype
     var <- bopt ellipsis
     vid <- varDeclId
-    return $ fP ms typ var vid
+    return $ \l -> FormalParam l ms typ var (toNode vid)
 
 ellipsis :: P ()
 ellipsis = period >> period >> period
@@ -411,20 +407,20 @@ ellipsis = period >> period >> period
 -- Modifiers
 
 modifier :: (Parsable l) => P (Modifier l)
-modifier =
-        tok KW_Public      >> tP Public
-    <|> tok KW_Protected   >> tP Protected
-    <|> tok KW_Private     >> tP Private
-    <|> tok KW_Abstract    >> tP Abstract
-    <|> tok KW_Static      >> tP Static
-    <|> tok KW_Strictfp    >> tP StrictFP
-    <|> tok KW_Final       >> tP Final
-    <|> tok KW_Native      >> tP Native
-    <|> tok KW_Transient   >> tP Transient
-    <|> tok KW_Volatile    >> tP Volatile
-    <|> tok KW_Synchronized >> tP Synchronized_
-    <|> tok KW_Default >> tP DefaultModifier
-    <|> Annotation <$$> annotationParser
+modifier = tP (
+        tok KW_Public      >> return Public
+    <|> tok KW_Protected   >> return Protected
+    <|> tok KW_Private     >> return Private
+    <|> tok KW_Abstract    >> return Abstract
+    <|> tok KW_Static      >> return Static
+    <|> tok KW_Strictfp    >> return StrictFP
+    <|> tok KW_Final       >> return Final
+    <|> tok KW_Native      >> return Native
+    <|> tok KW_Transient   >> return Transient
+    <|> tok KW_Volatile    >> return Volatile
+    <|> tok KW_Synchronized >> return Synchronized_
+    <|> tok KW_Default >> return DefaultModifier )
+    <|> wrap annotationParser
 
 annotationParser :: (Parsable l) => P (Annotation l)
 annotationParser = flip ($) <$ tok Op_AtSign <*> name <*> (
@@ -441,8 +437,8 @@ elementValuePair = (,) <$> ident <* tok Op_Equal <*> elementValue
 
 elementValue :: (Parsable l) => P (ElementValue l)
 elementValue =
-    EVVal <$$> (    InitArray <$$> arrayInit
-               <|> InitExp    <$$> condExp )
+    tP $ (EVVal <$$> ( (wrap arrayInit)
+               <|> wrap condExp ))
     <|> EVAnn <$$> annotationParser
 
 
@@ -453,19 +449,17 @@ varDecls :: (Parsable l) => P [VarDecl l]
 varDecls = seplist1 varDecl comma
 
 varDecl :: (Parsable l) => P (VarDecl l)
-varDecl = do
-    varDeclP <- tP VarDecl
-    vid <- varDeclId
+varDecl = tP $ do
+    vid <- wrap varDeclId
     mvi <- opt $ tok Op_Equal >> varInitParser
-    return $ varDeclP vid mvi
+    return $ \l -> VarDecl l vid mvi
 
-varDeclId :: (Parsable l) => P (VarDeclId l)
+varDeclId :: (Parsable l) => P (VarDeclIdNode l)
 varDeclId = do
-    varDec <- tP VarDeclArray
-    varId <- tP VarId
-    idt  <- ident
-    abrkts <- list arrBrackets
-    return $ foldl (\f _ -> varDec . f) varId abrkts idt
+    initID <- (tP . return) (\l e -> toNode $ VarId l e)
+    idt <- ident
+    brkts <- list arrBrackets
+    return $ foldl (\f _ -> VarDeclArrayNode . f) initID brkts idt
 
 arrBrackets :: P ()
 arrBrackets = brackets $ return ()
@@ -477,202 +471,180 @@ localVarDecl = do
     vds <- varDecls
     return (ms, typ, vds)
 
-varInitParser :: (Parsable l) => P (VarInit l)
+varInitParser :: (Parsable l) => P (VarInitNode l)
 varInitParser =
-    InitArray <$$> arrayInit <|>
-    InitExp   <$$> expParser
+    wrap arrayInit <|>
+    wrap expParser
 
 arrayInit :: (Parsable l) => P (ArrayInit l)
-arrayInit = braces $ do
-    arrayInt <- tP ArrayInit
+arrayInit = tP $ braces $ do
     vis <- seplist varInitParser comma
     _ <- opt comma
-    return $ arrayInt vis
+    return $ \l -> ArrayInit l vis
 
 ----------------------------------------------------------------------------
 -- Statements
 
 blockParser :: (Parsable l) => P (Block l)
-blockParser = braces $ Block <$$> list blockStmt
+blockParser = tP $ braces $ (flip Block) <$> list blockStmt
 
-blockStmt :: (Parsable l) => P (BlockStmt l)
-blockStmt =
-    try ( do
-        localClass <- tP LocalClass
+blockStmt :: (Parsable l) => P (BlockStmtNode l)
+blockStmt = 
+    tP ( try ( do
         ms  <- list modifier
         cd  <- classDeclParser
-        return $ localClass (cd ms)) <|>
+        returnN $ cd ms) <|>
     try ( do
-        localVar <- tP LocalVars
         (m,t,vds) <- endSemi localVarDecl
-        return $ localVar m t vds) <|>
-    BlockStmt <$$> stmt
+        returnN $ \l -> LocalVars l m t vds)) <|>
+    (wrap stmt)
 
-stmt :: (Parsable l) => P (Stmt l)
-stmt = ifStmt <|> whileStmt <|> forStmt <|> labeledStmtParser <|> stmtNoTrail
+stmt :: (Parsable l) => P (StmtNode l)
+stmt = tP (ifStmt <|> whileStmt <|> forStmt <|> labeledStmtParser) <|> stmtNoTrail
   where
     ifStmt = do
-        ifThenElse <- tP IfThenElse
         tok KW_If
         e  <- parens expParser
         th <- stmtNSI
         el <- optionMaybe $ tok KW_Else >> stmt
-        return $ ifThenElse e th el
+        returnN $ \l -> IfThenElse l e th el
     whileStmt = do
-        while <- tP While
         tok KW_While
         e   <- parens expParser
         s   <- stmt
-        return $ while e s
+        returnN $ \l -> While l e s
     forStmt = do
         tok KW_For
         f <- parens $
             try ( do
-                basicFor <- tP BasicFor
                 fi <- opt forInitParser
                 semiColon
                 e  <- opt expParser
                 semiColon
                 fu <- opt forUp
-                return $ basicFor fi e fu) <|>
-            (do enhancedFor <- tP EnhancedFor
+                return $ \s l -> toNode $ BasicFor l fi e fu s) <|>
+            (do ms <- list modifier
+                t  <- ttype
+                i  <- ident
+                colon
+                e  <- expParser
+                return $ \s l -> toNode $ EnhancedFor l ms t i e s)
+        s <- stmt
+        return $ f s
+    labeledStmtParser = try $ do
+        lbl <- ident
+        colon
+        s   <- stmt
+        returnN $ \l -> Labeled l lbl s
+
+stmtNSI :: (Parsable l) => P (StmtNode l)
+stmtNSI = tP (ifStmt <|> whileStmt <|> forStmt <|> labeledStmtParser) <|> stmtNoTrail
+  where
+    ifStmt = do
+        tok KW_If
+        e  <- parens expParser
+        th <- stmtNSI
+        el <- optionMaybe $ tok KW_Else >> stmtNSI
+        returnN $ \l -> IfThenElse l e th el
+    whileStmt = do
+        tok KW_While
+        e <- parens expParser
+        s <- stmtNSI
+        returnN $ \l -> While l e s
+    forStmt = do
+        tok KW_For
+        f <- parens $ try ( do
+                fi <- opt forInitParser
+                semiColon
+                e  <- opt expParser
+                semiColon
+                fu <- opt forUp
+                return $ \s l -> toNode $ BasicFor l fi e fu s)
+            <|> (do
                 ms <- list modifier
                 t  <- ttype
                 i  <- ident
                 colon
                 e  <- expParser
-                return $ enhancedFor ms t i e)
-        s <- stmt
-        return $ f s
-    labeledStmtParser = try $ do
-        labeled <- tP Labeled
-        lbl <- ident
-        colon
-        s   <- stmt
-        return $ labeled lbl s
-
-stmtNSI :: (Parsable l) => P (Stmt l)
-stmtNSI = ifStmt <|> whileStmt <|> forStmt <|> labeledStmtParser <|> stmtNoTrail
-  where
-    ifStmt = do
-        ifThenElse <- tP IfThenElse
-        tok KW_If
-        e  <- parens expParser
-        th <- stmtNSI
-        el <- optionMaybe $ tok KW_Else >> stmtNSI
-        return $ ifThenElse e th el
-    whileStmt = do
-        while <- tP While
-        tok KW_While
-        e <- parens expParser
-        s <- stmtNSI
-        return $ while e s
-    forStmt = do
-        tok KW_For
-        f <- parens $ try ( do
-            basic <- tP BasicFor
-            fi <- opt forInitParser
-            semiColon
-            e  <- opt expParser
-            semiColon
-            fu <- opt forUp
-            return $ basic fi e fu)
-            <|> (do
-            enhancedFor <- tP EnhancedFor
-            ms <- list modifier
-            t  <- ttype
-            i  <- ident
-            colon
-            e  <- expParser
-            return $ enhancedFor ms t i e)
+                return $ \s l -> toNode $ EnhancedFor l ms t i e s)
         s <- stmtNSI
         return $ f s
     labeledStmtParser = try $ do
-        labeled <- tP Labeled
         i <- ident
         colon
         s <- stmtNSI
-        return $ labeled i s
+        returnN $ \l -> Labeled l i s
 
-stmtNoTrail :: (Parsable l) => P (Stmt l)
-stmtNoTrail =
+stmtNoTrail :: (Parsable l) => P (StmtNode l)
+stmtNoTrail = tP (
     -- empty statement
-    const <$> tP Empty <*> semiColon <|>
-    -- inner blockParser
-    StmtBlock <$$> blockParser <|>
+    try ((toNode . Empty) <$ semiColon) <|>
     -- assertions
     endSemi ( do
-        assert <- tP Assert
         tok KW_Assert
         e   <- expParser
         me2 <- opt $ colon >> expParser
-        return $ assert e me2) <|>
+        returnN $ \l -> Assert l e me2) <|>
     -- switch stmts
-    (do switch <- tP Switch
-        tok KW_Switch
+    (do tok KW_Switch
         e  <- parens expParser
         sb <- switchBlock
-        return $ switch e sb) <|>
+        returnN $ \l -> Switch l e sb) <|>
     -- do-while loops
     endSemi (do
-        doNode <- tP Do
         tok KW_Do
         s <- stmt
         tok KW_While
         e <- parens expParser
-        return $ doNode s e) <|>
+        returnN $ \l -> Do l s e) <|>
     -- break
     endSemi (do
-        brk <- tP Break
         tok KW_Break
         mi <- opt ident
-        return $ brk mi) <|>
+        returnN $ \l -> Break l mi) <|>
     -- continue
     endSemi (do
-        cont <- tP Continue
         tok KW_Continue
         mi <- opt ident
-        return $ cont mi) <|>
+        returnN $ \l -> Continue l mi) <|>
     -- return
     endSemi (do
-        ret <- tP Return
         tok KW_Return
         me <- opt expParser
-        return $ ret me) <|>
+        returnN $ \l -> Return l me) <|>
     -- synchronized
-    (do sync <- tP Synchronized
-        tok KW_Synchronized
+    (do tok KW_Synchronized
         e <- parens expParser
         b <- blockParser
-        return $ sync e b) <|>
+        returnN $ \l -> Synchronized l e b) <|>
     -- throw
     endSemi (do
-        thr <- tP Throw
         tok KW_Throw
         e <- expParser
-        return $ thr e) <|>
+        returnN $ \l -> Throw l e) <|>
     -- try-catch, both with and without a finally clause
-    (do tryNode <- tP Try
-        tok KW_Try
+    (do tok KW_Try
         res <- fromMaybe [] <$> optionMaybe (parens tryResources)
         b <- blockParser
         c <- list catch
         mf <- opt $ tok KW_Finally >> blockParser
         -- TODO: here we should check that there exists at
         -- least one catch or finally clause
-        return $ tryNode res b c mf) <|>
+        returnN $ \l -> Try l res b c mf)) <|>
+    -- inner blockParser
+    (wrap blockParser) <|>
     -- expressions as stmts
-    ExpStmt <$$> endSemi stmtExp
+    wrap (endSemi stmtExp)
 
 -- For loops
 
-forInitParser :: (Parsable l) => P (ForInit l)
-forInitParser = try (do forLocalVars <- tP ForLocalVars
+forInitParser :: (Parsable l) => P (ForInitNode l)
+forInitParser = tP $ try (do
                         (m,t,vds) <- localVarDecl
-                        return $ forLocalVars m t vds) <|>
-    (tP ForInitExps <*> seplist1 stmtExp comma)
+                        returnN $ \l -> ForLocalVars l m t vds) <|>
+    (wrapL $ (flip ForInitExps) <$> seplist1 stmtExp comma)
 
-forUp :: (Parsable l) => P [Exp l]
+forUp :: (Parsable l) => P [ExpNode l]
 forUp = seplist1 stmtExp comma
 
 -- Switches
@@ -681,235 +653,222 @@ switchBlock :: (Parsable l) => P [SwitchBlock l]
 switchBlock = braces $ list switchStmt
 
 switchStmt :: (Parsable l) => P (SwitchBlock l)
-switchStmt = do
-    switch <- tP SwitchBlock
+switchStmt = tP $ do
     lbl <- switchLabelParser
-    bss <- list blockStmt
-    return $ switch lbl bss
+    bss <- list $ blockStmt
+    return $ \l -> SwitchBlock l lbl bss
 
-switchLabelParser :: (Parsable l) => P (SwitchLabel l)
-switchLabelParser = (tok KW_Default >> colon >> tP Default) <|>
-    (do switch <- tP SwitchCase
-        tok KW_Case
+switchLabelParser :: (Parsable l) => P (SwitchLabelNode l)
+switchLabelParser = (tP $ tok KW_Default >> colon >> return DefaultNode) <|>
+    (do tok KW_Case
         e <- expParser
         colon
-        return $ switch e)
+        return $ toNode e)
 
 -- Try-catch clauses
 
-tryResources :: (Parsable l) => P [TryResource l]
+tryResources :: (Parsable l) => P [TryResourceNode l]
 tryResources = seplist tryRes semiColon
     where
-      tryRes = try (do
-            tryResourceVar <- tP TryResourceVar
+      tryRes = tP $ try (do
             mods <- list modifier
             ty <- refType
             vars <- varDecls
-            return $ tryResourceVar mods ty vars
-        ) <|> (tP TryResourceFinalVar <*> ident)
+            returnN $ \l -> TryResourceVar l mods ty vars
+        ) <|> (wrapL $ TryResourceFinalVar <$$> ident)
 
 catch :: (Parsable l) => P (Catch l)
-catch = do
-    catchP <- tP Catch
+catch = tP $ do
     tok KW_Catch
     fp <- parens formalParam
     b  <- blockParser
-    return $ catchP fp b
+    return $ \l -> Catch l fp b
 
 ----------------------------------------------------------------------------
 -- Expressions
 
-stmtExp :: (Parsable l) => P (Exp l)
+stmtExp :: (Parsable l) => P (ExpNode l)
 stmtExp = try preIncDec
     <|> try postIncDec
-    <|> try assignment
+    <|> try (wrap assignment)
     -- There are sharing gains to be made by unifying these two
-    <|> try methodInvocationExp
+    <|> try (wrap methodInvocationExp)
     <|> try lambdaExp
     <|> try methodRef
     <|> instanceCreation
 
-preIncDec :: (Parsable l) => P (Exp l)
+preIncDec :: (Parsable l) => P (ExpNode l)
 preIncDec = do
     op <- preIncDecOp
     e <- unaryExp
     return $ op e
 
-postIncDec :: (Parsable l) => P (Exp l)
+postIncDec :: (Parsable l) => P (ExpNode l)
 postIncDec = do
     e <- postfixExpNES
     ops <- list1 postfixOp
     return $ foldl (\a s -> s a) e ops
 
-assignment :: (Parsable l) => P (Exp l)
-assignment = do
-    assign <- tP Assign
+assignment :: (Parsable l) => P (Assign l)
+assignment = tP $ do
     lh <- lhs
     op <- assignOpParser
     e  <- assignExp
-    return $ assign lh op e
+    return $ \l -> Assign l lh op e
 
-lhs :: (Parsable l) => P (Lhs l)
-lhs = try (FieldLhs <$$> fieldAccessParser)
-    <|> try (ArrayLhs <$$> arrayAccess)
-    <|> NameLhs <$$> name
+lhs :: (Parsable l) => P (LhsNode l)
+lhs = try (wrap fieldAccessParser)
+    <|> try (wrap arrayAccess)
+    <|> (wrapP $ NameLhs <$$> name)
 
 
 
-expParser :: (Parsable l) => P (Exp l)
+expParser :: (Parsable l) => P (ExpNode l)
 expParser = assignExp
 
-assignExp :: (Parsable l) => P (Exp l)
-assignExp = try methodRef <|> try lambdaExp <|> try assignment <|> condExp
+assignExp :: (Parsable l) => P (ExpNode l)
+assignExp = try methodRef <|> try lambdaExp <|> try(wrap assignment) <|> condExp
 
-condExp :: (Parsable l) => P (Exp l)
+condExp :: (Parsable l) => P (ExpNode l)
 condExp = do
     ie <- infixExp
-    ces <- list condExpSuffix
+    ces <- (list . tP) ((\c l e -> toNode $ c e l) <$> condExpSuffix)
     return $ foldl (\a s -> s a) ie ces
 
-condExpSuffix :: (Parsable l) => P (Exp l -> Exp l)
-condExpSuffix = do
-    cond <- tP Cond
+condExpSuffix :: (Parsable l) => P (Exp l (Cond l))
+condExpSuffix =  do
     tok Op_Query
     th <- expParser
     colon
     el <- condExp
-    return $ \ce -> cond ce th el
+    return $ \ce l -> Cond l ce th el
 
-infixExp :: (Parsable l) => P (Exp l)
+infixExp :: (Parsable l) => P (ExpNode l)
 infixExp = infixExpWithOperators infixOperators
 
 -- See Note [Parsing operators]
-infixExpWithOperators :: (Parsable l) => [P Op] -> P (Exp l)
+infixExpWithOperators :: (Parsable l) => [P Op] -> P (ExpNode l)
 infixExpWithOperators [] = unaryExp
 infixExpWithOperators (op : ops) = do
     ue <- infixExpWithOperators ops
-    ies <- list (infixExpSuffix op ops)
+    ies <- (list . tP) (flip <$> (infixExpSuffix op ops))
     return $ foldl (\a s -> s a) ue ies
 
-infixExpSuffix :: (Parsable l) => P Op -> [P Op] -> P (Exp l -> Exp l)
+infixExpSuffix :: (Parsable l) => P Op -> [P Op] -> P (Exp l (ExpNode l))
 infixExpSuffix infixOp ops =
-    (do binOpP <- tP BinOp
+    (wrapE $ do
         op <- infixOp
         e2 <- infixExpWithOperators ops
-        return $ \e1 -> binOpP e1 op e2) <|>
+        return $ \e1 l -> BinOp l e1 op e2) <|>
 
     -- FIXME 'instanceof' should have the same precedence as relational operators
-    (do insOf <- tP InstanceOf
-        tok KW_Instanceof
-        t  <- refType
-        return $ \e1 -> insOf e1 t)
+    (wrapE $ tok KW_Instanceof >> (\t e1 l -> InstanceOf l e1 t) <$> refType)
 
-unaryExp :: (Parsable l) => P (Exp l)
+unaryExp :: (Parsable l) => P (ExpNode l)
 unaryExp = try preIncDec <|>
     try (do
         op <- prefixOp
         ue <- unaryExp
         return $ op ue) <|>
-    try (do
-        cast <- tP Cast
+    try (tP $ do
         t <- parens ttype
         e <- unaryExp
-        return $ cast t e) <|>
+        returnN $ \l -> Cast l t e) <|>
     postfixExp
 
-postfixExpNES :: (Parsable l) => P (Exp l)
+postfixExpNES :: (Parsable l) => P (ExpNode l)
 postfixExpNES = primaryParser
 
-postfixExp :: (Parsable l) => P (Exp l)
+postfixExp :: (Parsable l) => P (ExpNode l)
 postfixExp = do
     pe <- postfixExpNES
     ops <- list postfixOp
     return $ foldl (\a s -> s a) pe ops
 
 
-primaryParser :: (Parsable l) => P (Exp l)
+primaryParser :: (Parsable l) => P (ExpNode l)
 primaryParser = primaryNPS |>> primarySuffix
 
-primaryNPS :: (Parsable l) => P (Exp l)
+primaryNPS :: (Parsable l) => P (ExpNode l)
 primaryNPS = try arrayCreation <|> primaryNoNewArrayNPS
 
 -- primaryNoNewArray = startSuff primaryNoNewArrayNPS primarySuffix
 
-primaryNoNewArrayNPS :: (Parsable l) => P (Exp l)
+primaryNoNewArrayNPS :: (Parsable l) => P (ExpNode l)
 primaryNoNewArrayNPS =
-    Lit <$$> literalParser <|>
-    const <$> tP This <*> tok KW_This <|>
+    (wrapP $ Lit <$$> literalParser) <|>
+    (wrapP $ This <$ tok KW_This) <|>
     parens expParser <|>
     -- TODO: These two following should probably be merged more
-    try ( do
-        classLitP <- tP ClassLit
+    try (tP $  do
         rt <- resultType
         period >> tok KW_Class
-        return $ classLitP rt) <|>
-    try ( do
-        qualThis <- tP QualifiedThis
+        returnN $ \l -> ClassLit l rt) <|>
+    try (tP $ do
         t <- ttype
         period >> tok KW_This
-        return $ qualThis t) <|>
-    try instanceCreationNPS <|>
-    try (MethodInv <$$> methodInvocationNPS) <|>
-    try (FieldAccess <$$> fieldAccessNPS) <|>
-    try (ExpName <$$> name) <|>
-    ArrayAccess <$$> arrayAccessNPS
+        returnN $ \l -> QualifiedThis l t) <|>
+    try (wrap instanceCreationNPS) <|>
+    try (wrap methodInvocationNPS) <|>
+    try (wrap fieldAccessNPS) <|>
+    try (wrapP $ ExpName <$$> name) <|>
+    wrap arrayAccessNPS
 
-primarySuffix :: (Parsable l) => P (Exp l -> Exp l)
-primarySuffix = try instanceCreationSuffix <|>
-    try ((.) <$> tP ArrayAccess <*> arrayAccessSuffix) <|>
-    try ((.) <$> tP MethodInv <*> methodInvocationSuffix) <|>
-    (.) <$> tP FieldAccess <*> fieldAccessSuffix
+primarySuffix :: (Parsable l) => P (Exp l (ExpNode l))
+primarySuffix = try (wrapE instanceCreationSuffix) <|>
+    try (wrapE arrayAccessSuffix) <|>
+    try ((wrapE . wrapE @MethodInvocationNode) methodInvocationSuffix) <|>
+    ((wrapE . wrapE @FieldAccessNode) fieldAccessSuffix)
 
 
-instanceCreationNPS :: (Parsable l) => P (Exp l)
-instanceCreationNPS =
-    do instCr <- tP InstanceCreation
-       tok KW_New
+instanceCreationNPS :: (Parsable l) => P (InstanceCreation l)
+instanceCreationNPS = tP $
+    do tok KW_New
        tas <- lopt typeArgsParser
        tds <- typeDeclSpecifier
        as  <- args
        mcb <- opt classBodyParser
-       return $ instCr tas tds as mcb
+       return $ \l -> InstanceCreation l tas tds as mcb
 
 typeDeclSpecifier :: P TypeDeclSpecifier
-typeDeclSpecifier =
-    do ct <- classType
-       return $ TypeDeclSpecifier ct
+typeDeclSpecifier = TypeDeclSpecifier <$> classType
 
 
-instanceCreationSuffix :: (Parsable l) => P (Exp l -> Exp l)
+instanceCreationSuffix :: (Parsable l) => P (Exp l (QualInstanceCreation l))
 instanceCreationSuffix =
-     do qualCre <- tP QualInstanceCreation
-        period >> tok KW_New
+    do  period >> tok KW_New
         tas <- lopt typeArgsParser
         i   <- ident
         as  <- args
         mcb <- opt classBodyParser
-        return $ \p -> qualCre p tas i as mcb
+        return $ \p l -> QualInstanceCreation l p tas i as mcb
 
-instanceCreation :: (Parsable l) => P (Exp l)
-instanceCreation = try instanceCreationNPS <|> do
+instanceCreation :: (Parsable l) => P (ExpNode l)
+instanceCreation = try (wrap instanceCreationNPS) <|> do
     p <- primaryNPS
-    ss <- list primarySuffix
+    ss <- (list . tP) (flip <$> primarySuffix)
     let icp = foldl (\a s -> s a) p ss
     case icp of
-     QualInstanceCreation {} -> return icp
+     QualInstanceCreationNode {} -> wrap $ return icp
      _ -> fail ""
 
 
-lambdaParamsParser :: (Parsable l) => P (LambdaParams l)
-lambdaParamsParser = try (LambdaSingleParam <$$> ident)
-               <|> try (parens $ LambdaFormalParams <$$> seplist formalParam comma)
-               <|> parens (LambdaInferredParams <$$> seplist ident comma)
+lambdaParamsParser :: (Parsable l) => P (LambdaParamsNode l)
+lambdaParamsParser = tP ( try (wrapL $ LambdaSingleParam <$$> ident)
+               <|> try ( (parens . wrapL) $ LambdaFormalParams <$$> seplist formalParam comma)
+               <|> (parens . wrapL) (LambdaInferredParams <$$> seplist ident comma ))
 
-lambdaExp :: (Parsable l) => P (Exp l)
-lambdaExp = Lambda <$$> (lambdaParamsParser <* tok LambdaArrow)
-            <*> ((LambdaBlock <$$> try blockParser)
-                 <|> (LambdaExpression <$$> expParser))
+lambdaExp :: (Parsable l) => P (ExpNode l)
+lambdaExp = wrapP $ Lambda <$$> (lambdaParamsParser <* tok LambdaArrow)
+            <**> (((try . wrap) blockParser)
+                 <|> (wrap expParser))
 
-methodRef :: (Parsable l) => P (Exp l)
-methodRef = MethodRef <$$> (name <*  tok MethodRefSep)
-            <*> ident
+methodRef :: (Parsable l) => P (ExpNode l)
+methodRef = tP $ do
+                n <- name
+                tok MethodRefSep
+                i <- ident
+                returnN $ \l -> MethodRef l n i
 
 {-
 instanceCreation =
@@ -928,32 +887,29 @@ instanceCreation =
         return $ QualInstanceCreation p tas i as mcb)
 -}
 
-fieldAccessNPS :: (Parsable l) => P (FieldAccess l)
-fieldAccessNPS =
-    (do sFieldAcc <- tP SuperFieldAccess
-        tok KW_Super >> period
+fieldAccessNPS :: (Parsable l) => P (FieldAccessNode l)
+fieldAccessNPS = tP $
+    (do tok KW_Super >> period
         i <- ident
-        return $ sFieldAcc i) <|>
-    (do clFieldAcc <- tP ClassFieldAccess
-        n <- name
+        returnN $ \l -> SuperFieldAccess l i) <|>
+    (do n <- name
         period >> tok KW_Super >> period
         i <- ident
-        return $ clFieldAcc n i)
+        returnN $ \l -> ClassFieldAccess l n i)
 
-fieldAccessSuffix :: (Parsable l) => P (Exp l -> FieldAccess l)
+fieldAccessSuffix :: (Parsable l) => P (Exp l (PrimaryFieldAccess l))
 fieldAccessSuffix = do
-    primFAcc <- tP PrimaryFieldAccess
     period
     i <- ident
-    return $ \p -> primFAcc p i
+    return $ \p l -> PrimaryFieldAccess l p i
 
-fieldAccessParser :: (Parsable l) => P (FieldAccess l)
+fieldAccessParser :: (Parsable l) => P (FieldAccessNode l)
 fieldAccessParser = try fieldAccessNPS <|> do
     p <- primaryNPS
-    ss <- list primarySuffix
+    ss <- (list . tP) (flip <$> primarySuffix)
     let fap = foldl (\a s -> s a) p ss
     case fap of
-     FieldAccess _ fa -> return fa
+     FieldAccessNode fa -> return fa
      _ -> fail ""
 
 {-
@@ -981,47 +937,43 @@ fieldAccessParser =
         return $ PrimaryFieldAccess p i)
 -}
 
-methodInvocationNPS :: (Parsable l) => P (MethodInvocation l)
-methodInvocationNPS =
-    (do sMCall <- tP SuperMethodCall
-        tok KW_Super >> period
-        rts <- lopt refTypeArgs
+methodInvocationNPS :: forall l. (Parsable l) => P (MethodInvocationNode l)
+methodInvocationNPS = tP $
+    (do tok KW_Super >> period
+        rts <- (map snd) <$> lopt (refTypeArgs @l)
         i   <- ident
         as  <- args
-        return $ sMCall rts i as) <|>
+        returnN $ \l -> SuperMethodCall l rts i as) <|>
     (do n <- name
-        f <- (do mCall <- tP MethodCall
-                 as <- args
-                 return $ \na -> mCall na as) <|>
+        f <- (do as <- args
+                 return $ \na l -> toNode $ MethodCall l na as) <|>
              (period >> do
                 msp <- opt (tok KW_Super >> period)
-                rts <- lopt refTypeArgs
+                rts <- (map snd) <$> lopt (refTypeArgs @l)
                 i   <- ident
                 as  <- args
-                tyMethCall <- tP TypeMethodCall
-                clMethCall <- tP ClassMethodCall
-                let mc = maybe tyMethCall (const clMethCall) msp
-                return $ \na -> mc na rts i as)
+                let typeM = \na l -> toNode $ TypeMethodCall l na rts i as
+                let classM = const $ \na l -> toNode $ ClassMethodCall l na rts i as
+                return $ maybe typeM classM msp)
         return $ f n)
 
-methodInvocationSuffix :: (Parsable l) => P (Exp l -> MethodInvocation l)
+methodInvocationSuffix :: forall l. (Parsable l) => P (Exp l (PrimaryMethodCall l))
 methodInvocationSuffix = do
-        primMethCall <- tP PrimaryMethodCall
         period
-        _ <- lopt refTypeArgs
+        _ <- lopt (refTypeArgs @l)
         i   <- ident
         as  <- args
-        return $ \p -> primMethCall p [] i as
+        return $ \p l -> PrimaryMethodCall l p [] i as
 
-methodInvocationExp :: (Parsable l) => P (Exp l)
+methodInvocationExp :: (Parsable l) => P (ExpNode l)
 methodInvocationExp = try (do
     p <- primaryNPS
-    ss <- list primarySuffix
+    ss <- (list . tP) (flip <$> primarySuffix)
     let mip = foldl (\a s -> s a) p ss
     case mip of
-     MethodInv _ _ -> return mip
+     MethodInvNode _ -> return mip
      _ -> fail "") <|>
-     (MethodInv <$$> methodInvocationNPS)
+     (wrap methodInvocationNPS)
 
 {-
 methodInvocation :: P MethodInvocation
@@ -1056,26 +1008,23 @@ args = parens $ seplist expParser comma
 -- Arrays
 
 arrayAccessNPS :: (Parsable l) => P (ArrayIndex l)
-arrayAccessNPS = do
-    arrInd <- tP ArrayIndex
-    exName <- tP ExpName
-    n <- name
+arrayAccessNPS = tP $ do
+    n <- wrap $ tP $ (flip ExpName) <$> name
     e <- list1 $ brackets expParser
-    return $ arrInd (exName n) e
+    return $ \l -> ArrayIndex l n e
 
-arrayAccessSuffix :: (Parsable l) => P (Exp l -> ArrayIndex l)
+arrayAccessSuffix :: (Parsable l) => P (Exp l (ArrayIndex l))
 arrayAccessSuffix = do
-    arrInd <- tP ArrayIndex
     e <- list1 $ brackets expParser
-    return $ \ref -> arrInd ref e
+    return $ \ref l -> ArrayIndex l ref e
 
 arrayAccess :: (Parsable l) => P (ArrayIndex l)
 arrayAccess = try arrayAccessNPS <|> do
     p <- primaryNoNewArrayNPS
-    ss <- list primarySuffix
+    ss <- (list . tP) (flip <$> primarySuffix)
     let aap = foldl (\a s -> s a) p ss
     case aap of
-     (ArrayAccess _ ain) -> return ain
+     ArrayAccessNode ain -> return ain
      _ -> fail ""
 
 {-
@@ -1089,19 +1038,17 @@ arrayRef :: P Exp
 arrayRef = ExpName <$> name <|> primaryNoNewArray
 -}
 
-arrayCreation :: (Parsable l) => P (Exp l)
-arrayCreation = do
+arrayCreation :: (Parsable l) => P (ExpNode l)
+arrayCreation = tP $ do
     tok KW_New
     t <- nonArrayType
     f <- try (do
-             arrCrI <- tP ArrayCreateInit
              ds <- list1 $ brackets empty
              ai <- arrayInit
-             return $ \tt -> arrCrI tt (length ds) ai) <|>
-         (do arrCr <- tP ArrayCreate
-             des <- list1 $ try $ brackets expParser
+             return $ \tt l -> toNode $ ArrayCreateInit l tt (length ds) ai) <|>
+         (do des <- list1 $ try $ brackets expParser
              ds  <- list  $ brackets empty
-             return $ \tt -> arrCr tt des (length ds))
+             return $ \tt l -> toNode $ ArrayCreate l tt des (length ds))
     return $ f t
 
 literalParser :: P Literal
@@ -1119,18 +1066,18 @@ literalParser =
 
 -- Operators
 
-preIncDecOp, prefixOp, postfixOp :: (Parsable l) => P (Exp l -> Exp l)
+preIncDecOp, prefixOp, postfixOp :: (Parsable l) => P (ExpNode l -> ExpNode l)
 preIncDecOp =
-    (tok Op_PPlus >> tP PreIncrement) <|>
-    (tok Op_MMinus >> tP PreDecrement)
+    (tok Op_PPlus >> return PreIncrementNode) <|>
+    (tok Op_MMinus >> return PreDecrementNode)
 prefixOp =
-    (tok Op_Bang  >> tP PreNot      ) <|>
-    (tok Op_Tilde >> tP PreBitCompl ) <|>
-    (tok Op_Plus  >> tP PrePlus     ) <|>
-    (tok Op_Minus >> tP PreMinus    )
+    (tok Op_Bang  >> return PreNotNode ) <|>
+    (tok Op_Tilde >> return PreBitComplNode ) <|>
+    (tok Op_Plus  >> return PrePlusNode ) <|>
+    (tok Op_Minus >> return PreMinusNode )
 postfixOp =
-    (tok Op_PPlus  >> tP PostIncrement) <|>
-    (tok Op_MMinus >> tP PostDecrement)
+    (tok Op_PPlus  >> return PostIncrementNode ) <|>
+    (tok Op_MMinus >> return PostDecrementNode )
 
 assignOpParser :: P AssignOp
 assignOpParser =
@@ -1266,8 +1213,8 @@ classTypeSpec argsP = do
 resultType :: P (Maybe Type)
 resultType = tok KW_Void >> return Nothing <|> Just <$> ttype <?> "resultType"
 
-refTypeList :: P [RefType]
-refTypeList = seplist1 refType comma
+refTypeList :: (Parsable l) => P [(l, RefType)]
+refTypeList = seplist1 (tP $ (\r l -> (l, r)) <$> refType) comma
 
 ----------------------------------------------------------------------------
 -- Type parameters and arguments
@@ -1298,7 +1245,7 @@ wildcardBound :: P WildcardBound
 wildcardBound = tok KW_Extends >> ExtendsBound <$> refType
     <|> tok KW_Super >> SuperBound <$> refType
 
-refTypeArgs :: P [RefType]
+refTypeArgs :: forall l. (Parsable l) => P [(l, RefType)]
 refTypeArgs = angles refTypeList
 
 ----------------------------------------------------------------------------
@@ -1366,10 +1313,10 @@ sepListEndOptBy p end sep =
         <|> ((:[]) <$> end)
 
 
-startSuff, (|>>) :: P a -> P (a -> a) -> P a
+startSuff, (|>>) :: Parsable l => P a -> P (a -> l -> a) -> P a
 startSuff start suffix = do
     x <- start
-    ss <- list suffix
+    ss <- (list . tP) (flip <$> suffix)
     return $ foldl (\a s -> s a) x ss
 
 (|>>) = startSuff
@@ -1389,7 +1336,8 @@ matchToken t = javaToken (\r -> if r == t then Just () else Nothing)
 pos2sourcePos :: (Int, Int) -> SourcePos
 pos2sourcePos (l,c) = newPos "" l c
 
-type Mod l a = [Modifier l] -> a
+type Mod l a = [Modifier l] -> l -> a
+type Exp l a = ExpNode l -> l -> a
 
 parens, braces, brackets, angles :: P a -> P a
 parens   = between (tok OpenParen)  (tok CloseParen)
