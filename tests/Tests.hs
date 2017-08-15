@@ -2,7 +2,7 @@
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeApplications      #-}
-module Main where
+module Tests where
 
 import           Prelude                hiding (exp)
 
@@ -28,7 +28,7 @@ import           Language.Java.Pretty
 
 ----------------------------------------------------------
 testJavaDirectory :: FilePath
-testJavaDirectory = "tests" </> "java"
+testJavaDirectory = "java"
 
 isJavaFile :: FilePath -> Bool
 isJavaFile f = ".java" `isSuffixOf` f

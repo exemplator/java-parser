@@ -13,8 +13,8 @@ Build-Type:             Simple
 Cabal-Version:          >= 1.8
 
 Extra-Source-Files:
-    tests/java/good/*.java
-    tests/java/bad/*.java
+    java/good/*.java
+    java/bad/*.java
     src/Language/Java/Lexer.x
 
 source-repository head
@@ -66,3 +66,10 @@ Test-Suite test-java-parse
   ghc-options:       -Wall -fno-warn-orphans -fno-warn-missing-signatures
 
   Other-modules:     Arbitrary
+
+Benchmark bench-java-parse
+  type:              exitcode-stdio-1.0
+  main-is:           bench-foo.hs
+  build-depends:     base
+                   , criterion
+                   , language-java
