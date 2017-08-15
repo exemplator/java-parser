@@ -8,7 +8,7 @@ module Language.Java.Parser (
     P,
     Parsable(..),
 
-    parseCompilationUnit, parser,
+    parseCompilationUnit, parser, parserS,
 
     compilationUnitNode, compilationUnit, packageDeclParser, importDecl, typeDeclParser,
 
@@ -120,6 +120,9 @@ wrapE a = (\a e l -> toNode (a e l)) <$> a
 parseCompilationUnit :: String -> Either ParseError (CompilationUnitNode Segment)
 parseCompilationUnit inp =
     runParser compilationUnitNode () "" (lexer inp)
+
+parserS :: P (a Segment) -> String -> Either ParseError (a Segment)
+parserS = parser
 
 parser :: P a -> String -> Either ParseError a
 parser p = runParser p () "" . lexer
