@@ -245,7 +245,6 @@ instance NFData AssignOp
 instance NFData Position
 instance NFData Segment
 instance NFData (Located Language.Java.Lexer.JavaToken)
-instance NFData SrcSpan
 
 --Tokens
 instance NFData JavaToken

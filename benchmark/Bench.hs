@@ -25,15 +25,18 @@ isJavaFile :: FilePath -> Bool
 isJavaFile f = ".java" `isSuffixOf` f
 
 main :: IO ()
-main = benchFilesIO >>= (mapM (\f -> (f,) <$> readFile f)) >>= (\benchFiles -> defaultMain
+main = (\a b c -> (a,b,c)) <$> goodFiles <*> hugeFile <*> badFile >>= (\(benchFiles, huge, bad) -> defaultMain
     [
         bgroup "parseGood" $
             map (\(file, content) ->
                 (bench file . nf (either (error.show) id . parseCompilationUnit)) content) benchFiles,
-        -- bgroup "parseHuge" $ pure $ benchFile "huge java file" hugeJavaDirectory "RandoopTest0.java",
-        bgroup "parseBad" $ pure $ benchBad "BadRealLife" badJavaDirectory "RealLifeJava.java"
+        bgroup "parseHuge" $ pure $ benchFile "huge java file" huge,
+        bgroup "parseBad" $ pure $ benchBad "BadRealLife" bad
     ])
     where
+        goodFiles = benchFilesIO >>= (mapM (\f -> (f,) <$> readFile f))
+        hugeFile = readFile (hugeJavaDirectory </> "RandoopTest0.java")
+        badFile = readFile (badJavaDirectory </> "RealLifeJava.java")
         benchFilesIO = map (goodJavaDirectory </>) . filter isJavaFile <$> getDirectoryContents goodJavaDirectory
-        benchFile name dir file = (bench name . nf (either (error.show) id . parseCompilationUnit)) (dir </> file)
-        benchBad name dir file = (bench name . nf (parseCompilationUnit)) (dir </> file)
+        benchFile name = (bench name . nf (either (error.show) id . parseCompilationUnit))
+        benchBad name = (bench name . nf (parseCompilationUnit))
