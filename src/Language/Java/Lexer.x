@@ -1,10 +1,14 @@
 {
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# OPTIONS_GHC -fno-warn-tabs -fno-warn-unused-binds #-}
-module Language.Java.Lexer (L(..), Token(..), lexer) where
+module Language.Java.Lexer (JavaToken(..), lexer) where
 
 import Numeric
 import Data.Char
+import Language.Java.Position
+import Data.Maybe (maybe)
+import           GHC.Generics        (Generic)
 }
 
 %wrapper "posn"
@@ -38,136 +42,136 @@ tokens  :-
     $white+         ;
     @comm           ;
 
-    "@interface"    { \p _ -> L (pos p) $ KW_AnnInterface }
-    abstract        { \p _ -> L (pos p) $ KW_Abstract     }
-    assert          { \p _ -> L (pos p) $ KW_Assert       }
-    boolean         { \p _ -> L (pos p) $ KW_Boolean      }
-    break           { \p _ -> L (pos p) $ KW_Break        }
-    byte            { \p _ -> L (pos p) $ KW_Byte         }
-    case            { \p _ -> L (pos p) $ KW_Case         }
-    catch           { \p _ -> L (pos p) $ KW_Catch        }
-    char            { \p _ -> L (pos p) $ KW_Char         }
-    class           { \p _ -> L (pos p) $ KW_Class        }
-    const           { \p _ -> L (pos p) $ KW_Const        }
-    continue        { \p _ -> L (pos p) $ KW_Continue     }
-    default         { \p _ -> L (pos p) $ KW_Default      }
-    do              { \p _ -> L (pos p) $ KW_Do           }
-    double          { \p _ -> L (pos p) $ KW_Double       }
-    else            { \p _ -> L (pos p) $ KW_Else         }
-    enum            { \p _ -> L (pos p) $ KW_Enum         }
-    extends         { \p _ -> L (pos p) $ KW_Extends      }
-    final           { \p _ -> L (pos p) $ KW_Final        }
-    finally         { \p _ -> L (pos p) $ KW_Finally      }
-    float           { \p _ -> L (pos p) $ KW_Float        }
-    for             { \p _ -> L (pos p) $ KW_For          }
-    goto            { \p _ -> L (pos p) $ KW_Goto         }
-    if              { \p _ -> L (pos p) $ KW_If           }
-    implements      { \p _ -> L (pos p) $ KW_Implements   }
-    import          { \p _ -> L (pos p) $ KW_Import       }
-    instanceof      { \p _ -> L (pos p) $ KW_Instanceof   }
-    int             { \p _ -> L (pos p) $ KW_Int          }
-    interface       { \p _ -> L (pos p) $ KW_Interface    }
-    long            { \p _ -> L (pos p) $ KW_Long         }
-    native          { \p _ -> L (pos p) $ KW_Native       }
-    new             { \p _ -> L (pos p) $ KW_New          }
-    package         { \p _ -> L (pos p) $ KW_Package      }
-    private         { \p _ -> L (pos p) $ KW_Private      }
-    protected       { \p _ -> L (pos p) $ KW_Protected    }
-    public          { \p _ -> L (pos p) $ KW_Public       }
-    return          { \p _ -> L (pos p) $ KW_Return       }
-    short           { \p _ -> L (pos p) $ KW_Short        }
-    static          { \p _ -> L (pos p) $ KW_Static       }
-    strictfp        { \p _ -> L (pos p) $ KW_Strictfp     }
-    super           { \p _ -> L (pos p) $ KW_Super        }
-    switch          { \p _ -> L (pos p) $ KW_Switch       }
-    synchronized    { \p _ -> L (pos p) $ KW_Synchronized }
-    this            { \p _ -> L (pos p) $ KW_This         }
-    throw           { \p _ -> L (pos p) $ KW_Throw        }
-    throws          { \p _ -> L (pos p) $ KW_Throws       }
-    transient       { \p _ -> L (pos p) $ KW_Transient    }
-    try             { \p _ -> L (pos p) $ KW_Try          }
-    void            { \p _ -> L (pos p) $ KW_Void         }
-    volatile        { \p _ -> L (pos p) $ KW_Volatile     }
-    while           { \p _ -> L (pos p) $ KW_While        }
+    "@interface"    { ignore KW_AnnInterface }
+    abstract        { ignore KW_Abstract }
+    assert          { ignore KW_Assert }
+    boolean         { ignore KW_Boolean }
+    break           { ignore KW_Break }
+    byte            { ignore KW_Byte }
+    case            { ignore KW_Case }
+    catch           { ignore KW_Catch }
+    char            { ignore KW_Char }
+    class           { ignore KW_Class }
+    const           { ignore KW_Const }
+    continue        { ignore KW_Continue }
+    default         { ignore KW_Default }
+    do              { ignore KW_Do }
+    double          { ignore KW_Double }
+    else            { ignore KW_Else }
+    enum            { ignore KW_Enum }
+    extends         { ignore KW_Extends }
+    final           { ignore KW_Final }
+    finally         { ignore KW_Finally }
+    float           { ignore KW_Float }
+    for             { ignore KW_For }
+    goto            { ignore KW_Goto }
+    if              { ignore KW_If }
+    implements      { ignore KW_Implements }
+    import          { ignore KW_Import }
+    instanceof      { ignore KW_Instanceof }
+    int             { ignore KW_Int }
+    interface       { ignore KW_Interface }
+    long            { ignore KW_Long }
+    native          { ignore KW_Native }
+    new             { ignore KW_New }
+    package         { ignore KW_Package }
+    private         { ignore KW_Private }
+    protected       { ignore KW_Protected }
+    public          { ignore KW_Public }
+    return          { ignore KW_Return }
+    short           { ignore KW_Short }
+    static          { ignore KW_Static }
+    strictfp        { ignore KW_Strictfp }
+    super           { ignore KW_Super }
+    switch          { ignore KW_Switch }
+    synchronized    { ignore KW_Synchronized }
+    this            { ignore KW_This }
+    throw           { ignore KW_Throw }
+    throws          { ignore KW_Throws }
+    transient       { ignore KW_Transient }
+    try             { ignore KW_Try }
+    void            { ignore KW_Void }
+    volatile        { ignore KW_Volatile }
+    while           { ignore KW_While }
 
-    0               { \p _ -> L (pos p) $ IntTok 0        }
-    0 [lL]          { \p _ -> L (pos p) $ LongTok 0       }
-    0 $digit+       { \p s -> L (pos p) $ IntTok (pickyReadOct s) }
-    0 $digit+ [lL]  { \p s -> L (pos p) $ LongTok (pickyReadOct (init s)) }
-    $nonzero $digit*        { \p s -> L (pos p) $ IntTok (read s) }
-    $nonzero $digit* [lL]   { \p s -> L (pos p) $ LongTok (read (init s)) }
-    0 [xX] $hexdig+         { \p s -> L (pos p) $ IntTok (fst . head $ readHex (drop 2 s)) }
-    0 [xX] $hexdig+ [lL]    { \p s -> L (pos p) $ LongTok (fst . head $ readHex (init (drop 2 s))) }
+    0               { ignore (IntTok 0) }
+    0 [lL]          { ignore (LongTok 0) }
+    0 $digit+       { readTk (\s -> IntTok (pickyReadOct s)) }
+    0 $digit+ [lL]  { readTk (\s -> LongTok (pickyReadOct (init s))) }
+    $nonzero $digit*        { readTk (\s -> IntTok (read s)) }
+    $nonzero $digit* [lL]   { readTk (\s -> LongTok (read (init s))) }
+    0 [xX] $hexdig+         { readTk (\s -> IntTok (fst . head $ readHex (drop 2 s))) }
+    0 [xX] $hexdig+ [lL]    { readTk (\s -> LongTok (fst . head $ readHex (init (drop 2 s)))) }
 
-    $digit+ \. $digit* @exponent? [dD]?           { \p s -> L (pos p) $ DoubleTok (fst . head $ readFloat $ '0':s) }
-            \. $digit+ @exponent? [dD]?           { \p s -> L (pos p) $ DoubleTok (fst . head $ readFloat $ '0':s) }
-    $digit+ \. $digit* @exponent? [fF]            { \p s -> L (pos p) $ FloatTok  (fst . head $ readFloat $ '0':s) }
-            \. $digit+ @exponent? [fF]            { \p s -> L (pos p) $ FloatTok  (fst . head $ readFloat $ '0':s) }
-    $digit+ @exponent                             { \p s -> L (pos p) $ DoubleTok (fst . head $ readFloat s) }
-    $digit+ @exponent? [dD]                       { \p s -> L (pos p) $ DoubleTok (fst . head $ readFloat s) }
-    $digit+ @exponent? [fF]                       { \p s -> L (pos p) $ FloatTok  (fst . head $ readFloat s) }
-    0 [xX] $hexdig* \.? $hexdig* @pexponent [dD]? { \p s -> L (pos p) $ DoubleTok (readHexExp (drop 2 s)) }
-    0 [xX] $hexdig* \.? $hexdig* @pexponent [fF]  { \p s -> L (pos p) $ FloatTok  (readHexExp (drop 2 s)) }
+    $digit+ \. $digit* @exponent? [dD]?           { readTk (\s -> DoubleTok (fst . head $ readFloat $ '0':s)) }
+            \. $digit+ @exponent? [dD]?           { readTk (\s -> DoubleTok (fst . head $ readFloat $ '0':s)) }
+    $digit+ \. $digit* @exponent? [fF]            { readTk (\s -> FloatTok  (fst . head $ readFloat $ '0':s)) }
+            \. $digit+ @exponent? [fF]            { readTk (\s -> FloatTok  (fst . head $ readFloat $ '0':s)) }
+    $digit+ @exponent                             { readTk (\s -> DoubleTok (fst . head $ readFloat s)) }
+    $digit+ @exponent? [dD]                       { readTk (\s -> DoubleTok (fst . head $ readFloat s)) }
+    $digit+ @exponent? [fF]                       { readTk (\s -> FloatTok  (fst . head $ readFloat s)) }
+    0 [xX] $hexdig* \.? $hexdig* @pexponent [dD]? { readTk (\s -> DoubleTok (readHexExp (drop 2 s))) }
+    0 [xX] $hexdig* \.? $hexdig* @pexponent [fF]  { readTk (\s -> FloatTok  (readHexExp (drop 2 s))) }
 
-    true            { \p _ -> L (pos p) $ BoolTok True    }
-    false           { \p _ -> L (pos p) $ BoolTok False   }
+    true            { ignore (BoolTok True)    }
+    false           { ignore (BoolTok False)   }
 
-    ' (@charEscape | ~[\\\']) '               { \p s -> L (pos p) $ CharTok (readCharTok s) }
+    ' (@charEscape | ~[\\\']) '               { readTk (\s -> CharTok (readCharTok s)) }
 
-    \" (@charEscape | ~[\\\"])* \"            { \p s -> L (pos p) $ StringTok (readStringTok s) }
+    \" (@charEscape | ~[\\\"])* \"            { readTk (\s -> StringTok (readStringTok s)) }
 
-    null            {\p _ -> L (pos p) $ NullTok }
+    null            {ignore NullTok }
 
-    $javaLetter $javaLetterOrDigit*     { \p s -> L (pos p) $ IdentTok s }
+    $javaLetter $javaLetterOrDigit*     { readTk (\s -> IdentTok s) }
 
-    \(              { \p _ -> L (pos p) $ OpenParen       }
-    \)              { \p _ -> L (pos p) $ CloseParen      }
-    \[              { \p _ -> L (pos p) $ OpenSquare      }
-    \]              { \p _ -> L (pos p) $ CloseSquare     }
-    \{              { \p _ -> L (pos p) $ OpenCurly       }
-    \}              { \p _ -> L (pos p) $ CloseCurly      }
-    \;              { \p _ -> L (pos p) $ SemiColon       }
-    \,              { \p _ -> L (pos p) $ Comma           }
-    \.              { \p _ -> L (pos p) $ Period          }
-    "->"            { \p _ -> L (pos p) $ LambdaArrow     }
-    "::"            { \p _ -> L (pos p) $ MethodRefSep    }
+    \(              { ignore OpenParen }
+    \)              { ignore CloseParen }
+    \[              { ignore OpenSquare }
+    \]              { ignore CloseSquare }
+    \{              { ignore OpenCurly }
+    \}              { ignore CloseCurly }
+    \;              { ignore SemiColon }
+    \,              { ignore Comma }
+    \.              { ignore Period }
+    "->"            { ignore LambdaArrow }
+    "::"            { ignore MethodRefSep }
 
-    "="             { \p _ -> L (pos p) $ Op_Equal        }
-    ">"             { \p _ -> L (pos p) $ Op_GThan        }
-    "<"             { \p _ -> L (pos p) $ Op_LThan        }
-    "!"             { \p _ -> L (pos p) $ Op_Bang         }
-    "~"             { \p _ -> L (pos p) $ Op_Tilde        }
-    "?"             { \p _ -> L (pos p) $ Op_Query        }
-    ":"             { \p _ -> L (pos p) $ Op_Colon        }
-    "=="            { \p _ -> L (pos p) $ Op_Equals       }
-    "<="            { \p _ -> L (pos p) $ Op_LThanE       }
-    ">="            { \p _ -> L (pos p) $ Op_GThanE       }
-    "!="            { \p _ -> L (pos p) $ Op_BangE        }
-    "&&"            { \p _ -> L (pos p) $ Op_AAnd         }
-    "||"            { \p _ -> L (pos p) $ Op_OOr          }
-    "++"            { \p _ -> L (pos p) $ Op_PPlus        }
-    "--"            { \p _ -> L (pos p) $ Op_MMinus       }
-    "+"             { \p _ -> L (pos p) $ Op_Plus         }
-    "-"             { \p _ -> L (pos p) $ Op_Minus        }
-    "*"             { \p _ -> L (pos p) $ Op_Star         }
-    "/"             { \p _ -> L (pos p) $ Op_Slash        }
-    "&"             { \p _ -> L (pos p) $ Op_And          }
-    "|"             { \p _ -> L (pos p) $ Op_Or           }
-    "^"             { \p _ -> L (pos p) $ Op_Caret        }
-    "%"             { \p _ -> L (pos p) $ Op_Percent      }
-    "<<"            { \p _ -> L (pos p) $ Op_LShift       }
-    "+="            { \p _ -> L (pos p) $ Op_PlusE        }
-    "-="            { \p _ -> L (pos p) $ Op_MinusE       }
-    "*="            { \p _ -> L (pos p) $ Op_StarE        }
-    "/="            { \p _ -> L (pos p) $ Op_SlashE       }
-    "&="            { \p _ -> L (pos p) $ Op_AndE         }
-    "|="            { \p _ -> L (pos p) $ Op_OrE          }
-    "^="            { \p _ -> L (pos p) $ Op_CaretE       }
-    "%="            { \p _ -> L (pos p) $ Op_PercentE     }
-    "<<="           { \p _ -> L (pos p) $ Op_LShiftE      }
-    ">>="           { \p _ -> L (pos p) $ Op_RShiftE      }
-    ">>>="          { \p _ -> L (pos p) $ Op_RRShiftE     }
-    "@"             { \p _ -> L (pos p) $ Op_AtSign       }
+    "="             { ignore Op_Equal }
+    ">"             { ignore Op_GThan }
+    "<"             { ignore Op_LThan }
+    "!"             { ignore Op_Bang }
+    "~"             { ignore Op_Tilde }
+    "?"             { ignore Op_Query }
+    ":"             { ignore Op_Colon }
+    "=="            { ignore Op_Equals }
+    "<="            { ignore Op_LThanE }
+    ">="            { ignore Op_GThanE }
+    "!="            { ignore Op_BangE }
+    "&&"            { ignore Op_AAnd }
+    "||"            { ignore Op_OOr }
+    "++"            { ignore Op_PPlus }
+    "--"            { ignore Op_MMinus }
+    "+"             { ignore Op_Plus }
+    "-"             { ignore Op_Minus }
+    "*"             { ignore Op_Star }
+    "/"             { ignore Op_Slash }
+    "&"             { ignore Op_And }
+    "|"             { ignore Op_Or }
+    "^"             { ignore Op_Caret }
+    "%"             { ignore Op_Percent }
+    "<<"            { ignore Op_LShift }
+    "+="            { ignore Op_PlusE }
+    "-="            { ignore Op_MinusE }
+    "*="            { ignore Op_StarE }
+    "/="            { ignore Op_SlashE }
+    "&="            { ignore Op_AndE }
+    "|="            { ignore Op_OrE }
+    "^="            { ignore Op_CaretE }
+    "%="            { ignore Op_PercentE }
+    "<<="           { ignore Op_LShiftE }
+    ">>="           { ignore Op_RShiftE }
+    ">>>="          { ignore Op_RRShiftE }
+    "@"             { ignore Op_AtSign }
 
 
 {
@@ -241,16 +245,19 @@ convChar "" = ""
 lexicalError :: String -> a
 lexicalError = error . ("lexical error: " ++)
 
-data L a = L Pos a
-  deriving (Show, Eq)
+ignore :: JavaToken -> AlexPosn -> String -> Located JavaToken
+ignore tk = readTk (const tk)
 
--- (line, column)
-type Pos = (Int, Int)
+readTk :: (String -> JavaToken) -> AlexPosn -> String -> Located JavaToken
+readTk tkf p str = Loc spn (tkf str)
+    where
+        spn :: Segment
+        spn = posnToSpan p (length str)
 
-pos :: AlexPosn -> Pos
-pos (AlexPn _ l c) = (l,c)
+        posnToSpan :: AlexPosn -> Int -> Segment
+        posnToSpan (AlexPn _ l c) w = Segment (Position l c) (Position l (c + w))
 
-data Token
+data JavaToken
     -- Keywords
     = KW_Abstract
     | KW_AnnInterface
@@ -367,9 +374,11 @@ data Token
     | Op_RShiftE
     | Op_RRShiftE
     | Op_AtSign
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
 
-lexer :: String -> [L Token]
+data NoTokens = NoTokens
+
+lexer :: String -> [Located JavaToken]
 lexer = alexScanTokens
 
 }

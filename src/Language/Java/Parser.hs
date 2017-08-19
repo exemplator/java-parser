@@ -1,11 +1,14 @@
 {-# LANGUAGE CPP                   #-}
 {-# LANGUAGE ExplicitForAll        #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE InstanceSigs          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE TypeFamilies          #-}
 module Language.Java.Parser (
-    P, ParseError,
+    P, PError,
     Parsable(..),
 
     parseCompilationUnit, parser, parserS, unsafeParser,
@@ -41,38 +44,84 @@ module Language.Java.Parser (
 
     ) where
 
-import           Language.Java.Lexer         (L (..), Token (..), lexer)
-import           Language.Java.Position
-import           Language.Java.Pretty        (pretty)
 import           Language.Java.Java
+import           Language.Java.Lexer    (JavaToken (..), lexer)
+import           Language.Java.Position
+import           Language.Java.Pretty   (pretty)
 
-import           Text.Parsec                 hiding (Empty)
-import           Text.Parsec.Pos
+import           Text.Megaparsec        
 
-import           Data.Char                   (toLower)
-import           Data.Maybe                  (catMaybes, fromMaybe, isJust,
-                                              listToMaybe, maybe)
-import           Prelude                     hiding ((>>), (>>=))
-import qualified Prelude                     as P ((>>), (>>=))
+import           Data.Char              (toLower)
+import qualified Data.List.NonEmpty     as NE
+import           Data.Maybe             (catMaybes, fromMaybe, isJust,
+                                         listToMaybe, maybe)
+import           Data.Proxy
+import qualified Data.Set               as Set
 
-import           Control.Applicative         ((<$), (<$>), (<*), (<*>))
-import           Control.Monad               (foldM)
-import           Debug.Trace
+import           Control.Applicative    ((<$), (<$>), (<*), (<*>))
 
-type P = Parsec [L Token] ()
+type LocTok = Located JavaToken
 
--- A trick to allow >> and >>=, normally infixr 1, to be
--- used inside branches of <|>, which is declared as infixl 1.
--- There are no clashes with other operators of precedence 2.
-(>>) = (P.>>)
-(>>=) = (P.>>=)
-infixr 2 >>, >>=
--- Note also when reading that <$> is infixl 4 and thus has
--- lower precedence than all the others (>>, >>=, and <|>).
+instance ShowToken LocTok where
+    showTokens toShow = ((++ " ") . show . locNode ) =<< NE.toList toShow
+
+type PError = ParseError LocTok String
+
+instance ShowErrorComponent String where
+    showErrorComponent = id
+
+type P = Parsec String [LocTok]
+
+instance Stream [LocTok] where
+        type Token [LocTok] = LocTok
+        type Tokens [LocTok] = [LocTok]
+        tokenToChunk Proxy = pure
+        tokensToChunk Proxy = id
+        chunkToTokens Proxy = id
+        chunkLength Proxy = length
+        chunkEmpty Proxy = null
+        take1_ [] = Nothing
+        take1_ (t:ts) = Just (t, ts)
+        takeN_ n s
+          | n <= 0    = Just ([Loc defaultSeg (IdentTok "")], s)
+          | null s    = Nothing
+          | otherwise = Just (t1, t2)
+            where
+                (t1, t2) = splitAt n s
+
+        takeWhile_= span
+        
+        positionAt1 Proxy sPos (Loc (seg) _) = posStream sPos sL sC
+            where
+                (sL, sC, _, _) = extract seg
+
+        positionAtN Proxy sPos [] = sPos
+        positionAtN Proxy sPos (loc:_) = posStream sPos sL sC
+            where
+                (Loc (seg) _) = loc
+                (sL, sC, _, _) = extract seg
+
+        advance1 Proxy _ sPos (Loc (seg) _) = posStream sPos eL eC
+            where
+                (_, _, eL, eC) = extract seg
+
+        advanceN Proxy _ sPos [] = sPos
+        advanceN Proxy _ sPos locs = posStream sPos eL eC
+            where
+                (Loc (seg) _) = (head . reverse) locs
+                (_, _, eL, eC) = extract seg
+
+posStream :: SourcePos -> Int -> Int -> SourcePos
+posStream sPos l c = SourcePos (sourceName sPos) (intPosStream l) (intPosStream c)
+{-# INLINE posStream #-}
+
+intPosStream :: Int -> Pos
+intPosStream = mkPos . fromIntegral
+{-# INLINE intPosStream #-}
 
 -- Parsing class for type parameter
 
-class Parsable l where
+class Show l => Parsable l where
     toParser :: P (l -> a) -> P a
 
 instance Parsable Segment where
@@ -97,9 +146,6 @@ infixl 4 <**>
 returnN :: (Monad m, HasNode a b) => (l -> a l) -> m (l -> b l)
 returnN a = return $ \l -> toNode (a l)
 
-returnN' :: (Monad m, HasNode a b) => a l -> m (b l)
-returnN' a = return $ toNode a
-
 wrap :: (Applicative f, HasNode a b) => f (a l) -> f (b l)
 wrap = fmap toNode
 
@@ -107,26 +153,26 @@ wrapP :: (Parsable l, HasNode a b) => P (l -> a l) -> P (b l)
 wrapP = tP . wrapL
 
 wrapL :: (Applicative f, HasNode a b) => f (l -> (a l)) -> f (l -> (b l))
-wrapL a = (\a l -> toNode (a l)) <$> a
+wrapL fa = (\a l -> toNode (a l)) <$> fa
 
 wrapM :: (Applicative f, HasNode a b) => f (Mod l (a l)) -> f (Mod l (b l))
-wrapM a = (\a ms l -> toNode (a ms l)) <$> a
+wrapM fa = (\a ms l -> toNode (a ms l)) <$> fa
 
 wrapE :: forall b a f l. (Applicative f, HasNode a b) => f (Exp l (a l)) -> f (Exp l (b l))
-wrapE a = (\a e l -> toNode (a e l)) <$> a
+wrapE fa = (\a e l -> toNode (a e l)) <$> fa
 
 ----------------------------------------------------------------------------
 -- Top-level parsing
 
-parseCompilationUnit :: String -> Either ParseError (CompilationUnitNode Segment)
+parseCompilationUnit :: String -> Either PError (CompilationUnitNode Segment)
 parseCompilationUnit inp =
-    runParser compilationUnitNode () "" (lexer inp)
+    runParser compilationUnitNode "" (lexer inp)
 
-parserS :: P (a Segment) -> String -> Either ParseError (a Segment)
+parserS :: P (a Segment) -> String -> Either PError (a Segment)
 parserS = parser
 
-parser :: P a -> String -> Either ParseError a
-parser p = runParser peof () "" . lexer
+parser :: P a -> String -> Either PError a
+parser p = runParser peof "" . lexer
     where
         peof = do
             pResult <- p
@@ -418,19 +464,19 @@ ellipsis = period >> period >> period
 
 modifier :: (Parsable l) => P (Modifier l)
 modifier = tP (
-        tok KW_Public      >> return Public
-    <|> tok KW_Protected   >> return Protected
-    <|> tok KW_Private     >> return Private
-    <|> tok KW_Abstract    >> return Abstract
-    <|> tok KW_Static      >> return Static
-    <|> tok KW_Strictfp    >> return StrictFP
-    <|> tok KW_Final       >> return Final
-    <|> tok KW_Native      >> return Native
-    <|> tok KW_Transient   >> return Transient
-    <|> tok KW_Volatile    >> return Volatile
-    <|> tok KW_Synchronized >> return Synchronized_
-    <|> tok KW_Default >> return DefaultModifier )
-    <|> wrap annotationParser
+        (tok KW_Public      >> return Public)
+    <|> (tok KW_Protected   >> return Protected)
+    <|> (tok KW_Private     >> return Private)
+    <|> (tok KW_Abstract    >> return Abstract)
+    <|> (tok KW_Static      >> return Static)
+    <|> (tok KW_Strictfp    >> return StrictFP)
+    <|> (tok KW_Final       >> return Final)
+    <|> (tok KW_Native      >> return Native)
+    <|> (tok KW_Transient   >> return Transient)
+    <|> (tok KW_Volatile    >> return Volatile)
+    <|> (tok KW_Synchronized >> return Synchronized_)
+    <|> (tok KW_Default >> return DefaultModifier ))
+    <|> (wrap annotationParser)
 
 annotationParser :: (Parsable l) => P (Annotation l)
 annotationParser = flip ($) <$ tok Op_AtSign <*> name <*> (
@@ -499,7 +545,7 @@ blockParser :: (Parsable l) => P (Block l)
 blockParser = tP $ braces $ (flip Block) <$> list blockStmt
 
 blockStmt :: (Parsable l) => P (BlockStmtNode l)
-blockStmt = 
+blockStmt =
     tP ((try ( do
         ms  <- list modifier
         cd  <- classDeclParser
@@ -516,7 +562,7 @@ stmt = tP (ifStmt <|> whileStmt <|> forStmt <|> labeledStmtParser) <|> stmtNoTra
         tok KW_If
         e  <- parens expParser
         th <- stmtNSI
-        el <- optionMaybe $ tok KW_Else >> stmt
+        el <- optional $ tok KW_Else >> stmt
         returnN $ \l -> IfThenElse l e th el
     whileStmt = do
         tok KW_While
@@ -554,7 +600,7 @@ stmtNSI = tP (ifStmt <|> whileStmt <|> forStmt <|> labeledStmtParser) <|> stmtNo
         tok KW_If
         e  <- parens expParser
         th <- stmtNSI
-        el <- optionMaybe $ tok KW_Else >> stmtNSI
+        el <- optional $ tok KW_Else >> stmtNSI
         returnN $ \l -> IfThenElse l e th el
     whileStmt = do
         tok KW_While
@@ -634,7 +680,7 @@ stmtNoTrail = tP (
         returnN $ \l -> Throw l e) <|>
     -- try-catch, both with and without a finally clause
     (do tok KW_Try
-        res <- fromMaybe [] <$> optionMaybe (parens tryResources)
+        res <- fromMaybe [] <$> optional (parens tryResources)
         b <- blockParser
         c <- list catch
         mf <- opt $ tok KW_Finally >> blockParser
@@ -1060,17 +1106,21 @@ arrayCreation = tP $ do
     return $ f t
 
 literalParser :: P Literal
-literalParser =
-    javaToken $ \t -> case t of
-        IntTok     i -> Just (Int i)
-        LongTok    l -> Just (Word l)
-        DoubleTok  d -> Just (Double d)
-        FloatTok   f -> Just (Float f)
-        CharTok    c -> Just (Char c)
-        StringTok  s -> Just (String s)
-        BoolTok    b -> Just (Boolean b)
-        NullTok      -> Just Null
-        _ -> Nothing
+literalParser = token testToken (Nothing)
+        where
+            testToken t =  case locNode t of
+                IntTok     i -> Right (Int i)
+                LongTok    l -> Right (Word l)
+                DoubleTok  d -> Right (Double d)
+                FloatTok   f -> Right (Float f)
+                CharTok    c -> Right (Char c)
+                StringTok  s -> Right (String s)
+                BoolTok    b -> Right (Boolean b)
+                NullTok      -> Right Null
+                _ -> Left ((pure . Tokens . pure) t, (Set.singleton . Tokens . (NE.fromList)) (expextedTokens (locSpan t)))
+
+            expextedTokens seg = map (Loc seg)
+                [IntTok 0, LongTok 0, DoubleTok 0, FloatTok 0, StringTok "", BoolTok True, NullTok]
 
 -- Operators
 
@@ -1173,14 +1223,14 @@ ttype = try (RefType <$> refType) <|> PrimType <$> primType
 
 primType :: P PrimType
 primType =
-    tok KW_Boolean >> return BooleanT  <|>
-    tok KW_Byte    >> return ByteT     <|>
-    tok KW_Short   >> return ShortT    <|>
-    tok KW_Int     >> return IntT      <|>
-    tok KW_Long    >> return LongT     <|>
-    tok KW_Char    >> return CharT     <|>
-    tok KW_Float   >> return FloatT    <|>
-    tok KW_Double  >> return DoubleT
+    (tok KW_Boolean >> return BooleanT)  <|>
+    (tok KW_Byte    >> return ByteT)     <|>
+    (tok KW_Short   >> return ShortT)    <|>
+    (tok KW_Int     >> return IntT)      <|>
+    (tok KW_Long    >> return LongT)     <|>
+    (tok KW_Char    >> return CharT)     <|>
+    (tok KW_Float   >> return FloatT)    <|>
+    (tok KW_Double  >> return DoubleT)
 
 refType :: P RefType
 refType =
@@ -1219,7 +1269,7 @@ classTypeSpec argsP = do
     return (i, tas)
 
 resultType :: P (Maybe Type)
-resultType = tok KW_Void >> return Nothing <|> Just <$> ttype <?> "resultType"
+resultType = (tok KW_Void >> return Nothing) <|> (Just <$> ttype <?> "resultType")
 
 refTypeList :: (Parsable l) => P [(l, RefType)]
 refTypeList = seplist1 (tP $ (\r l -> (l, r)) <$> refType) comma
@@ -1243,15 +1293,15 @@ typeArgsParser :: P [TypeArgument]
 typeArgsParser = angles $ seplist1 typeArg comma
 
 typeArg :: P TypeArgument
-typeArg = tok Op_Query >> Wildcard <$> opt wildcardBound
+typeArg = (tok Op_Query >> Wildcard <$> opt wildcardBound)
     <|> ActualType <$> refType
 
 typeDiamond :: P TypeArgument
 typeDiamond = angles $ pure Diamond
 
 wildcardBound :: P WildcardBound
-wildcardBound = tok KW_Extends >> ExtendsBound <$> refType
-    <|> tok KW_Super >> SuperBound <$> refType
+wildcardBound = (tok KW_Extends >> ExtendsBound <$> refType)
+    <|> (tok KW_Super >> SuperBound <$> refType)
 
 refTypeArgs :: forall l. (Parsable l) => P [(l, RefType)]
 refTypeArgs = angles refTypeList
@@ -1263,9 +1313,10 @@ name :: P Name
 name = Name <$> seplist1 ident period
 
 ident :: P Ident
-ident = javaToken $ \t -> case t of
-    IdentTok s -> Just $ Ident s
-    _ -> Nothing
+ident = token test (pure $ Loc defaultSeg (IdentTok "ident"))
+    where
+        test (Loc _ (IdentTok s)) = Right (Ident s)
+        test x = Left ( (pure . Tokens . pure) x, Set.singleton (Tokens $ pure $ Loc (locSpan x) (IdentTok "ident")))
 
 ----------------------------------------------------------------------------
 -- Package
@@ -1281,7 +1332,7 @@ empty :: P ()
 empty = return ()
 
 opt :: P a -> P (Maybe a)
-opt = optionMaybe
+opt = optional
 
 bopt :: P a -> P Bool
 bopt p = opt p >>= \ma -> return $ isJust ma
@@ -1296,7 +1347,7 @@ list :: P a -> P [a]
 list = option [] . list1
 
 list1 :: P a -> P [a]
-list1 = many1
+list1 = some
 
 seplist :: P a -> P sep -> P [a]
 --seplist = sepBy
@@ -1331,19 +1382,14 @@ startSuff start suffix = do
 
 ------------------------------------------------------------
 
-javaToken :: (Token -> Maybe a) -> P a
-javaToken testTok = token showT posT testT
-  where showT (L _ t) = show t
-        posT  (L p _) = pos2sourcePos p
-        testT (L _ t) = testTok t
-
-tok, matchToken :: Token -> P ()
+tok, matchToken :: JavaToken -> P ()
 tok = matchToken
-matchToken t = javaToken (\r -> if r == t then Just () else Nothing)
-
-pos2sourcePos :: (Int, Int) -> SourcePos
-pos2sourcePos (l,c) = newPos "" l c
-
+matchToken t = token testToken (pure $ Loc defaultSeg (t)) >> return ()
+    where
+        testToken locTok = case (t == (locNode locTok)) of
+            True -> Right (locTok)
+            False -> Left ( (pure . Tokens . pure) locTok, Set.singleton (Tokens $ pure $ Loc (locSpan locTok) (t)))
+ 
 type Mod l a = [Modifier l] -> l -> a
 type Exp l a = ExpNode l -> l -> a
 

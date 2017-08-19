@@ -1,8 +1,10 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE FlexibleInstances #-}
 module BenchClasses where
 
 import           Control.DeepSeq
 import           Language.Java.Java
+import           Language.Java.Lexer
 import           Language.Java.Position
 
 -- Syntax
@@ -242,4 +244,9 @@ instance NFData AssignOp
 --Position
 instance NFData Position
 instance NFData Segment
+instance NFData (Located Language.Java.Lexer.JavaToken)
+instance NFData SrcSpan
+
+--Tokens
+instance NFData JavaToken
 

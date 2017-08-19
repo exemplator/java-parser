@@ -27,9 +27,10 @@ Library
   Build-Depends:        base >= 4 && < 5
                       , array >= 0.1
                       , pretty >= 1.0
-                      , parsec >= 3.0
+                      , megaparsec >= 6.1.0
                       , lens >= 4.15.1
                       , template-haskell
+                      , containers
 
   ghc-options:         -Wall -fwarn-tabs -fno-warn-missing-signatures
 
@@ -63,6 +64,7 @@ Test-Suite test-java-parse
                    , language-java
                    , filepath
                    , directory
+
   ghc-options:       -Wall -fno-warn-orphans -fno-warn-missing-signatures
 
   Other-modules:     Arbitrary

@@ -33,7 +33,7 @@ testJavaDirectory = "java"
 isJavaFile :: FilePath -> Bool
 isJavaFile f = ".java" `isSuffixOf` f
 
-parserSeg :: P (a Singleton) -> String -> Either ParseError (a Singleton)
+parserSeg :: P (a Singleton) -> String -> Either PError (a Singleton)
 parserSeg = parser
 
 parseOne jFile = parserSeg compilationUnitNode <$> readFile jFile
@@ -102,7 +102,7 @@ testRoundTripReal str =
         Right (ast1, ast2) -> assertEqual "" ast1 ast2
         Left perr -> error (str ++ show perr)
         where
-            doRoundTrip, singleStep :: Either ParseError (CompilationUnitNode Singleton)
+            doRoundTrip, singleStep :: Either PError (CompilationUnitNode Singleton)
             doRoundTrip = (prettyPrint) <$> (parserSeg compilationUnitNode str) >>= (parserSeg compilationUnitNode)
             singleStep = parserSeg compilationUnitNode str
 
